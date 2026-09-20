@@ -66,6 +66,7 @@
 
 ## Das ist neu
 
+- **Mikro blockiert nicht mehr dauerhaft** – hängt die Spracherkennung mal (statt sauber zu enden), gibt Julia das Mikro nach kurzer Zeit von selbst wieder frei, statt „tot" zu bleiben. Zusätzlich schreibt sie beim Zuhören jetzt genaue Diagnose ins Start-Logbuch, damit sich Mikro-Probleme gezielt einkreisen lassen.
 - **Mikro schneidet dich nicht mehr mitten im Satz ab** – bei einer kurzen Denkpause beendete die Spracherkennung bisher schon nach 1 Sekunde die Aufnahme (wirkte wie „random Abbruch"). Julia wartet jetzt länger (Standard 1,6 s), und du kannst die **Sprechpause** in den Sprach-Einstellungen selbst einstellen (0,5–5 s) – höher, wenn dich das Mikro noch abschneidet.
 - **Minecraft: überlebt länger (isst rechtzeitig)** – Julia isst jetzt früher und hält ihre Sättigung hoch, damit sich ihr Leben von selbst regeneriert – so geht sie beim Graben und Erkunden viel seltener k.o. (den Goldapfel setzt sie schon früher ein). Und sie sucht beim Jagen in einem größeren Umkreis nach Tieren, damit ihr nicht so schnell das Essen ausgeht.
 - **Minecraft: einzelne Spieler & Chat-Schalter** – im Minecraft-Tab kannst du jetzt einzelne **Spieler eintragen**, auf die Julia zusätzlich hört (mit „Hinzufügen" und ✕ zum Entfernen) – das gilt sofort im Spiel. Und die **Chat-Nachrichten** im Tab lassen sich per Schalter ausblenden.

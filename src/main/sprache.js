@@ -308,6 +308,22 @@ class Sprache extends EventEmitter {
       this.emit('mikrofon', true);
       let text = '';
       let fehler = null;
+      let erledigt = false;
+      // Wächter: schließt der Erkennungs-Prozess nie (hängt), darf das Mikro nicht
+      // dauerhaft blockiert bleiben. Nach der Frist hart beenden; kommt danach kein
+      // 'close', selbst aufräumen und mit dem bisher Erkannten auflösen.
+      const wache = setTimeout(() => {
+        try { p.kill(); } catch { /* schon weg */ }
+        setTimeout(() => {
+          if (erledigt) return;
+          erledigt = true;
+          this.hoeren = null;
+          this.emit('pegel', 0);
+          this.emit('mikrofon', false);
+          resolve(text || '');
+        }, 800);
+      }, 60000);
+      if (wache.unref) wache.unref();
       readline.createInterface({ input: p.stdout }).on('line', (z) => {
         if (z.startsWith('L ')) this.emit('pegel', Math.min(1, Number(z.slice(2)) / 100));
         else if (z.startsWith('T ')) text = z.slice(2).trim();
@@ -316,6 +332,9 @@ class Sprache extends EventEmitter {
         else if (z.startsWith('H ')) this.emit('hinweis', z.slice(2).trim());
       });
       p.on('close', async () => {
+        clearTimeout(wache);
+        if (erledigt) return;
+        erledigt = true;
         this.hoeren = null;
         this.emit('pegel', 0);
         this.emit('mikrofon', false);

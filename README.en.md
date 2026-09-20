@@ -66,6 +66,7 @@
 
 ## What's new
 
+- **Mic no longer stays stuck** – if speech recognition ever hangs (instead of ending cleanly), Julia frees the mic again on its own after a short while instead of staying "dead". It also now writes detailed diagnostics to the startup log while listening, so mic problems can be pinpointed.
 - **Mic no longer cuts you off mid-sentence** – on a short thinking pause, speech recognition used to end the recording after just 1 second (felt like a "random abort"). Julia now waits longer (default 1.6 s), and you can set the **speech pause** yourself in the voice settings (0.5–5 s) – turn it up if the mic still cuts you off.
 - **Minecraft: survives longer (eats in time)** – Julia now eats earlier and keeps her hunger high so her health regenerates on its own – so she goes down far less often while mining and exploring (and uses the golden apple earlier). She also searches a larger radius for animals when hunting, so she runs out of food less quickly.
 - **Minecraft: individual players & chat toggle** – in the Minecraft tab you can now add individual **players** that Julia also listens to (with "Add" and ✕ to remove) – effective immediately in-game. And the **chat messages** in the tab can be hidden with a toggle.

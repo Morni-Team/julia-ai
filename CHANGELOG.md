@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.0.2 – 2026-09-20
+- Mikro blockiert nicht mehr dauerhaft - haengt die Spracherkennung, gibt Julia das Mikro nach kurzer Zeit von selbst wieder frei; zusaetzlich genaue Mikro-Diagnose ins Start-Logbuch, um das Problem gezielt einzukreisen
+
 ## 6.0.1 – 2026-09-20
 - Mikro schneidet dich nicht mehr mitten im Satz ab - bei einer kurzen Denkpause endete die Aufnahme bisher schon nach 1 Sekunde; Julia wartet jetzt laenger (Standard 1,6 s) und die Sprechpause ist in den Sprach-Einstellungen einstellbar
 

@@ -981,16 +981,22 @@ async function mikrofonSperrePruefen() {
 }
 
 async function sprachUmschalten() {
-  if (sprache.hoertZu) { sprache.zuhoerenAbbrechen(); return; }
-  if (sprache.sprichtGerade) { sprache.stumm(); zustandSetzen('idle'); return; }
-  if (agent.beschaeftigt) { anAlle('agent:hinweis', { art: 'beschaeftigt' }); return; }
+  // Diagnose fürs Mikro (Nutzer meldet „bricht random ab"): jeden Zweig ins
+  // Start-Logbuch, damit der nächste Fehlversuch eindeutig zeigt, was passiert.
+  if (sprache.hoertZu) { startLog.schreiben('MIKRO', 'Hotkey während Zuhören → abgebrochen (Toggle aus)'); sprache.zuhoerenAbbrechen(); return; }
+  if (sprache.sprichtGerade) { startLog.schreiben('MIKRO', 'Hotkey während Sprechen → stumm', { sprechenProc: !!sprache.sprechenProc, vorleserAktiv: sprache.vorleserAktiv }); sprache.stumm(); zustandSetzen('idle'); return; }
+  if (agent.beschaeftigt) { startLog.schreiben('MIKRO', 'Hotkey ignoriert – Agent beschäftigt'); anAlle('agent:hinweis', { art: 'beschaeftigt' }); return; }
   hoert = true;
   zustandSetzen('listening');
   anAlle('sprache:hoert', true);
+  const beginn = Date.now();
+  startLog.schreiben('MIKRO', 'Zuhören gestartet', { erkennung: config.get('sprache.erkennung'), mikro: config.get('sprache.mikrofon') ? 'eigenes' : 'Standard', pauseS: config.get('sprache.pause_s') });
   let text = '';
   try {
     text = await sprache.zuhoeren(config.get('sprachcode'), { mikrofon: config.get('sprache.mikrofon'), whisper: spracherkennung(), endeStilleMs: Math.round((config.get('sprache.pause_s') || 1.6) * 1000) });
+    startLog.schreiben('MIKRO', 'Zuhören fertig', { dauerMs: Date.now() - beginn, textLaenge: (text || '').length });
   } catch (e) {
+    startLog.schreiben('MIKRO', 'Zuhören-Fehler', { dauerMs: Date.now() - beginn, fehler: String(e && e.message || e).slice(0, 200) });
     chatZeigen();
     anAlle('agent:fehler', { art: 'text', text: e.message });
   } finally {
