@@ -415,7 +415,11 @@ class Sprache extends EventEmitter {
       if (!wav || !whisper || !fs.existsSync(wav) || fs.statSync(wav).size <= 44) return { text: null };
       this.emit('schreibt', true);
       const t = await whisper(wav);
-      return { text: typeof t === 'string' ? t : null, sekunden: dauer() };
+      // Leeres/nur-Leerzeichen-Ergebnis (Stille/Fehlzündung) als „nichts" behandeln
+      // → null, damit der Aufrufer auf die Windows-Erkennung zurückfallen kann
+      // (bei `.text ?? windowsText` greift der Fallback sonst NICHT bei "").
+      const s = typeof t === 'string' ? t.trim() : '';
+      return { text: s || null, sekunden: dauer() };
     } catch (e) {
       this.emit('whisperFehler', e.message);
       return { text: null, fehler: e.message, sekunden: dauer() };

@@ -503,7 +503,7 @@ async function init() {
   julia.on('agent:fertig', () => { beschaeftigtSetzen(false); antwortEl = null; denkBoxAbschliessen(); $('text').focus(); });
   julia.on('agent:fehler', (e) => systemzeile(e.art === 'kein_schluessel' ? tx('chat.kein_schluessel') : e.text, 'fehler'));
   julia.on('agent:hinweis', (h) => {
-    const k = { abgebrochen: 'chat.abgebrochen', beschaeftigt: 'chat.beschaeftigt', verweigert: 'hinweis.verweigert', max_tokens: 'hinweis.max_tokens', zu_viele_runden: 'hinweis.zu_viele_runden', kosten_warnung: 'hinweis.kosten_warnung' }[h.art];
+    const k = { abgebrochen: 'chat.abgebrochen', beschaeftigt: 'chat.beschaeftigt', verweigert: 'hinweis.verweigert', max_tokens: 'hinweis.max_tokens', zu_viele_runden: 'hinweis.zu_viele_runden', kosten_warnung: 'hinweis.kosten_warnung', nichts_verstanden: 'hinweis.nichts_verstanden' }[h.art];
     if (k) systemzeile(tx(k));
   });
   julia.on('zustand', zustandAnzeigen);

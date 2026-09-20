@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.0.3 – 2026-09-20
+- Mikro sagt jetzt Bescheid, wenn nichts verstanden wurde (klarer Hinweis statt stillem Zurueckspringen), und faellt bei leerem Whisper-Ergebnis auf die Windows-Erkennung zurueck statt den Satz zu verwerfen
+
 ## 6.0.2 – 2026-09-20
 - Mikro blockiert nicht mehr dauerhaft - haengt die Spracherkennung, gibt Julia das Mikro nach kurzer Zeit von selbst wieder frei; zusaetzlich genaue Mikro-Diagnose ins Start-Logbuch, um das Problem gezielt einzukreisen
 

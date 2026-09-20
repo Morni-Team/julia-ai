@@ -66,6 +66,7 @@
 
 ## What's new
 
+- **Mic now tells you when it caught nothing** – when Julia listened but recognized nothing, it used to just silently go back (felt like "the mic doesn't work"). Now it shows a clear hint ("didn't catch anything – test the mic / raise the speech pause"). Also fixed: if the accurate (Whisper) recognition returned an empty result, Julia now falls back to Windows recognition instead of discarding the sentence entirely.
 - **Mic no longer stays stuck** – if speech recognition ever hangs (instead of ending cleanly), Julia frees the mic again on its own after a short while instead of staying "dead". It also now writes detailed diagnostics to the startup log while listening, so mic problems can be pinpointed.
 - **Mic no longer cuts you off mid-sentence** – on a short thinking pause, speech recognition used to end the recording after just 1 second (felt like a "random abort"). Julia now waits longer (default 1.6 s), and you can set the **speech pause** yourself in the voice settings (0.5–5 s) – turn it up if the mic still cuts you off.
 - **Minecraft: survives longer (eats in time)** – Julia now eats earlier and keeps her hunger high so her health regenerates on its own – so she goes down far less often while mining and exploring (and uses the golden apple earlier). She also searches a larger radius for animals when hunting, so she runs out of food less quickly.

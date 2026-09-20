@@ -1004,7 +1004,13 @@ async function sprachUmschalten() {
     anAlle('sprache:hoert', false);
     if (zustand === 'listening' || zustand === 'thinking') zustandSetzen('idle'); // thinking: Whisper schrieb gerade
   }
-  if (!text) mikrofonSperrePruefen();
+  if (!text) {
+    mikrofonSperrePruefen();
+    // Sichtbare Rückmeldung, statt still zur „wartet"-Ansicht zurückzuspringen –
+    // sonst wirkt es, als „ginge das Mikro nicht" (Nutzer-Feedback). So weiß man:
+    // zugehört, aber nichts verstanden → Mikro/Erkennung prüfen (Mikro-Test).
+    anAlle('agent:hinweis', { art: 'nichts_verstanden' });
+  }
   if (text) {
     // Beim Spielen: Antwort passiv einblenden, ohne dem Spiel den Fokus zu nehmen.
     const hud = config.get('overlay.bei_antwort') === 'passiv' && !(overlaySichtbar() && !overlayPassiv);
@@ -1851,6 +1857,7 @@ const HINWEIS_TEXT = {
   max_tokens: 'hinweis.max_tokens',
   zu_viele_runden: 'hinweis.zu_viele_runden',
   kosten_warnung: 'hinweis.kosten_warnung',
+  nichts_verstanden: 'hinweis.nichts_verstanden',
 };
 
 // Was an die Fenster geht, als Gesprächsereignis für den Verlauf.
