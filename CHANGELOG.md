@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.0.1 – 2026-09-20
+- Mikro schneidet dich nicht mehr mitten im Satz ab - bei einer kurzen Denkpause endete die Aufnahme bisher schon nach 1 Sekunde; Julia wartet jetzt laenger (Standard 1,6 s) und die Sprechpause ist in den Sprach-Einstellungen einstellbar
+
 ## 6.0.0 – 2026-09-19
 - Julia ueberlebt in Minecraft laenger - sie isst rechtzeitig und haelt die Saettigung hoch, damit sich Leben regeneriert (Goldapfel frueher), und sucht beim Jagen in groesserem Umkreis nach Tieren
 

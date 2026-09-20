@@ -95,6 +95,7 @@ const STANDARD = {
     lautsprecher: '',       // leer = Windows-Standard, sonst Gerätename
     erkennung: 'whisper',   // 'whisper' (lokal, genau) | 'windows' (alt, ungenau)
     whisper_modell: 'genau', // 'genau' (190 MB) | 'schnell' (60 MB)
+    pause_s: 1.6,           // wie lange Stille das Sprechen beendet (Sekunden) – höher = mehr Pausen-Toleranz, bricht seltener mittendrin ab
   },
   blase: {
     an: false,
@@ -291,6 +292,7 @@ function pruefen(schluessel, wert) {
       if (!['genau', 'schnell'].includes(wert)) throw new Error('Das Whisper-Modell ist "genau" oder "schnell".');
       return wert;
     case 'sprache.tempo': return Math.round(zahl(wert, -10, 10, 'Sprechtempo'));
+    case 'sprache.pause_s': return Math.round(zahl(wert, 0.5, 5, 'Sprechpause') * 10) / 10;
     case 'sprache.stimme':
     case 'hotkey.sprechen':
     case 'hotkey.chat':

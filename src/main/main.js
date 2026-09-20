@@ -989,7 +989,7 @@ async function sprachUmschalten() {
   anAlle('sprache:hoert', true);
   let text = '';
   try {
-    text = await sprache.zuhoeren(config.get('sprachcode'), { mikrofon: config.get('sprache.mikrofon'), whisper: spracherkennung() });
+    text = await sprache.zuhoeren(config.get('sprachcode'), { mikrofon: config.get('sprache.mikrofon'), whisper: spracherkennung(), endeStilleMs: Math.round((config.get('sprache.pause_s') || 1.6) * 1000) });
   } catch (e) {
     chatZeigen();
     anAlle('agent:fehler', { art: 'text', text: e.message });
@@ -1348,7 +1348,7 @@ function ipcEinrichten() {
       const laeufe = [];
       for (const [i, [art, mikrofon]] of arten.entries()) {
         if (!e.sender.isDestroyed()) e.sender.send('mikrotest', { art, n: i + 1, gesamt: arten.length, geraet: mikrofon });
-        laeufe.push({ art, geraet: mikrofon, ...(await sprache.mikrofonTesten(sprachcode, { mikrofon, whisper: spracherkennung() })) });
+        laeufe.push({ art, geraet: mikrofon, ...(await sprache.mikrofonTesten(sprachcode, { mikrofon, whisper: spracherkennung(), endeStilleMs: Math.round((config.get('sprache.pause_s') || 1.6) * 1000) })) });
       }
       const w = whisperStatus();
       const whisperInfo = { an: w.erkennung === 'whisper', bereit: !!(w.modelle[w.stufe] && w.modelle[w.stufe].bereit), modell: w.stufe };

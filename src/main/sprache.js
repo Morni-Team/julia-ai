@@ -49,8 +49,13 @@ try {
   }
   if (-not $eingestellt) { try { $rec.SetInputToDefaultAudioDevice() } catch { Aus 'E KEIN_MIKROFON'; exit 3 } }
   $rec.InitialSilenceTimeout = [TimeSpan]::FromSeconds(8)
-  $rec.EndSilenceTimeout = [TimeSpan]::FromSeconds(1.0)
-  $rec.EndSilenceTimeoutAmbiguous = [TimeSpan]::FromSeconds(1.5)
+  # Wie lange Stille das Sprechen beendet. Zu kurz = bricht bei einer normalen
+  # Denkpause mittendrin ab (Nutzer-Bug). Einstellbar über JULIA_ENDESTILLE_MS,
+  # in Millisekunden (locale-sicher als Ganzzahl); Standard 1600 ms.
+  $stilleMs = 1600
+  if ($env:JULIA_ENDESTILLE_MS) { try { $stilleMs = [int]$env:JULIA_ENDESTILLE_MS } catch { $stilleMs = 1600 } }
+  $rec.EndSilenceTimeout = [TimeSpan]::FromMilliseconds($stilleMs)
+  $rec.EndSilenceTimeoutAmbiguous = [TimeSpan]::FromMilliseconds($stilleMs + 600)
   $null = Register-ObjectEvent -InputObject $rec -EventName AudioLevelUpdated -SourceIdentifier pegel
   $null = Register-ObjectEvent -InputObject $rec -EventName SpeechRecognized -SourceIdentifier erkannt
   $null = Register-ObjectEvent -InputObject $rec -EventName SpeechHypothesized -SourceIdentifier zwischen
@@ -292,13 +297,13 @@ class Sprache extends EventEmitter {
   // Fehlt das gewählte Mikrofon, hört Julia über das Windows-Standardgerät.
   // whisper(wav): schreibt den aufgenommenen Ton genauer auf; ohne bleibt es
   // beim Text der Windows-Erkennung.
-  async zuhoeren(sprachcode = 'de', { mikrofon = '', whisper = null } = {}) {
+  async zuhoeren(sprachcode = 'de', { mikrofon = '', whisper = null, endeStilleMs = 0 } = {}) {
     if (this.hoeren) return '';
     const kultur = sprachcode === 'en' ? 'en' : 'de';
     const dllPfad = mikrofon ? await this.dll().catch(() => '') : '';
     const wav = whisper ? tempDatei('.wav') : '';
     return new Promise((resolve, reject) => {
-      const p = powershell(ERKENNEN, { JULIA_KULTUR: kultur, JULIA_MIKRO: mikrofon, JULIA_AUDIO_DLL: dllPfad, JULIA_WAV: wav });
+      const p = powershell(ERKENNEN, { JULIA_KULTUR: kultur, JULIA_MIKRO: mikrofon, JULIA_AUDIO_DLL: dllPfad, JULIA_WAV: wav, JULIA_ENDESTILLE_MS: endeStilleMs ? String(Math.round(endeStilleMs)) : '' });
       this.hoeren = p;
       this.emit('mikrofon', true);
       let text = '';
@@ -342,7 +347,7 @@ class Sprache extends EventEmitter {
   // Mikrofon-Test in den Einstellungen: nimmt wie zuhoeren() einen Satz auf,
   // meldet aber zusätzlich den höchsten Pegel und alle Hinweise – so sieht
   // man, ob überhaupt Ton ankommt.
-  async mikrofonTesten(sprachcode = 'de', { mikrofon = '', whisper = null } = {}) {
+  async mikrofonTesten(sprachcode = 'de', { mikrofon = '', whisper = null, endeStilleMs = 0 } = {}) {
     if (this.hoeren) throw new Error('beschaeftigt');
     const kultur = sprachcode === 'en' ? 'en' : 'de';
     let dllFehler = '';
@@ -351,7 +356,7 @@ class Sprache extends EventEmitter {
     const beginn = Date.now();
     return new Promise((resolve) => {
       const r = { pegel: 0, text: '', fehler: dllFehler ? `Audio-Hilfe: ${dllFehler}` : '', hinweise: [], sekunden: 0, windows: '', whisper: null };
-      const p = powershell(ERKENNEN, { JULIA_KULTUR: kultur, JULIA_MIKRO: mikrofon, JULIA_AUDIO_DLL: dllPfad, JULIA_WAV: wav });
+      const p = powershell(ERKENNEN, { JULIA_KULTUR: kultur, JULIA_MIKRO: mikrofon, JULIA_AUDIO_DLL: dllPfad, JULIA_WAV: wav, JULIA_ENDESTILLE_MS: endeStilleMs ? String(Math.round(endeStilleMs)) : '' });
       this.hoeren = p;
       readline.createInterface({ input: p.stdout }).on('line', (z) => {
         if (z.startsWith('L ')) {
