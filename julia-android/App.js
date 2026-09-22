@@ -6,7 +6,8 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import * as Speech from 'expo-speech';
 import * as Zugriff from './modules/julia-zugriff';
-import { antwortStreamen, ANBIETER } from './src/anbieter';
+import * as Bildschirm from './src/bildschirm';
+import { antwortStreamen, antwortHolen, ANBIETER } from './src/anbieter';
 import { frage as pcFrage, koppeln as pcKoppeln } from './src/pc';
 import {
   einstellungenLesen, einstellungenSpeichern, gespraechLesen, gespraechSpeichern,
@@ -77,7 +78,7 @@ export default function App() {
           }}
         />
       )}
-      {ansicht === 'steuerung' && <Steuerung f={f} />}
+      {ansicht === 'steuerung' && <Steuerung f={f} einst={einst} />}
     </SafeAreaView>
   );
 }
@@ -343,15 +344,78 @@ function Einstellungen({ f, einst, beiSpeichern, zuSteuerung }) {
 // jede STEUERNDE Aktion läuft über eine ausdrückliche Freigabe (Bestätigungs-
 // dialog) – dasselbe Prinzip wie die Ampel am PC. Ist der Dienst nicht in den
 // Android-Bedienungshilfen eingeschaltet, führt hier nichts etwas aus.
-function Steuerung({ f }) {
+function Steuerung({ f, einst }) {
   const [aktiv, setAktiv] = useState(false);
   const [elemente, setElemente] = useState([]);
   const [meldung, setMeldung] = useState('');
+  const [ziel, setZiel] = useState('');
+  const [denkt, setDenkt] = useState(false);
 
   function statusPruefen() {
     try { setAktiv(Zugriff.dienstLaeuft()); } catch { setAktiv(false); }
   }
   useEffect(() => { statusPruefen(); }, []);
+
+  // Eine geparste Aktion tatsächlich ausführen (nach Freigabe). Bildet die knappe
+  // KI-Aktion auf die native Brücke ab: bevorzugt per Text (robuster), sonst per
+  // Koordinate. Gibt eine kurze Rückmeldung.
+  function ausfuehren(aktion, digest) {
+    const e = aktion.n ? digest.find((d) => d.n === aktion.n) : null;
+    try {
+      let ok = false;
+      switch (aktion.art) {
+        case 'klick':
+          if (!e) { setMeldung(`Element ${aktion.n} gibt es nicht.`); return; }
+          ok = e.hatText ? Zugriff.klickText(e.label) : Zugriff.klickKoordinaten(e.x, e.y);
+          break;
+        case 'tippe': ok = Zugriff.textEingeben(aktion.text || ''); break;
+        case 'scroll': ok = Zugriff.scrollen(!!aktion.vorwaerts); break;
+        case 'zurueck': ok = Zugriff.zurueck(); break;
+        case 'start': ok = Zugriff.startseite(); break;
+        case 'apps': ok = Zugriff.letzteApps(); break;
+        default: setMeldung('Unbekannte Aktion – nichts getan.'); return;
+      }
+      setMeldung(ok ? `Ausgeführt: ${Bildschirm.aktionText(aktion, digest)}` : `Nicht möglich: ${Bildschirm.aktionText(aktion, digest)}`);
+    } catch (err) {
+      setMeldung('Fehler: ' + (err && err.message ? err.message : 'unbekannt'));
+    }
+  }
+
+  // Ein KI-Schritt: Bildschirm lesen → verdichten → KI fragt EIN Kommando → nach
+  // Freigabe ausführen. Jeder steuernde Schritt bleibt hinter der Ampel.
+  async function naechsterSchritt() {
+    if (!aktiv) { setMeldung('Erst den Dienst in den Bedienungshilfen einschalten.'); return; }
+    if (!ziel.trim()) { setMeldung('Sag zuerst, was Julia tun soll (Ziel eingeben).'); return; }
+    setDenkt(true);
+    setMeldung('Julia schaut auf den Bildschirm …');
+    try {
+      const roh = Zugriff.bildschirmLesen();
+      const digest = Bildschirm.verdichten(Array.isArray(roh) ? roh : []);
+      setElemente(digest);
+      const schluessel = await schluesselLesen(einst.anbieter);
+      if (!schluessel) { setMeldung('Kein API-Schlüssel hinterlegt – in den Einstellungen eintragen.'); return; }
+      const r = await antwortHolen({
+        anbieter: einst.anbieter, modell: einst.modell, schluessel, einstellungen: einst,
+        system: Bildschirm.steuerPrompt({ sprachcode: einst.sprachcode }),
+        verlauf: [{ rolle: 'user', text: `Ziel: ${ziel.trim()}\n\nBildschirm:\n${Bildschirm.alsText(digest)}` }],
+      });
+      const aktion = Bildschirm.aktionLesen(r.text);
+      if (aktion.art === 'fertig') { setMeldung('Julia: ' + (aktion.text || 'fertig.')); return; }
+      if (aktion.art === 'unbekannt') { setMeldung('Julia war unklar: ' + (r.text || '').slice(0, 120)); return; }
+      Alert.alert(
+        'Aktion freigeben',
+        `${Bildschirm.aktionText(aktion, digest)}\n\nJulia führt diese Steuerung nur mit deiner Freigabe aus.`,
+        [
+          { text: 'Abbrechen', style: 'cancel' },
+          { text: 'Freigeben', onPress: () => ausfuehren(aktion, digest) },
+        ],
+      );
+    } catch (err) {
+      setMeldung('Fehler: ' + (err && err.message ? err.message : 'unbekannt'));
+    } finally {
+      setDenkt(false);
+    }
+  }
 
   function bedienungshilfenOeffnen() {
     // Direkt zur Android-Bedienungshilfen-Seite; dort „Julia" einschalten.
@@ -362,9 +426,10 @@ function Steuerung({ f }) {
 
   function lesen() {
     try {
-      const e = Zugriff.bildschirmLesen();
-      setElemente(Array.isArray(e) ? e : []);
-      setMeldung(`${Array.isArray(e) ? e.length : 0} Elemente gelesen.`);
+      const roh = Zugriff.bildschirmLesen();
+      const digest = Bildschirm.verdichten(Array.isArray(roh) ? roh : []);
+      setElemente(digest);
+      setMeldung(`${digest.length} bedienbare Elemente erkannt.`);
     } catch (err) {
       setElemente([]);
       setMeldung('Lesen nicht möglich' + (err && err.message ? `: ${err.message}` : '.'));
@@ -410,6 +475,23 @@ function Steuerung({ f }) {
         </View>
       )}
 
+      {/* KI-gesteuert (Issue #6): Ziel sagen → Julia liest den Bildschirm und
+          schlägt EINE Aktion vor, die erst nach Freigabe ausgeführt wird. */}
+      <View style={{ gap: 8 }}>
+        <Text style={[s.label, { color: f.schwach }]}>Julia steuern lassen</Text>
+        <TextInput
+          style={[s.feld1, { color: f.text, borderColor: f.linie }]}
+          placeholder="Was soll Julia tun? z. B. Öffne die Einstellungen"
+          placeholderTextColor={f.schwach}
+          value={ziel}
+          onChangeText={setZiel}
+        />
+        <Pressable onPress={naechsterSchritt} disabled={denkt} style={[s.speichern, { backgroundColor: denkt ? f.karte : f.akzent }]}>
+          <Text style={{ color: denkt ? f.schwach : '#fff', fontWeight: '700' }}>{denkt ? 'Julia denkt …' : 'Nächster Schritt'}</Text>
+        </Pressable>
+        <Text style={{ color: f.schwach, fontSize: 12 }}>Julia schlägt jeweils einen Schritt vor; jede steuernde Aktion musst du einzeln freigeben. Danach erneut „Nächster Schritt".</Text>
+      </View>
+
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
         <Pressable onPress={lesen} style={[s.wahl, { borderColor: f.akzent, backgroundColor: f.akzent }]}><Text style={{ color: '#fff' }}>Bildschirm lesen</Text></Pressable>
         <Pressable onPress={() => mitFreigabe('Zurück', () => Zugriff.zurueck())} style={[s.wahl, { borderColor: f.linie }]}><Text style={{ color: f.text }}>Zurück</Text></Pressable>
@@ -421,9 +503,9 @@ function Steuerung({ f }) {
 
       {elemente.map((e, i) => (
         <View key={i} style={[s.blase, { backgroundColor: f.karte, alignSelf: 'stretch', maxWidth: '100%' }]}>
-          <Text style={{ color: f.text }} numberOfLines={2}>{e.text || e.desc || '(ohne Text)'}</Text>
+          <Text style={{ color: f.text }} numberOfLines={2}>{e.n}. {e.label}</Text>
           <Text style={{ color: f.schwach, fontSize: 11, marginTop: 2 }}>
-            {e.klasse}{e.clickable ? ' · klickbar' : ''}{e.editable ? ' · Eingabe' : ''}{e.scrollable ? ' · scrollbar' : ''} · {e.x},{e.y}
+            {e.rolle}{e.hatText ? '' : ' · per Koordinate'} · {e.x},{e.y}
           </Text>
         </View>
       ))}
