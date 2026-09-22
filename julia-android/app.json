@@ -15,6 +15,10 @@
       "buildNumber": "1",
       "supportsTablet": true
     },
-    "plugins": ["expo-secure-store", "./plugins/withJuliaAccessibility"]
+    "plugins": [
+      "expo-secure-store",
+      "./plugins/withJuliaAccessibility",
+      "expo-status-bar"
+    ]
   }
 }

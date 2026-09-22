@@ -3,3 +3,10 @@ node_modules/
 dist/
 web-build/
 *.log
+# Von `expo prebuild` erzeugte native Projekte (CI erzeugt sie neu) – nur die
+# Top-Level-Ordner, NICHT das mitgelieferte native Modul (modules/.../android).
+/android/
+/ios/
+# Gradle-/Build-Caches überall (Build-Artefakte, nie einchecken)
+.gradle/
+**/build/
