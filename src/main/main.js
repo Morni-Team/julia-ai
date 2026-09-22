@@ -85,6 +85,7 @@ absturzschutz.installieren({
 
 const { Konfiguration } = require('./config');
 const { Gedaechtnis } = require('./gedaechtnis');
+const { Wissensgraph } = require('./wissensgraph');
 const { Protokoll } = require('./protokoll');
 const { Agent } = require('./agent');
 const { Updater } = require('./updater');
@@ -143,6 +144,7 @@ const VORFUEHRUNG = process.env.JULIA_SCREENSHOTS || null;
 
 let config;
 let gedaechtnis;
+let wissensgraph;
 let protokoll;
 let agent;
 let updater;
@@ -316,6 +318,7 @@ function laufzeitText() {
     version: version(),
     monitore: bildschirm.beschreibung(),
     gedaechtnis: gedaechtnis.alsText(),
+    wissensgraph: wissensgraph.alsText(),
     vorgemerkt: kanal !== 'auto' ? protokoll.vorgemerkt() : [],
     konten: konten.beschreibung(),
     minecraft: minecraft && minecraft.verbunden ? minecraft.status() : null,
@@ -2359,6 +2362,7 @@ async function start() {
   nativeTheme.on('updated', fensterFarben);
 
   gedaechtnis = new Gedaechtnis(DATEN);
+  wissensgraph = new Wissensgraph(DATEN);
   protokoll = new Protokoll(DATEN);
   erinnerungen = new Erinnerungen(DATEN);
   const kosten = new Kosten(DATEN);
@@ -2440,6 +2444,7 @@ async function start() {
     config,
     mcp,
     gedaechtnis,
+    wissensgraph,
     protokoll,
     konten,
     erinnerungen,

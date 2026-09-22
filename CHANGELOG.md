@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.1.0 – 2026-09-22
+- Wissensgraph als strukturiertes Langzeit-Gedaechtnis - Julia merkt sich Bausteine (Personen, Projekte, Apps) mit Notizen und Verknuepfungen zwischen ihnen und kann Zusammenhaenge gezielt nachschlagen und ergaenzen (rein lokal, keine Zugangsdaten)
+
 ## 6.0.3 – 2026-09-20
 - Mikro sagt jetzt Bescheid, wenn nichts verstanden wurde (klarer Hinweis statt stillem Zurueckspringen), und faellt bei leerem Whisper-Ergebnis auf die Windows-Erkennung zurueck statt den Satz zu verwerfen
 

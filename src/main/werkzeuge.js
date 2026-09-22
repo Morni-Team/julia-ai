@@ -853,6 +853,66 @@ const WERKZEUGE = [
       return ok ? 'Gelöscht.' : `Es gibt keinen Eintrag "${e.schluessel}".`;
     },
   },
+  // Wissensgraph (Issue #89): strukturiertes Langzeit-Gedächtnis als Graph –
+  // Entitäten (Dinge/Personen/Projekte) mit Beobachtungen, dazu Relationen
+  // („von –art– zu"). Ergänzt das freie `gedaechtnis` um Verknüpfungen, mit denen
+  // Julia Zusammenhänge nachschlagen kann. Rein lokal, keine Zugangsdaten.
+  {
+    name: 'graph_merken',
+    description: 'Wissen im Gedächtnis-Graphen ablegen: Entitäten (mit Typ und Beobachtungen) und/oder Relationen zwischen ihnen. entitaeten=[{name, typ, beobachtungen:[...]}]; relationen=[{von, art, zu}] – fehlende Entitäten werden dabei angelegt. Doppeltes wird zusammengeführt. Nie Zugangsdaten.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        entitaeten: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, typ: { type: 'string', description: 'z. B. Person, Projekt, App, Ort.' }, beobachtungen: { type: 'array', items: { type: 'string' } } }, required: ['name'] } },
+        relationen: { type: 'array', items: { type: 'object', properties: { von: { type: 'string' }, art: { type: 'string', description: 'z. B. "arbeitet an", "gehört zu", "mag".' }, zu: { type: 'string' } }, required: ['von', 'art', 'zu'] } },
+      },
+    },
+    dauerhaft: true,
+    einstufen(e) {
+      const teile = [];
+      for (const x of (e.entitaeten || [])) teile.push(x && x.name);
+      for (const r of (e.relationen || [])) teile.push(r && `${r.von} ${r.art} ${r.zu}`);
+      return { ...gruen(), beschreibung: `Graph merken: ${teile.filter(Boolean).join('; ') || '(leer)'}` };
+    },
+    async ausfuehren(e, ctx) {
+      const r = ctx.wissensgraph.merken({ entitaeten: e.entitaeten || [], relationen: e.relationen || [] });
+      ctx.kontextGeaendert();
+      return `Gemerkt: ${r.neueEntitaeten} neue Entität(en), ${r.neueBeobachtungen} neue Beobachtung(en), ${r.neueRelationen} neue Relation(en).`;
+    },
+  },
+  {
+    name: 'graph_abfragen',
+    fremd: true,
+    description: 'Den Gedächtnis-Graphen durchsuchen. suche = Stichwort (über Name/Typ/Beobachtungen, Groß/klein egal); leer lässt = ganzer Graph im Überblick. Liefert passende Entitäten samt der Relationen, die sie berühren.',
+    input_schema: { type: 'object', properties: { suche: { type: 'string' } } },
+    einstufen: gruen,
+    async ausfuehren(e, ctx) {
+      const r = ctx.wissensgraph.abfragen(e.suche || '');
+      if (!r.entitaeten.length && !r.relationen.length) return e.suche ? `Nichts zu „${e.suche}“ im Graphen gefunden.` : 'Der Graph ist noch leer.';
+      const zeilen = [];
+      for (const ent of r.entitaeten) {
+        const typ = ent.typ ? ` (${ent.typ})` : '';
+        const beob = ent.beobachtungen.length ? `: ${ent.beobachtungen.join('; ')}` : '';
+        zeilen.push(`• ${ent.name}${typ}${beob}`);
+      }
+      if (r.relationen.length) {
+        zeilen.push('Relationen:');
+        for (const rel of r.relationen) zeilen.push(`• ${rel.von} —${rel.art}→ ${rel.zu}`);
+      }
+      return fremd('dem Gedächtnis-Graphen', zeilen.join('\n'));
+    },
+  },
+  {
+    name: 'graph_entfernen',
+    description: 'Aus dem Gedächtnis-Graphen löschen: entweder eine ganze Entität (samt ihrer Relationen) über entitaet, oder eine einzelne Beobachtung über entitaet+beobachtung, oder eine Relation über relation={von, art, zu}.',
+    input_schema: { type: 'object', properties: { entitaet: { type: 'string' }, beobachtung: { type: 'string' }, relation: { type: 'object', properties: { von: { type: 'string' }, art: { type: 'string' }, zu: { type: 'string' } } } } },
+    einstufen: gruen,
+    async ausfuehren(e, ctx) {
+      const ok = ctx.wissensgraph.entfernen({ entitaet: e.entitaet, beobachtung: e.beobachtung, relation: e.relation });
+      ctx.kontextGeaendert();
+      return ok ? 'Aus dem Graphen entfernt.' : 'Nichts Passendes im Graphen gefunden.';
+    },
+  },
   {
     name: 'protokoll_lesen',
     description: 'Die letzten Einträge im Protokoll: alles, was über GRÜN hinausging (Installationen, Änderungen außerhalb der Arbeitsverzeichnisse, Systemeingriffe, Ablehnungen).',
@@ -1285,7 +1345,7 @@ const KATEGORIEN = [
   { id: 'dateien', werkzeuge: ['datei_lesen', 'datei_schreiben', 'datei_finden', 'datei_verschieben', 'datei_papierkorb', 'ordner_auflisten', 'doppelte_dateien', 'projekt_suchen'] },
   { id: 'bildschirm', werkzeuge: ['screenshot', 'medien', 'zwischenablage_lesen'] },
   { id: 'system', werkzeuge: ['shell', 'system_status', 'prozesse_auflisten', 'protokoll_lesen'] },
-  { id: 'gedaechtnis', werkzeuge: ['gedaechtnis_lesen', 'gedaechtnis_schreiben', 'gedaechtnis_loeschen'] },
+  { id: 'gedaechtnis', werkzeuge: ['gedaechtnis_lesen', 'gedaechtnis_schreiben', 'gedaechtnis_loeschen', 'graph_merken', 'graph_abfragen', 'graph_entfernen'] },
   { id: 'erinnerungen', werkzeuge: ['erinnerung_setzen', 'erinnerung_loeschen', 'erinnerungen_anzeigen', 'stoppuhr'] },
   { id: 'web', werkzeuge: ['webseite_abrufen'] },
   { id: 'apps', werkzeuge: ['apps', 'clip_speichern'] },

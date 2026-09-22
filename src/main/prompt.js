@@ -108,7 +108,7 @@ function systemPrompt(opts) {
 
 // Der zweite Block im System-Prompt: ändert sich selten (Gedächtnis, Kanal),
 // deshalb getrennt vom großen, gecachten ersten Block.
-function laufzeitKontext({ kanal, version, monitore, gedaechtnis, vorgemerkt, konten, minecraft }) {
+function laufzeitKontext({ kanal, version, monitore, gedaechtnis, wissensgraph, vorgemerkt, konten, minecraft }) {
   // Wie der System-Prompt: der KI-seitige Laufzeit-Block ist immer auf Englisch.
   const en = true;
   const mon = (monitore || [])
@@ -128,6 +128,7 @@ function laufzeitKontext({ kanal, version, monitore, gedaechtnis, vorgemerkt, ko
       '',
       '## Memory',
       gedaechtnis,
+      ...(wissensgraph && wissensgraph !== '(noch leer)' ? ['', '## Knowledge graph (overview – use graph_abfragen to look up details, graph_merken to add)', wissensgraph] : []),
     ]
     : [
       '## Laufzeit',
@@ -139,6 +140,7 @@ function laufzeitKontext({ kanal, version, monitore, gedaechtnis, vorgemerkt, ko
       '',
       '## Gedächtnis',
       gedaechtnis,
+      ...(wissensgraph && wissensgraph !== '(noch leer)' ? ['', '## Wissensgraph (Überblick – Details mit graph_abfragen nachschlagen, mit graph_merken ergänzen)', wissensgraph] : []),
     ];
   if (vorgemerkt && vorgemerkt.length) {
     zeilen.push('', en ? '## Queued from unattended runs (present these once)' : '## Vorgemerkt aus unbeaufsichtigten Läufen (einmal vorlegen)');
