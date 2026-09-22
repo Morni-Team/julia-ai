@@ -33,9 +33,10 @@ export const ANBIETER = [
 
 // verlauf: [{ rolle: 'user'|'assistant', text }]
 // Rückgabe: { text, ein, aus, usd }
-export async function antwortHolen({ anbieter = 'anthropic', modell, schluessel, einstellungen, verlauf, signal }) {
+export async function antwortHolen({ anbieter = 'anthropic', modell, schluessel, einstellungen, verlauf, signal, system: systemUeber }) {
   if (!schluessel) throw new Error('Kein API-Schlüssel hinterlegt. Trag ihn in den Einstellungen ein.');
-  const system = systemPrompt(einstellungen);
+  // Eigener System-Prompt (z. B. Steuer-Modus) hat Vorrang; sonst der Chat-Prompt.
+  const system = systemUeber || systemPrompt(einstellungen);
   return anbieter === 'openai'
     ? openai({ modell, schluessel, system, verlauf, signal })
     : anthropic({ modell, schluessel, system, verlauf, signal });
