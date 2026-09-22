@@ -6,6 +6,8 @@ name: Android-APK bauen
 # gebaut, die man direkt aufs Handy laden und installieren kann.
 #
 # Auslöser:
+#   - AUTOMATISCH bei jedem Push auf `main`, der die Handy-App (julia-android)
+#     oder diesen Workflow betrifft → so entsteht ohne Zutun immer eine frische APK
 #   - manuell (Actions-Tab → „Android-APK bauen" → Run workflow)
 #   - beim Pushen eines Tags, der mit `android-v` beginnt (z. B. android-v0.1.0)
 # Ergebnis:
@@ -16,8 +18,13 @@ name: Android-APK bauen
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
     tags:
       - 'android-v*'
+    paths:
+      - 'julia-android/**'
+      - '.github/workflows/android-apk.yml'
 
 permissions:
   contents: write
