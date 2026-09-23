@@ -2130,18 +2130,43 @@ function gespraechFortsetzen(id) {
 // geht kurz zurück in den Spielchat; handeln darf Julia von dort nur im Spiel
 // (Kanal "minecraft", siehe agent.js).
 async function minecraftFrage({ von, text }) {
-  if (agent.beschaeftigt) {
-    try { minecraft.chat(t('mc.beschaeftigt')); } catch { /* nicht mehr im Spiel */ }
-    return;
-  }
   protokoll.eintragen({ werkzeug: 'minecraft', stufe: 'INFO', eingabe: { von, text: text.slice(0, 250) }, ergebnis: 'Frage aus dem Minecraft-Chat' });
   anChatFenster('agent:nutzer', { text: t('mc.im_spiel', { von, text }), perSprache: false });
+  // KI nebenbei (Issue #93): Ist der Hauptagent gerade beschäftigt (baut/kämpft/
+  // spielt durch), antwortet ein leichter Nebenläufer OHNE Werkzeuge und mit
+  // kleinem Token-Budget – so bekommt der Spieler mitten im Gameplay eine schnelle
+  // Antwort, statt „bin beschäftigt". Ist der Agent frei, übernimmt der volle
+  // Agent (kann im Spiel auch handeln).
+  if (agent.beschaeftigt) {
+    try {
+      const antwort = await agent.nebenAntwort(text, {
+        name: assistentName(),
+        sprachcode: config.get('sprachcode'),
+        kontext: mcKontext(),
+      });
+      if (antwort) { anChatFenster('agent:text', { text: antwort }); await minecraft.antworten(antwort); }
+    } catch { /* Neben-KI nicht verfügbar (z. B. Claude-Code-Modus) – dann still */ }
+    return;
+  }
   try {
     const antwort = await agent.senden(`[${t('mc.auftrag_kopf', { von })}] ${text}`, { kanal: 'minecraft' });
     if (antwort) await minecraft.antworten(antwort);
   } catch (e) {
     if (e.message !== 'BESCHAEFTIGT') anChatFenster('agent:fehler', { art: 'text', text: e.message });
   }
+}
+
+// Kurzer Spielzustand als Kontext für die Neben-KI (Leben/Hunger/Aufgabe).
+function mcKontext() {
+  try {
+    const s = minecraft && minecraft.verbunden ? minecraft.status() : null;
+    if (!s) return '';
+    const teile = [];
+    if (typeof s.leben === 'number') teile.push(`Leben ${s.leben}/20`);
+    if (typeof s.hunger === 'number') teile.push(`Hunger ${s.hunger}/20`);
+    if (s.aufgabe && s.aufgabe.art) teile.push(`Aufgabe: ${s.aufgabe.art}`);
+    return teile.join(', ');
+  } catch { return ''; }
 }
 
 // Gesprochen im Minecraft-Voice-Chat (nur die Stimme deines Spielernamens):

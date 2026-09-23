@@ -416,6 +416,39 @@ class Agent extends EventEmitter {
     return textAus(r.content) || '';
   }
 
+  // KI nebenbei (Issue #93): ein leichter Nebenläufer für lockere In-Game-Fragen,
+  // der auch antwortet, WÄHREND der Hauptagent beschäftigt ist (baut/kämpft/…).
+  // Ein einziger Modell-Aufruf OHNE Werkzeuge und mit kleinem Token-Budget – so
+  // bekommt der Spieler im Chat schnell eine Antwort, ohne den Hauptagenten zu
+  // blockieren oder viele Tokens zu kosten. Nutzt einen eigenen Abbruch, damit er
+  // vom laufenden Hauptauftrag unabhängig ist.
+  async nebenAntwort(frage, { name = 'Julia', sprachcode = 'de', kontext = '' } = {}) {
+    const text = String(frage || '').trim().slice(0, 800);
+    if (!text) return '';
+    const en = sprachcode === 'en';
+    const system = en
+      ? `You are ${name}, playing Minecraft alongside the player. Answer this quick in-game chat message briefly (1–2 short sentences), like teammates talking. You cannot perform actions from here – for that the player uses commands (e.g. !come, !follow). No tools. Answer in English.${kontext ? `\nYour current in-game state: ${kontext}` : ''}`
+      : `Du bist ${name} und spielst mit dem Spieler Minecraft. Antworte auf diese kurze Chat-Nachricht knapp (1–2 kurze Sätze), wie unter Mitspielern. Von hier aus kannst du nichts ausführen – dafür nutzt der Spieler Befehle (z. B. !komm, !folge). Keine Werkzeuge. Antworte auf Deutsch.${kontext ? `\nDein aktueller Spielzustand: ${kontext}` : ''}`;
+    const a = anbieter.anbieterVon(this.config);
+    const modell = this.config.get('modell');
+    if (a.art === 'claude-code') throw new Error('Die Neben-KI ist im Claude-Code-Modus nicht verfügbar.');
+    const abbruch = new AbortController();
+    if (a.art === 'anthropic') {
+      const client = this._client();
+      const msg = await client.messages.create({
+        model: modell, max_tokens: 350, system, messages: [{ role: 'user', content: text }],
+      }, { signal: abbruch.signal });
+      return textAus(msg.content) || '';
+    }
+    const schluessel = this._schluesselFuer(a);
+    const r = await openai.runde({
+      url: a.url, schluessel, modell, system, werkzeuge: [],
+      verlauf: [{ role: 'user', content: [{ type: 'text', text }] }],
+      signal: abbruch.signal, holen: this.holen, optionen: { kopf: a.kopf, maxTokens: 350 },
+    });
+    return textAus(r.content) || '';
+  }
+
   // Merkt sich, dass das aktuelle Modell keine Bilder versteht, damit künftig
   // keine Screenshots mehr mitgeschickt werden. Gibt true, wenn neu gemerkt.
   _bildlosMerken() {

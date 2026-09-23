@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.2.0 – 2026-09-23
+- Minecraft klueger im Kampf - Julia zieht sich bei Unterzahl oder wenig Leben zurueck und regeneriert statt dumm zu sterben, spart den seltenen verzauberten Goldapfel fuer Notfaelle, craftet auf Zuruf volle Ruestung in der besten Stufe, und eine leichte KI nebenbei beantwortet Fragen im Spielchat auch waehrend sie baut oder kaempft
+
 ## 6.1.0 – 2026-09-22
 - Wissensgraph als strukturiertes Langzeit-Gedaechtnis - Julia merkt sich Bausteine (Personen, Projekte, Apps) mit Notizen und Verknuepfungen zwischen ihnen und kann Zusammenhaenge gezielt nachschlagen und ergaenzen (rein lokal, keine Zugangsdaten)
 

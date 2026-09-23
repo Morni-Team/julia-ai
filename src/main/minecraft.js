@@ -92,7 +92,7 @@ const TIERE = new Set(['cow', 'pig', 'chicken', 'sheep', 'rabbit', 'mooshroom'])
 const TIER_WOERTER = { kuh: 'cow', kuehe: 'cow', kühe: 'cow', schwein: 'pig', schweine: 'pig', huhn: 'chicken', huehner: 'chicken', hühner: 'chicken', schaf: 'sheep', schafe: 'sheep', hase: 'rabbit', hasen: 'rabbit', kaninchen: 'rabbit', pilzkuh: 'mooshroom' };
 // Das behält die Figur beim Einräumen: Waffen, Werkzeug, Rüstung, Essen, Fackeln.
 const BEHALTEN = /_(sword|axe|pickaxe|shovel|hoe|helmet|chestplate|leggings|boots)$|^(shield|bow|crossbow|trident|arrow|torch)$/;
-const HILFE = 'Befehle: !folge · !komm · !beschütze mich · !duell · !stopp · !geh X Y Z · !gib 5 brot · !sammel · !jag 3 kuh · !craft 4 fackel · !bau ab holz 10 · !bau turm 8 · !bau mauer 10 3 · !bau hütte · !bau brücke 12 · !schmelz 8 eisen · !stell werkbank hin · !ess · !verstau · !schlaf · !steig ein · !steig aus · !spiel durch · !hör auch auf NAME · !hör nur auf mich';
+const HILFE = 'Befehle: !folge · !komm · !beschütze mich · !duell · !stopp · !geh X Y Z · !gib 5 brot · !sammel · !jag 3 kuh · !craft 4 fackel · !bau ab holz 10 · !bau turm 8 · !bau mauer 10 3 · !bau hütte · !bau brücke 12 · !schmelz 8 eisen · !stell werkbank hin · !ess · !rüste dich · !verstau · !schlaf · !steig ein · !steig aus · !spiel durch · !hör auch auf NAME · !hör nur auf mich';
 // Brennstoff für den Ofen: Name (oder Endung) und wie viele Dinge eins schafft.
 const BRENNSTOFF = [['coal', 8], ['charcoal', 8], ['_planks', 1.5], ['_log', 1.5], ['stick', 0.5]];
 // Was die Figur beim Umsehen meldet.
@@ -504,6 +504,65 @@ function essenPlan({ food, health, hatEssen, hatHeilung }) {
   return null;
 }
 
+// Kampf-Taktik (Issue #93): nicht dumm sterben, bei Unterlegenheit zurückziehen
+// und schnell regenerieren. Entscheidet aus Leben, Zahl der nahen Feinde und ob
+// etwas zum Heilen dabei ist: 'rueckzug' | 'heilen' | 'kaempfen'.
+//  - sehr wenig Leben (≤6): raus – erst heilen wenn möglich, sonst fliehen.
+//  - in Unterzahl (≥3 Feinde) und angeschlagen (<14): lieber zurückziehen und
+//    regenerieren, statt überrannt zu werden.
+//  - Leben knapp (≤8) und Heilung da: erst heilen.
+function rueckzugPlan({ health, feinde = 1, hatHeilung = false } = {}) {
+  if (health <= 6) return hatHeilung ? 'heilen' : 'rueckzug';
+  if (feinde >= 3 && health < 14) return 'rueckzug';
+  if (health <= 8 && hatHeilung) return 'heilen';
+  return 'kaempfen';
+}
+
+// Sparsam mit dem Seltenen (Issue #93 „je rarer, desto besser"): den normalen
+// Goldapfel für den Alltag, den verzauberten Goldapfel nur im Notfall (sehr wenig
+// Leben) oder wenn kein normaler mehr da ist. `hat` = Map Name→Anzahl. Gibt den
+// zu essenden Item-Namen zurück oder null.
+function heilWahl(hat = {}, health = 20) {
+  const normal = (hat.golden_apple || 0) > 0;
+  const selten = (hat.enchanted_golden_apple || 0) > 0;
+  if (health <= 6 && selten) return 'enchanted_golden_apple';
+  if (normal) return 'golden_apple';
+  if (selten) return 'enchanted_golden_apple';
+  return null;
+}
+
+// Rüstung craften – immer die beste erreichbare Stufe (Issue #93 „full rüssi …
+// immer das bessere"). Aus dem Rohstoff-Vorrat (leather/iron_ingot/gold_ingot/
+// diamond) für jedes Rüstungsteil die beste craftbare Stufe wählen, die die
+// bereits getragene übertrifft; Material wird pro Teil abgezogen (kein
+// Doppel-Ausgeben). Gibt eine Liste { slot, item, material, menge } zurück,
+// teuerste Teile zuerst (Brustpanzer/Hose), damit knappes Material dort landet.
+const RUESTUNG_STUFE = { netherite: 6, diamond: 5, iron: 4, chainmail: 3, turtle: 3, golden: 2, leather: 1 };
+const TEIL_KOSTEN = { chestplate: 8, leggings: 7, helmet: 5, boots: 4 };
+const CRAFT_STUFEN = [
+  { tier: 'diamond', material: 'diamond' },
+  { tier: 'iron', material: 'iron_ingot' },
+  { tier: 'golden', material: 'gold_ingot' },
+  { tier: 'leather', material: 'leather' },
+];
+function ruestungCraftPlan(vorrat = {}, getragen = {}) {
+  const rest = { ...vorrat };
+  const plan = [];
+  for (const slot of ['chestplate', 'leggings', 'helmet', 'boots']) {
+    const kosten = TEIL_KOSTEN[slot];
+    const habenStufe = RUESTUNG_STUFE[getragen[slot]] || 0;
+    for (const { tier, material } of CRAFT_STUFEN) {
+      if (RUESTUNG_STUFE[tier] <= habenStufe) break; // schon gleich gut oder besser getragen
+      if ((rest[material] || 0) >= kosten) {
+        rest[material] -= kosten;
+        plan.push({ slot, item: `${tier}_${slot}`, material, menge: kosten });
+        break;
+      }
+    }
+  }
+  return plan;
+}
+
 // --- Eimer (Wasser/Lava aufnehmen & setzen, Milch trinken) ---
 // Reine Zuordnung Aktion → welcher Eimer in die Hand muss, welche Quelle gesucht
 // wird und was hinterher im Eimer ist. Getestet; die eigentliche Ausführung
@@ -605,6 +664,7 @@ function befehlLesen(text, namen = []) {
   if (schm) { const m = mengeLesen(schm[1]); return { aufgabe: 'schmelzen', item: m.sache, anzahl: m.anzahl }; }
   const hin = /^(?:stell(?:e)?\s+(.+?)\s+hin|platzier(?:e)?\s+(.+)|place\s+(.+))$/.exec(s);
   if (hin) return { aufgabe: 'platzieren', item: (hin[1] || hin[2] || hin[3]).replace(/^(ein(e|en)?|die|den|das|a|an)\s+/, '') };
+  if (/^(?:r(?:ü|ue)st(?:e)?\s+dich(?:\s+aus)?|r(?:ü|ue)st(?:e)?\s+dich\s+voll\s+aus|voll(?:e)?\s+r(?:ü|ue)stung|beste\s+r(?:ü|ue)stung|craft(?:e)?\s+r(?:ü|ue)stung|r(?:ü|ue)stung\s+craften|mach(?:e)?\s+r(?:ü|ue)stung|full\s+armor|craft\s+armor)$/.test(s)) return { aufgabe: 'ruesten' };
   const nimm = /^(?:nimm|r(?:ü|ue)st(?:e)?|equip)\s+(?:(?:dein(?:e|en)?|die|den|das)\s+)?(.+?)(?:\s+aus)?$/.exec(s);
   if (nimm) return { aufgabe: 'ausruesten', item: nimm[1] };
   const cr = /^(?:craft(?:e)?|herstellen|stell(?:e)?(?:\s+mir)?|mach(?:e)?\s+mir)\s+(.+?)(?:\s+her)?$/.exec(s);
@@ -1114,6 +1174,8 @@ class Minecraft extends EventEmitter {
         return this._platzieren(item || block);
       case 'ausruesten':
         return this._ausruestenMit(item || block);
+      case 'ruesten':
+        return this._ruestungCraften();
       case 'essen': {
         if (bot.food >= 20 && bot.health >= 20) return 'Ich bin satt.';
         const gegessen = this._essen([...ESSEN, ...HEILEN]);
@@ -1470,6 +1532,20 @@ class Minecraft extends EventEmitter {
     return this.bot.inventory.items().some((i) => liste.includes(i.name));
   }
 
+  // Wie viele Goldäpfel welcher Art dabei sind (für die sparsame Heil-Wahl).
+  _heilVorrat() {
+    return {
+      golden_apple: this._anzahlImInventar('golden_apple'),
+      enchanted_golden_apple: this._anzahlImInventar('enchanted_golden_apple'),
+    };
+  }
+
+  // Zahl der Monster in unmittelbarer Nähe (für die Unterzahl-Erkennung im Kampf).
+  _feindeNah(reichweite = 10) {
+    const p = this.bot.entity.position;
+    return Object.values(this.bot.entities).filter((e) => istFeind(e) && e.position && e.position.distanceTo(p) < reichweite).length;
+  }
+
   // Wie viele Stück eines Gegenstands (nach internem Namen) im Inventar liegen.
   _anzahlImInventar(name) {
     return this.bot.inventory.items().reduce((s, i) => (i.name === name ? s + i.count : s), 0);
@@ -1600,10 +1676,12 @@ class Minecraft extends EventEmitter {
     const bot = this.bot;
     const { GoalFollow } = this.pf.goals;
     const d = bot.entity.position.distanceTo(ziel.position);
-    // Zu wenig Leben und kein Goldapfel: nicht sterben, sondern zurückziehen.
-    if (bot.health <= 6 && !this._hat(HEILEN)) { this._zurueckziehen(ziel); return; }
-    // Leben knapp: erst einen Goldapfel, wenn einer da ist.
-    if (bot.health <= 8) { const g = this._essen(HEILEN); if (g) { this._essenMelden(g); return; } }
+    // Taktik (Issue #93): bei wenig Leben / Unterzahl nicht dumm sterben.
+    // Sparsam mit dem verzauberten Goldapfel (nur im Notfall), sonst normaler.
+    const heilItem = heilWahl(this._heilVorrat(), bot.health);
+    const plan = rueckzugPlan({ health: bot.health, feinde: this._feindeNah(), hatHeilung: !!heilItem });
+    if (plan === 'rueckzug') { this._zurueckziehen(ziel); return; }
+    if (plan === 'heilen' && heilItem) { const g = this._essen([heilItem]); if (g) { this._essenMelden(g); return; } }
     // Creeper braucht eine andere Taktik: auf Abstand bleiben.
     if (ziel.name === 'creeper') { this._creeper(ziel, d); return; }
     // Feind noch weit weg und Hunger? Kurz auffüllen, solange es sicher ist.
@@ -1692,6 +1770,63 @@ class Minecraft extends EventEmitter {
     } catch (e) {
       this.letzterFehler = e.message;
     }
+  }
+
+  // Volle Rüstung craften – immer die beste erreichbare Stufe (Issue #93).
+  // Plant aus dem Rohstoff-Vorrat (leather/iron/gold/diamant) für jedes noch nicht
+  // optimal besetzte Teil die beste craftbare Stufe, stellt sie an der nächsten
+  // Werkbank her und legt sie an. Defensiv (jede Stufe in try/catch – nie ein
+  // Crash), best-effort (an einem echten Server nicht durchgetestet).
+  _ruestungCraften() {
+    const bot = this.bot;
+    const vorrat = {
+      diamond: this._anzahlImInventar('diamond'),
+      iron_ingot: this._anzahlImInventar('iron_ingot'),
+      gold_ingot: this._anzahlImInventar('gold_ingot'),
+      leather: this._anzahlImInventar('leather'),
+    };
+    const getragen = {};
+    for (const [platz, slot] of Object.entries(PLATZ_SLOT)) {
+      const it = bot.inventory.slots[slot];
+      const m = it && /^(netherite|diamond|iron|chainmail|turtle|golden|leather)_(helmet|chestplate|leggings|boots)$/.exec(it.name);
+      if (m) getragen[m[2]] = m[1];
+    }
+    const plan = ruestungCraftPlan(vorrat, getragen);
+    if (!plan.length) {
+      const komplett = Object.values(PLATZ_SLOT).every((slot) => bot.inventory.slots[slot]);
+      return komplett ? 'Ich trage schon die beste Rüstung, die ich craften kann.' : 'Mir fehlt Material für bessere Rüstung (Leder, Eisen, Gold oder Diamant).';
+    }
+    const a = { art: 'ruesten' };
+    this.auftrag = a;
+    (async () => {
+      const gemacht = [];
+      try {
+        const { GoalNear } = this.pf.goals;
+        const tischBlock = bot.registry.blocksByName.crafting_table;
+        const tisch = tischBlock ? bot.findBlock({ matching: tischBlock.id, maxDistance: 32 }) : null;
+        if (!tisch) { this._fertig(a, 'Für Rüstung brauche ich eine Werkbank in der Nähe.'); return; }
+        await bot.pathfinder.goto(new GoalNear(tisch.position.x, tisch.position.y, tisch.position.z, 2));
+        for (const teil of plan) {
+          if (this.auftrag !== a) return;
+          const item = bot.registry.itemsByName[teil.item];
+          if (!item) continue;
+          const r = bot.recipesFor(item.id, null, 1, tisch)[0];
+          if (!r) continue;
+          const vorher = this._anzahlImInventar(teil.item);
+          try {
+            await bot.craft(r, 1, tisch);
+          } catch {
+            await new Promise((res) => setTimeout(res, 400)); // Lag: am Inventar prüfen statt blind scheitern
+          }
+          if (this._anzahlImInventar(teil.item) > vorher) gemacht.push(teil.item);
+        }
+        await this._ausruesten(); // das Beste anlegen
+        this._fertig(a, gemacht.length ? `Rüstung gecraftet und angelegt: ${gemacht.join(', ')}.` : 'Ich konnte keine bessere Rüstung herstellen (Material/Werkbank).');
+      } catch (e) {
+        this._fertig(a, `Beim Rüsten ging etwas schief: ${e.message}`);
+      }
+    })();
+    return `Ich craft mir die beste Rüstung, die geht (${plan.map((p) => p.item).join(', ')}), und lege sie an.`;
   }
 
   // Isst das erste vorhandene Nahrungsmittel aus der Liste und gibt seinen
@@ -2644,7 +2779,7 @@ function sollBenachrichtigen(art, modus = 'wichtige') {
 }
 
 module.exports = {
-  Minecraft, WERKZEUGE, GROSSE_NETZWERKE, MC_WICHTIGE, sollBenachrichtigen, kickWiederverbinden, bedrohWert, gefahrReichweite, FERNKAEMPFER, eimerPlan, mlgNoetig, EINMAL_BLOECKE, schwimmHoch, essenPlan,
+  Minecraft, WERKZEUGE, GROSSE_NETZWERKE, MC_WICHTIGE, sollBenachrichtigen, kickWiederverbinden, bedrohWert, gefahrReichweite, FERNKAEMPFER, eimerPlan, mlgNoetig, EINMAL_BLOECKE, schwimmHoch, essenPlan, rueckzugPlan, heilWahl, ruestungCraftPlan,
   kontoSpeicher, kontoAnmelden,
   adresseTeilen, adressePruefen, zielFinden, besteWaffe, schlagPause, besteRuestung, werkzeugArt, besteWerkzeug, blockNamen,
   istFeind, chatText, botName, anrede, befehlLesen, rauswurfText, frageLesen, hoerModus, hoerName, chatTeile, richtungAus, bauPlan, GESCHUETZT_ABBAU,

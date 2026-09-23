@@ -156,6 +156,7 @@ async function runde({ url, schluessel, modell, system, werkzeuge, verlauf, sign
     messages: verlaufUmwandeln(system, verlauf, optionen),
     stream: true,
     ...(tools.length ? { tools, tool_choice: 'auto' } : {}),
+    ...(optionen.maxTokens ? { max_tokens: optionen.maxTokens } : {}),
     ...(optionen.nutzung ? { stream_options: { include_usage: true } } : {}),
     ...(optionen.aufwand && REASONING_EFFORT[optionen.aufwand] ? { reasoning_effort: REASONING_EFFORT[optionen.aufwand] } : {}),
   };
