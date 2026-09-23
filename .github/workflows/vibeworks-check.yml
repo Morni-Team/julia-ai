@@ -6,8 +6,14 @@
 name: VibeWorks Repo-Check
 
 on:
+  # Bei jedem Code-Commit auf dem Hauptzweig und in Pull Requests – reiner
+  # Text (Doku, Lizenz) löst nichts aus. Der Check schreibt nichts zurück,
+  # es kann sich also nichts aufschaukeln.
   push:
-    paths: [".github/workflows/vibeworks-check.yml"]
+    branches: ["main", "master"]
+    paths-ignore: ["**/*.md", "docs/**", "LICENSE", ".gitignore"]
+  pull_request:
+    paths-ignore: ["**/*.md", "docs/**", "LICENSE", ".gitignore"]
   schedule:
     - cron: "23 4 * * 1"
   workflow_dispatch:
@@ -16,7 +22,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: vibeworks-check
+  # Je Zweig eine Reihe – ein Pull Request bricht den Lauf auf main nicht ab
+  group: vibeworks-check-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -30,33 +37,40 @@ jobs:
           # Die Prüf-Container sehen das Repository – aber nicht das Token in .git/config
           persist-credentials: false
 
+      # Ein abgebrochenes Werkzeug darf nicht wie ein sauberer Lauf aussehen (#149):
+      # jeder Schritt schreibt seinen Fehler in .vw-errors.txt, das landet im Bericht.
       - name: Geheimnisse (Gitleaks)
+        id: gitleaks
         continue-on-error: true
         run: >-
           docker run --rm -v "$PWD:/repo"
           -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0='*'
-          zricethezav/gitleaks:latest detect --source /repo --no-banner --redact
+          zricethezav/gitleaks:v8.30.1 detect --source /repo --no-banner --redact
           --report-format json --report-path /repo/.vw-gitleaks.json --exit-code 0
 
       - name: Sicherheitslücken (OSV-Scanner)
+        id: osv
         continue-on-error: true
         run: >-
-          docker run --rm -v "$PWD:/src" ghcr.io/google/osv-scanner:latest
+          docker run --rm -v "$PWD:/src" ghcr.io/google/osv-scanner:v2.6.0
           scan source --recursive --format json --output-file /src/.vw-osv.json /src
 
       - name: Fehlermuster (Semgrep)
+        id: semgrep
         continue-on-error: true
         run: >-
-          docker run --rm -v "$PWD:/src" -w /src semgrep/semgrep
+          docker run --rm -v "$PWD:/src" -w /src semgrep/semgrep:1.177.0
           semgrep scan --config p/default --json --metrics off --quiet --output /src/.vw-semgrep.json
 
       - name: Offene Stellen (TODO/FIXME)
+        id: todos
         continue-on-error: true
         # Nur Kommentare (// # /* * -- <!--) – nicht jedes Wort „TODO“ im Code
         run: |
           git grep -n -I -E '(//|#|/\*|\*|--|<!--)[[:space:]]*(TODO|FIXME|HACK|XXX)\b' -- ':!*.lock' ':!package-lock.json' ':!.github/workflows/vibeworks-check.yml' > .vw-todos.txt || true
 
       - name: Sprachwerkzeuge (Bandit, ShellCheck, Hadolint, actionlint, fallow)
+        id: languages
         continue-on-error: true
         # Nur was im Repository vorkommt – je Sprache ein kostenloses Werkzeug
         run: |
@@ -70,17 +84,27 @@ jobs:
           git ls-files '*Dockerfile*' '*.dockerfile' | head -20 | while IFS= read -r f; do
             i=$((i + 1))
             printf '%s\n' "$f" >> .vw-hadolint-files.txt
-            docker run --rm -i hadolint/hadolint:latest hadolint -f json - < "$f" > ".vw-hadolint-$i.json" || true
+            docker run --rm -i hadolint/hadolint:v2.15.1 hadolint -f json - < "$f" > ".vw-hadolint-$i.json" || true
           done
           if git ls-files '.github/workflows/*.yml' '.github/workflows/*.yaml' | grep -q .; then
-            docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:latest -format '{{json .}}' > .vw-actionlint.json || true
+            docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12 -format '{{json .}}' > .vw-actionlint.json || true
           fi
-          # JavaScript/TypeScript: ungenutzter Code, ungenutzte Abhängigkeiten, Zyklen (fallow, kostenlos)
+          # JavaScript/TypeScript: ungenutzter Code, ungenutzte Abhängigkeiten, Zyklen (fallow, kostenlos).
+          # Feste Version und – falls vorhanden – dieselbe Baseline wie das Projekt selbst,
+          # damit Repo-Check und eigene Prüfung nicht auseinanderlaufen.
           if [ -f package.json ] && git ls-files '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' | grep -q .; then
-            npx -y fallow@3 dead-code --format json > .vw-fallow.json 2> /dev/null || true
+            if [ -f .fallow-baseline.json ]; then
+              npx -y fallow@3.28.0 dead-code --baseline .fallow-baseline.json --format json > .vw-fallow.json 2> /dev/null || true
+            else
+              npx -y fallow@3.28.0 dead-code --format json > .vw-fallow.json 2> /dev/null || true
+            fi
           fi
 
       - name: Zusammenfassen
+        env:
+          # Ergebnis jedes Prüfschritts – „failure“ heißt: das Werkzeug ist
+          # abgebrochen, sein Teil des Berichts fehlt (#149)
+          VW_OUTCOMES: '{"gitleaks": "${{ steps.gitleaks.outcome }}", "osv": "${{ steps.osv.outcome }}", "semgrep": "${{ steps.semgrep.outcome }}", "todos": "${{ steps.todos.outcome }}", "languages": "${{ steps.languages.outcome }}"}'
         run: |
           python3 - <<'PY'
           import datetime, json, os
@@ -101,7 +125,19 @@ jobs:
               "vulnerabilities": [],
               "findings": [],
               "todos": [],
+              "toolErrors": [],
           }
+
+          # Abgebrochene Schritte melden – sonst sieht ein kaputtes Werkzeug aus
+          # wie ein sauberer Lauf (#149)
+          STEP_LABEL = {"gitleaks": "Gitleaks", "osv": "OSV-Scanner", "semgrep": "Semgrep", "todos": "TODO-Suche", "languages": "Sprachwerkzeuge"}
+          try:
+              outcomes = json.loads(os.environ.get("VW_OUTCOMES") or "{}")
+          except Exception:
+              outcomes = {}
+          for key, outcome in outcomes.items():
+              if outcome in ("failure", "cancelled"):
+                  out["toolErrors"].append({"tool": key, "message": f"{STEP_LABEL.get(key, key)}: Schritt abgebrochen ({outcome}) – die Ergebnisse fehlen"})
 
           leaks = load(".vw-gitleaks.json")
           out["tools"]["gitleaks"] = leaks is not None
