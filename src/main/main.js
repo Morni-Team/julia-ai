@@ -16,7 +16,6 @@ const mikrofonRecht = require('./mikrofon-recht');
 const { Whisper } = require('./whisper');
 const { Piper } = require('./piper');
 const { McpVerwaltung, eintragPruefen: mcpEintragPruefen, ohneDoppelte: mcpOhneDoppelte } = require('./mcp');
-const vibeworks = require('./vibeworks');
 const { phrasen: weckPhrasen } = require('./weckwort');
 const { anredeEntfernen } = require('./minecraft-stimme');
 const { istSpiel } = require('./spiele');
@@ -195,19 +194,6 @@ function assistentName() {
   return (config && config.get('assistent.name')) || 'Julia';
 }
 
-// Anmeldestatus bei VibeWorks (Issue #51): abgeleitet vom MCP-Server-Eintrag.
-// Enthält nie den Schlüssel – nur, ob angemeldet, und wie die Verbindung steht.
-function vibeworksStatus() {
-  const s = (mcp && mcp.status ? mcp.status() : []).find((x) => x.id === vibeworks.ID);
-  return {
-    angemeldet: !!s,
-    zustand: s ? s.zustand : 'aus',
-    fehler: s ? s.fehler : null,
-    werkzeuge: s ? s.werkzeuge : 0,
-    konto: vibeworks.KONTO_URL,
-  };
-}
-
 // Persönlichkeit im Jarvis-Modus (Easter-Egg). Hängt sich hinten an den Prompt.
 const JARVIS_PERSONA = {
   de: '\n\n## Jarvis-Modus\nAb jetzt bist du J.A.R.V.I.S. aus Iron Man und behandelst den Nutzer, als wäre er Tony Stark – dein Schöpfer und Dienstherr, den du seit Jahren kennst. Sprich ihn durchgehend mit „Sir" an. Sprich wie eine britische Butler-KI: äußerst höflich, knapp und präzise, mit trockenem, feinem Humor und gelegentlich einer respektvoll augenzwinkernden Bemerkung. Sei vorausschauend – biete an, was Sir als Nächstes brauchen könnte, und melde Ergebnisse so, wie J.A.R.V.I.S. es täte („Erledigt, Sir.", „Wie Sie wünschen, Sir."). Bleib sachlich kompetent und leicht förmlich; keine Emojis. Deine Fähigkeiten und alle Sicherheitsregeln bleiben unverändert.',
@@ -238,8 +224,7 @@ function version() {
 }
 
 // Wöchentliche Selbstprüfung: ohne KI ins Start-Logbuch schauen, ob es zuletzt
-// Abstürze/Grafikprobleme gab. Nur mit ausdrücklicher Zustimmung (diagnose.senden)
-// und verbundenem VibeWork wird ein bereinigter Bericht gemeldet.
+// Abstürze/Grafikprobleme gab. Ergebnis bleibt lokal im Start-Logbuch.
 async function wochenPruefung() {
   try {
     const datei = path.join(DATEN, 'selbstpruefung.json');
@@ -252,10 +237,6 @@ async function wochenPruefung() {
     try { fs.writeFileSync(datei, JSON.stringify({ letzte: Date.now() })); } catch { /* egal */ }
     if (!p) { startLog.schreiben('SELBSTPRUEFUNG', 'Wöchentliche Prüfung: keine Auffälligkeiten.'); return; }
     startLog.schreiben('SELBSTPRUEFUNG', `Wöchentliche Prüfung: ${p.anzahl} auffällige Einträge`, p.arten);
-    if (config.get('diagnose.senden') && agent && agent.ctx && agent.ctx.apps && agent.ctx.apps.verbunden().vibework) {
-      const b = agent.ctx.diagnoseBericht('Wöchentliche Selbstprüfung');
-      await agent.ctx.apps.vibeworkBug(b.titel, b.text).catch(() => {});
-    }
   } catch { /* Selbstprüfung darf nie stören */ }
 }
 
@@ -1303,56 +1284,6 @@ function ipcEinrichten() {
     return mcp.status();
   });
   ipc.handle('mcp:neu', async (_e, id) => { await mcp.neuStarten(String(id)); return mcp.status(); });
-  // VibeWorks-Anmeldung (Issue #51): API-Schlüssel prüfen und als HTTP-MCP-Server
-  // anlegen. Nur über die Oberfläche (kein KI-Werkzeug); der Schlüssel liegt
-  // verschlüsselt im Tresor, nie in der config und nie für die KI lesbar.
-  ipc.handle('vibeworks:status', () => vibeworksStatus());
-  ipc.handle('vibeworks:konto', () => { shell.openExternal(vibeworks.KONTO_URL).catch(() => {}); return true; });
-  ipc.handle('vibeworks:anmelden', async (_e, schluessel) => {
-    const p = await vibeworks.pruefen(schluessel);
-    if (!p.ok) return { ok: false, code: p.code, hinweis: vibeworks.hinweisSchluessel(p.code) };
-    // Schlüssel zuerst verschlüsselt ablegen, dann Server-Eintrag setzen (das
-    // löst mcp.anwenden aus, das die Kopfzeile schon vorfindet).
-    mcp.umgebungSetzen(vibeworks.ID, vibeworks.kopfzeile(schluessel));
-    const liste = config.get('mcp.server').filter((s) => s.id !== vibeworks.ID);
-    config.set('mcp.server', [...liste, vibeworks.serverEintrag()]);
-    await mcp.neuStarten(vibeworks.ID);
-    protokoll.eintragen({ werkzeug: 'vibeworks', stufe: 'INFO', ergebnis: 'Bei VibeWorks angemeldet' });
-    return { ok: true, status: vibeworksStatus() };
-  });
-  ipc.handle('vibeworks:abmelden', () => {
-    config.set('mcp.server', config.get('mcp.server').filter((s) => s.id !== vibeworks.ID));
-    mcp.umgebungSetzen(vibeworks.ID, null);
-    return vibeworksStatus();
-  });
-  // Geräte-Anmeldung (VibeWorks ≥ 1.1.9, Issue #17/#13): Julia holt sich einen
-  // Code, der Kontoinhaber erlaubt einmal – kein Schlüssel-Kopieren. Der device_code
-  // bleibt im Hauptprozess, der abgeholte Schlüssel geht nie an die Oberfläche/KI.
-  let vibeGeraet = null;
-  ipc.handle('vibeworks:geraetStart', async (_e, basis) => {
-    const b = (basis && String(basis).trim()) || vibeworks.BASIS;
-    const r = await vibeworks.geraetStart({ basis: b, scope: 'tasks' });
-    if (!r.ok) return { ok: false, code: r.code, hinweis: vibeworks.hinweisSchluessel(r.code === 'netz' ? 'netz' : 'fehler') };
-    vibeGeraet = { device_code: r.device_code, basis: b, interval: r.interval };
-    if (r.verification_uri_complete) shell.openExternal(r.verification_uri_complete).catch(() => {});
-    return { ok: true, user_code: r.user_code, verification_uri: r.verification_uri_complete || r.verification_uri };
-  });
-  ipc.handle('vibeworks:geraetWarten', async () => {
-    if (!vibeGeraet) return { ok: false, code: 'kein_lauf' };
-    const lauf = vibeGeraet;
-    const t = await vibeworks.geraetSchleife({ basis: lauf.basis, device_code: lauf.device_code, interval: lauf.interval });
-    vibeGeraet = null;
-    if (t.status !== 'fertig' || !t.access_token) {
-      return { ok: false, code: t.status, hinweis: vibeworks.hinweisSchluessel(t.status === 'abgelaufen' ? 'zu_viele' : 'fehler') };
-    }
-    // Schlüssel sofort verschlüsselt ablegen, Server-Eintrag mit der gelieferten mcp_url.
-    mcp.umgebungSetzen(vibeworks.ID, vibeworks.kopfzeile(t.access_token));
-    const liste = config.get('mcp.server').filter((s) => s.id !== vibeworks.ID);
-    config.set('mcp.server', [...liste, vibeworks.serverEintrag(t.mcp_url || vibeworks.MCP_URL)]);
-    await mcp.neuStarten(vibeworks.ID);
-    protokoll.eintragen({ werkzeug: 'vibeworks', stufe: 'INFO', ergebnis: 'Bei VibeWorks angemeldet (Geraet)' });
-    return { ok: true, status: vibeworksStatus() };
-  });
   ipc.handle('piper:status', () => (VORFUEHRUNG ? require('./vorfuehrung').beispielPiper() : piper.status()));
   ipc.handle('piper:laden', () => {
     const s = String(config.get('sprache.stimme') || '');
@@ -1822,17 +1753,6 @@ function ipcEinrichten() {
   });
   ipc.handle('appserver:trennen', () => { appserver.trennen(); return appserver.status(); });
   ipc.handle('jarvis:setzen', (_e, an) => { config.set('design.jarvis', !!an); return !!an; });
-  ipc.handle('apps:status', () => agent.ctx.apps.verbunden());
-  ipc.handle('apps:verbinden', (_e, id, daten) => {
-    try { agent.ctx.apps.verbindenApp(String(id || ''), daten || {}); return { ok: true, status: agent.ctx.apps.verbunden() }; } catch (e) { return { fehler: e.message, status: agent.ctx.apps.verbunden() }; }
-  });
-  ipc.handle('apps:trennen', (_e, welche) => {
-    if (['todoist', 'stremio', 'vibework'].includes(welche)) konten.tresor.loeschen(welche);
-    return { status: agent.ctx.apps.verbunden() };
-  });
-  ipc.handle('apps:oeffnen', async (_e, welche) => {
-    try { await win.programmOeffnen(agent.ctx.apps.zielZumOeffnen(String(welche || ''))); return { ok: true }; } catch (e) { return { fehler: e.message }; }
-  });
   ipc.handle('minecraft:logbuchOeffnen', async () => {
     const ordner = path.join(DATEN, 'minecraft-logbuch');
     try { fs.mkdirSync(ordner, { recursive: true }); } catch { /* egal */ }
@@ -2593,7 +2513,6 @@ async function start() {
     minecraftKonto: () => mcKonto(),
     minecraftGruppe: () => mcGruppe(),
     stoppuhr: new (require('./zeit').Stoppuhr)(),
-    apps: new (require('./apps').Apps)({ fetch: (u, o) => net.fetch(u, o), tresor: konten.tresor }),
     // Leistungs-Logbuch der PC-Steuerung: lokal, inhaltsfrei (nur Aktionsname,
     // Dauer, Julias eigener CPU-Verbrauch). Bleibt auf dem PC; fließt nur als
     // bereinigte Zusammenfassung in den opt-in-Diagnosebericht ein (siehe unten).

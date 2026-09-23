@@ -7,9 +7,14 @@ Sie hält fest, wie hier gearbeitet wird, welche Fehler schon aufgetreten sind u
 ## Was Julia ist
 
 Windows-Desktop-Assistent (Electron): sieht den Bildschirm, spricht lokal (Whisper/Piper),
-steuert den PC, spielt Minecraft mit, arbeitet mit den eigenen Apps des Nutzers zusammen
-(ToDoch, Streamo, VibeWork, Patchfeld, Codewerk, Content-Helper). Jede Aktion läuft durch die
+steuert den PC und spielt Minecraft mit. Jede Aktion läuft durch die
 **Ampel** (grün/gelb/rot). Details: [README.md](README.md).
+
+> Hinweis: Die früheren Integrationen der **eigenen Apps des Nutzers** (ToDoch, Streamo,
+> VibeWork/VibeWorks, Patchfeld, Codewerk, Content-Helper) wurden auf ausdrücklichen
+> Wunsch **komplett entfernt** (`src/main/apps.js`, `src/main/vibeworks.js` gelöscht,
+> `apps`-Werkzeug + VibeWorks-MCP-Login raus). Nicht wieder hinzufügen. Der generische
+> MCP-Server-Support und die Handy-Brücke (`appserver.js`) bleiben.
 
 ## Grundregeln beim Arbeiten
 
@@ -22,12 +27,6 @@ steuert den PC, spielt Minecraft mit, arbeitet mit den eigenen Apps des Nutzers 
   gefangen hätte, **und** einen Fehler-Journal-Eintrag anlegen. Kein Bugfix ohne Test.
   (Beispiel #70: `test/renderer-skripte.test.js` fängt seitenweite Skript-Kollisionen –
   fand dabei gleich eine zweite, maskierte.)
-- **VibeWorks über MCP nutzen** (Wunsch JONIMONI09): Julia verbindet sich mit den
-  Projekten über den **VibeWorks-MCP** (Geräte-Anmeldung, ab v4.9.0 – Einstellungen →
-  „VibeWorks" → „Mit Konto anmelden (Gerät)"). Wo es um Projekt-/VibeWorks-Aufgaben geht,
-  diesen Weg nutzen. Damit die **Coding-Session selbst** VibeWorks per MCP nutzen kann,
-  muss der MCP-Server für diese Session eingerichtet sein (Einrichtung durch MoinMornhart);
-  bei MCP-Unklarheiten am VibeWorks-Issue (`MoinMornhart/vibeworks`) nachfragen.
 - **Update-Schema** (siehe README §Updates): Version in Zehnerschritten, eine Changelog-Zeile
   in Nutzersprache, Commit mit Versionsnummer vorne, Tag, GitHub-Release, Installer anhängen –
   am einfachsten `node scripts/release.js <korrektur|funktion|bruch> "…"`.

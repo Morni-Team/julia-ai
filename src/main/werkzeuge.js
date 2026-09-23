@@ -1112,131 +1112,18 @@ WERKZEUGE.push({
   },
 });
 
-// Mit anderen Apps zusammenarbeiten: öffnen (GRÜN) und – wenn einmal verbunden –
-// direkt befüllen (ToDoch-Aufgabe, Streamo-Bibliothek). Etwas nach außen an den
-// Dienst senden ist GELB.
-WERKZEUGE.push({
-  name: 'apps',
-  description: 'Mit deinen eigenen Apps zusammenarbeiten. app: "todoist" (ToDoch/Aufgaben), "stremio" (Streamo/Filme+Serien), "vibework" (Projekte/Commits), "patchfeld" (Lernen IHK), "codewerk" (Lernen Code) oder "content" (Content-Helper). aktion: "oeffnen", "status"; ToDoch "aufgabe" (text, optional faellig); Streamo "liste_hinzufuegen" (text=Titel, optional typ film|serie) / "suchen" (text); VibeWork "projekt_anlegen" (text=Name) / "einladen" (projekt, person) / "letzter_commit" (projekt); Patchfeld & Codewerk "session" (optional kurs) / "fortschritt"; Content-Helper "beitrag_planen" (text, optional datum, plattform) / "ideen" (optional thema). Verbunden wird in den Einstellungen unter „Apps“; ist eine App nicht verbunden, sag das.',
-  input_schema: {
-    type: 'object',
-    properties: {
-      app: { type: 'string', enum: ['todoist', 'stremio', 'vibework', 'patchfeld', 'codewerk', 'content'] },
-      aktion: { type: 'string', enum: ['oeffnen', 'status', 'aufgabe', 'liste_hinzufuegen', 'suchen', 'projekt_anlegen', 'einladen', 'letzter_commit', 'session', 'fortschritt', 'beitrag_planen', 'ideen'] },
-      text: { type: 'string', description: 'Aufgabe (ToDoch), Titel (Streamo), Projektname (VibeWork) oder Beitragstext (Content-Helper).' },
-      faellig: { type: 'string', description: 'nur ToDoch: Fälligkeit in natürlicher Sprache, z. B. "morgen 9 Uhr".' },
-      typ: { type: 'string', enum: ['film', 'serie'], description: 'nur Streamo.' },
-      projekt: { type: 'string', description: 'nur VibeWork: Projekt-ID oder -Name für einladen/letzter_commit.' },
-      person: { type: 'string', description: 'nur VibeWork einladen: E-Mail oder Name der Person.' },
-      kurs: { type: 'string', description: 'nur Patchfeld/Codewerk session: gewünschter Kurs/Sprache (optional).' },
-      datum: { type: 'string', description: 'nur Content-Helper beitrag_planen: Datum (optional).' },
-      plattform: { type: 'string', description: 'nur Content-Helper beitrag_planen: Plattform (optional).' },
-      thema: { type: 'string', description: 'nur Content-Helper ideen: Thema (optional).' },
-    },
-    required: ['app', 'aktion'],
-  },
-  fremd: true,
-  // Etwas an eine App senden/anlegen oder dort abfragen geht nach außen.
-  nachAussen: (e) => ['aufgabe', 'liste_hinzufuegen', 'suchen', 'projekt_anlegen', 'einladen', 'letzter_commit', 'session', 'fortschritt', 'beitrag_planen', 'ideen'].includes(e.aktion),
-  einstufen(e) {
-    const { APPS } = require('./apps');
-    const name = (APPS[String(e.app || '').toLowerCase()] || {}).name || e.app;
-    const schreib = { aufgabe: 'Aufgabe anlegen', liste_hinzufuegen: 'zur Liste hinzufügen', projekt_anlegen: 'Projekt anlegen', einladen: 'Person einladen', beitrag_planen: 'Beitrag planen', session: 'Session starten' };
-    if (schreib[e.aktion]) {
-      const was = e.aktion === 'einladen' ? `${e.person || ''} zu ${e.projekt || ''}` : (e.text || e.projekt || e.kurs || '');
-      return { stufe: GELB, kategorie: 'netz', grund: `Daten an ${name} senden`, beschreibung: `${name}: ${schreib[e.aktion]}${was ? ` – ${was}` : ''}` };
-    }
-    return { ...gruen(), beschreibung: `${name}: ${e.aktion}` };
-  },
-  async ausfuehren(e, ctx) {
-    if (!ctx.apps) throw new Error('App-Zusammenarbeit ist hier nicht verfügbar.');
-    const { appInfo } = require('./apps');
-    const info = appInfo(e.app);
-    switch (e.aktion) {
-      case 'status':
-        return ctx.apps.status();
-      case 'oeffnen':
-        await win.programmOeffnen(ctx.apps.zielZumOeffnen(e.app));
-        return `${info.name} geöffnet. Zum Prüfen einen Screenshot machen.`;
-      case 'aufgabe': {
-        if (e.app !== 'todoist') throw new Error('„aufgabe“ gibt es nur für ToDoch.');
-        const r = await ctx.apps.todoistAufgabe(e.text, { faellig: e.faellig });
-        return `In ToDoch angelegt: „${r.inhalt}“${r.faellig ? ` (fällig ${r.faellig})` : ''}.`;
-      }
-      case 'suchen': {
-        if (e.app !== 'stremio') throw new Error('„suchen“ gibt es nur für Streamo.');
-        const l = await ctx.apps.stremioSuchen(e.text, { typ: e.typ });
-        if (!l.length) return `Nichts zu „${e.text}“ gefunden.`;
-        return fremd('der Streamo-Suche', l.map((m) => `- ${m.name}${m.jahr ? ` (${m.jahr})` : ''} – ${m.typ === 'series' ? 'Serie' : 'Film'}`).join('\n'));
-      }
-      case 'liste_hinzufuegen': {
-        if (e.app !== 'stremio') throw new Error('„liste_hinzufuegen“ gibt es nur für Streamo.');
-        const r = await ctx.apps.stremioHinzufuegen(e.text, { typ: e.typ });
-        return `Zu deiner Streamo-Liste hinzugefügt: ${r.name}${r.jahr ? ` (${r.jahr})` : ''} – ${r.typ === 'series' ? 'Serie' : 'Film'}.`;
-      }
-      case 'projekt_anlegen': {
-        if (e.app !== 'vibework') throw new Error('„projekt_anlegen“ gibt es nur für VibeWork.');
-        const r = await ctx.apps.vibeworkProjektAnlegen(e.text);
-        return `VibeWork-Projekt angelegt: ${r.name}${r.id ? ` (ID ${r.id})` : ''}.`;
-      }
-      case 'einladen': {
-        if (e.app !== 'vibework') throw new Error('„einladen“ gibt es nur für VibeWork.');
-        const r = await ctx.apps.vibeworkEinladen(e.projekt, e.person);
-        return `${r.person} wurde zum VibeWork-Projekt ${r.projekt} eingeladen.`;
-      }
-      case 'letzter_commit': {
-        if (e.app !== 'vibework') throw new Error('„letzter_commit“ gibt es nur für VibeWork.');
-        const c = await ctx.apps.vibeworkLetzterCommit(e.projekt);
-        return fremd('VibeWork', `Letzter Commit in ${e.projekt}: ${c.message || '(keine Nachricht)'}${c.author ? ` – von ${c.author}` : ''}${c.date ? ` am ${c.date}` : ''}${c.sha ? ` [${String(c.sha).slice(0, 10)}]` : ''}.`);
-      }
-      case 'session': {
-        if (e.app !== 'patchfeld' && e.app !== 'codewerk') throw new Error('„session“ gibt es nur für Patchfeld und Codewerk.');
-        const r = await ctx.apps.lernSession(e.app, { kurs: e.kurs });
-        return `${info.name}: Lern-Session gestartet${r.titel ? ` – ${r.titel}` : ''}.`;
-      }
-      case 'fortschritt': {
-        if (e.app !== 'patchfeld' && e.app !== 'codewerk') throw new Error('„fortschritt“ gibt es nur für Patchfeld und Codewerk.');
-        const r = await ctx.apps.lernFortschritt(e.app);
-        return fremd(info.name, JSON.stringify(r));
-      }
-      case 'beitrag_planen': {
-        if (e.app !== 'content') throw new Error('„beitrag_planen“ gibt es nur für den Content-Helper.');
-        const r = await ctx.apps.contentBeitragPlanen({ text: e.text, datum: e.datum, plattform: e.plattform });
-        return `Beitrag im Content-Helper geplant${r.datum ? ` für ${r.datum}` : ''}${r.plattform ? ` (${r.plattform})` : ''}.`;
-      }
-      case 'ideen': {
-        if (e.app !== 'content') throw new Error('„ideen“ gibt es nur für den Content-Helper.');
-        const l = await ctx.apps.contentIdeen(e.thema);
-        if (!l.length) return `Keine Ideen${e.thema ? ` zu „${e.thema}“` : ''} bekommen.`;
-        return fremd('dem Content-Helper', l.map((x) => `- ${x}`).join('\n'));
-      }
-      default:
-        throw new Error(`Unbekannte Aktion "${e.aktion}".`);
-    }
-  },
-});
-
-// Diagnose: einen bereinigten technischen Bericht bauen (GRÜN, bleibt auf dem PC)
-// oder – nur wenn der Nutzer das eingeschaltet hat – an VibeWork melden (GELB,
-// nach außen). Es werden nie IP-Adressen, Tokens oder persönliche Daten gesendet.
+// Diagnose: einen bereinigten technischen Bericht bauen (GRÜN, bleibt auf dem PC).
+// Es werden nie IP-Adressen, Tokens oder persönliche Daten aufgenommen.
 WERKZEUGE.push({
   name: 'diagnose',
-  description: 'Technischen Diagnose-/Crash-Bericht erstellen. aktion "bericht": zeigt den bereinigten Bericht (Version, Windows, GPU/Treiber, bereinigte Logbuch-Zeilen – ohne IP, Tokens oder persönliche Daten). aktion "senden": meldet ihn als Bug an VibeWork – nur, wenn der Nutzer die Diagnose-Meldung in den Einstellungen eingeschaltet und VibeWork verbunden hat. Optional grund als kurzer Anlass.',
-  input_schema: { type: 'object', properties: { aktion: { type: 'string', enum: ['bericht', 'senden'] }, grund: { type: 'string' } }, required: ['aktion'] },
+  description: 'Technischen Diagnose-/Crash-Bericht erstellen (bleibt auf dem PC): Version, Windows, GPU/Treiber, bereinigte Logbuch-Zeilen – ohne IP, Tokens oder persönliche Daten. Optional grund als kurzer Anlass.',
+  input_schema: { type: 'object', properties: { grund: { type: 'string' } } },
   fremd: true,
-  nachAussen: (e) => e.aktion === 'senden',
-  einstufen(e) {
-    if (e.aktion === 'senden') return { stufe: GELB, kategorie: 'netz', grund: 'bereinigten Diagnose-Bericht an VibeWork senden', beschreibung: 'Diagnose-Bericht an VibeWork melden (bereinigt, ohne IP/Tokens)' };
-    return { ...gruen(), beschreibung: 'Diagnose-Bericht erstellen' };
-  },
+  einstufen: () => ({ ...gruen(), beschreibung: 'Diagnose-Bericht erstellen' }),
   async ausfuehren(e, ctx) {
     if (!ctx.diagnoseBericht) throw new Error('Diagnose ist hier nicht verfügbar.');
     const b = await ctx.diagnoseBericht(e.grund);
-    if (e.aktion === 'bericht') return fremd('der Diagnose', `${b.titel}\n\n${b.text}`);
-    if (!ctx.config.get('diagnose.senden')) throw new Error('Das Senden von Diagnose-Berichten ist aus. Der Nutzer kann es in den Einstellungen unter „System“ einschalten.');
-    if (!ctx.apps || !ctx.apps.verbunden().vibework) throw new Error('VibeWork ist nicht verbunden – dorthin kann ich den Bericht nicht melden.');
-    const r = await ctx.apps.vibeworkBug(b.titel, b.text);
-    return `Diagnose-Bericht an VibeWork gemeldet${r.id ? ` (Bug ${r.id})` : ''} – bereinigt, ohne IP oder Tokens.`;
+    return fremd('der Diagnose', `${b.titel}\n\n${b.text}`);
   },
 });
 
@@ -1348,8 +1235,7 @@ const KATEGORIEN = [
   { id: 'gedaechtnis', werkzeuge: ['gedaechtnis_lesen', 'gedaechtnis_schreiben', 'gedaechtnis_loeschen', 'graph_merken', 'graph_abfragen', 'graph_entfernen'] },
   { id: 'erinnerungen', werkzeuge: ['erinnerung_setzen', 'erinnerung_loeschen', 'erinnerungen_anzeigen', 'stoppuhr'] },
   { id: 'web', werkzeuge: ['webseite_abrufen'] },
-  { id: 'apps', werkzeuge: ['apps', 'clip_speichern'] },
-  { id: 'video', werkzeuge: ['video_schneiden', 'video_thumbnail', 'video_zusammenfuegen'] },
+  { id: 'video', werkzeuge: ['clip_speichern', 'video_schneiden', 'video_thumbnail', 'video_zusammenfuegen'] },
 ];
 const KAT_VON = new Map();
 for (const k of KATEGORIEN) for (const n of k.werkzeuge) KAT_VON.set(n, k.id);

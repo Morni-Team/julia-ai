@@ -206,48 +206,6 @@ function appVerbinden() {
   julia.on('appserver:status', appZeigen);
 }
 
-// --- Deine Apps (ToDoch, Streamo, VibeWork) – je Domain + Anmeldedaten/Token ---
-
-function appDienst(id) {
-  return { id, karte: `dienst${id[0].toUpperCase()}${id.slice(1)}`, status: `${id}Status`, url: `${id}Url`, token: `${id}Token`, verbinden: `${id}Verbinden`, trennen: `${id}Trennen`, oeffnen: `${id}Oeffnen`, meldung: `${id}Meldung` };
-}
-const APP_DIENSTE = ['todoist', 'stremio', 'vibework', 'patchfeld', 'codewerk', 'content'].map(appDienst);
-
-function appsZeigen(s) {
-  s = s || {};
-  $('kontoApps').classList.toggle('verbunden', APP_DIENSTE.some((d) => s[d.id]));
-  for (const d of APP_DIENSTE) {
-    const an = !!s[d.id];
-    $(d.karte).classList.toggle('verbunden', an);
-    $(d.status).textContent = an ? tx('apps.verbunden') : tx('app.aus');
-    $(d.trennen).hidden = !an;
-    $(d.verbinden).textContent = tx(an ? 'apps.neu_verbinden' : 'apps.verbinden');
-    const url = s[`${d.id}Url`];
-    if (url && !$(d.url).value) $(d.url).value = url;
-  }
-}
-
-function appsMeldung(id, text, fehler = false) {
-  const m = $(id);
-  if (!m) return;
-  m.textContent = text || '';
-  m.classList.toggle('fehler', fehler);
-}
-
-function appsVerbinden() {
-  for (const d of APP_DIENSTE) {
-    $(d.verbinden).onclick = async () => {
-      appsMeldung(d.meldung, '');
-      const r = await julia.appsVerbinden(d.id, { basisUrl: $(d.url).value, token: $(d.token).value });
-      appsZeigen(r.status);
-      if (r.fehler) appsMeldung(d.meldung, r.fehler, true);
-      else { $(d.token).value = ''; appsMeldung(d.meldung, tx('apps.verbunden')); }
-    };
-    $(d.trennen).onclick = async () => { const r = await julia.appsTrennen(d.id); appsZeigen(r.status); appsMeldung(d.meldung, ''); };
-    $(d.oeffnen).onclick = () => julia.appsOeffnen(d.id);
-  }
-}
-
 // --- Design ---
 
 function mischen(hex, ziel, anteil) {
@@ -949,21 +907,6 @@ function mcpVerbinden() {
   }
 }
 
-// VibeWorks-Anmeldung (Issue #51): API-Schlüssel eintragen, Julia prüft ihn und
-// verbindet den VibeWorks-MCP-Server. Der Schlüssel liegt verschlüsselt auf dem
-// PC (Tresor) und wird der KI nie gezeigt.
-function vibeZeigen(s) {
-  const st = $('vibeStatus');
-  const angemeldet = !!(s && s.angemeldet);
-  st.textContent = angemeldet
-    ? (s.zustand === 'bereit' ? tx('vibe.verbunden', { n: s.werkzeuge })
-      : s.zustand === 'fehler' ? tx('vibe.status_fehler', { fehler: s.fehler || '?' }) : tx('vibe.verbindet'))
-    : tx('vibe.nicht_angemeldet');
-  $('vibeAbmelden').hidden = !angemeldet;
-  $('vibeSchluessel').hidden = angemeldet;
-  $('vibeGeraet').hidden = angemeldet;
-  if (angemeldet) $('vibeGeraetInfo').hidden = true;
-}
 
 // Grafik-Reparatur (Issue #55): auf Software-Grafik umstellen (gegen ein leeres
 // Fenster) und neu starten – bzw. wieder normale Grafik versuchen.
@@ -1067,59 +1010,6 @@ async function rollenEinrichten() {
   const toggle = $('betaAgenten');
   if (toggle) toggle.addEventListener('change', () => { stand.an = toggle.checked; malen(); });
   malen();
-}
-
-function vibeVerbinden() {
-  julia.on('mcp:status', async () => { try { vibeZeigen(await julia.vibeworksStatus()); } catch { /* egal */ } });
-  $('vibeKonto').onclick = () => julia.vibeworksKonto();
-  $('vibeAnmelden').onclick = async () => {
-    const m = $('vibeMeldung');
-    m.textContent = ''; m.classList.remove('fehler');
-    const key = $('vibeSchluessel').value.trim();
-    if (!key) { m.textContent = tx('vibe.hinweis_nicht_angemeldet'); m.classList.add('fehler'); return; }
-    $('vibeAnmelden').disabled = true;
-    try {
-      const r = await julia.vibeworksAnmelden(key);
-      if (!r || !r.ok) { m.textContent = tx((r && r.hinweis) || 'vibe.hinweis_fehler'); m.classList.add('fehler'); return; }
-      $('vibeSchluessel').value = '';
-      m.textContent = tx('vibe.angemeldet');
-      vibeZeigen(r.status);
-    } finally { $('vibeAnmelden').disabled = false; }
-  };
-  $('vibeGeraet').onclick = async () => {
-    const m = $('vibeMeldung');
-    m.classList.remove('fehler');
-    $('vibeGeraet').disabled = true;
-    try {
-      const start = await julia.vibeworksGeraetStart('');
-      if (!start || !start.ok) {
-        m.textContent = tx((start && start.hinweis) || 'vibe.hinweis_fehler');
-        m.classList.add('fehler');
-        return;
-      }
-      $('vibeGeraetInfo').hidden = false;
-      $('vibeGeraetCode').textContent = start.user_code;
-      m.textContent = tx('vibe.geraet_warten', { code: start.user_code });
-      const r = await julia.vibeworksGeraetWarten();
-      $('vibeGeraetInfo').hidden = true;
-      if (r && r.ok) {
-        m.textContent = tx('vibe.angemeldet');
-        vibeZeigen(r.status);
-      } else {
-        const code = r && r.code;
-        m.textContent = tx(code === 'abgelehnt' ? 'vibe.geraet_abgelehnt'
-          : code === 'abgelaufen' ? 'vibe.geraet_abgelaufen'
-            : (r && r.hinweis) || 'vibe.hinweis_fehler');
-        m.classList.add('fehler');
-      }
-    } finally { $('vibeGeraet').disabled = false; }
-  };
-  $('vibeAbmelden').onclick = async () => {
-    if (!confirm(tx('vibe.abmelden_frage'))) return;
-    vibeZeigen(await julia.vibeworksAbmelden());
-    $('vibeMeldung').textContent = '';
-  };
-  $('vibeSchluessel').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('vibeAnmelden').click(); } });
 }
 
 // Whisper: genaue Spracherkennung auf diesem PC – Status und einmaliger Download.
@@ -1280,8 +1170,6 @@ async function init() {
   syncZeigen(await julia.syncStatus());
   appVerbinden();
   appZeigen(await julia.appserverStatus());
-  appsVerbinden();
-  appsZeigen(await julia.appsStatus());
   designVerbinden();
   designZeigen();
   kostenZeigen(await julia.kostenHeute());
@@ -1317,8 +1205,6 @@ async function init() {
   piperVerbinden();
   mcpVerbinden();
   mcpZeigen(await julia.mcpStatus());
-  vibeVerbinden();
-  vibeZeigen(await julia.vibeworksStatus());
   reparaturEinrichten();
   defenderEinrichten();
   $('overlayVorschau').onclick = () => julia.overlayVorschau();

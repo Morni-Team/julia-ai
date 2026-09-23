@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.7.0 – 2026-09-23
+- App-Anbindungen entfernt - die Integrationen der eigenen Apps (ToDoch, Streamo, VibeWork/VibeWorks, Patchfeld, Codewerk, Content-Helper) samt apps-Werkzeug, VibeWorks-Login und zugehoerigen Einstellungen sind komplett raus; MCP-Server-Support und Handy-App-Verbindung bleiben
+
 ## 6.6.1 – 2026-09-23
 - Minecraft-Chat entspammt - Julia schreibt beim autonomen Durchspielen nicht mehr ihre ganze Erzaehlung in den Spielchat, sondern antwortet dort standardmaessig nur, wenn ihr jemand schreibt; mit neuem Schalter Von sich aus im Spielchat mitreden
 
