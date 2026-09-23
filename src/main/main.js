@@ -1166,6 +1166,9 @@ function ipcEinrichten() {
     }
     return r;
   });
+  // Rollback auf die letzte funktionierende Version (Issue #100): startet den
+  // gesicherten Installer der Vorgängerversion erneut. Nur, wenn ein Backup da ist.
+  ipc.handle('update:zurueckrollen', () => (updater.zurueckRollen ? updater.zurueckRollen() : { fehler: 'Rollback ist in dieser Fassung nicht verfügbar.' }));
   ipc.handle('schluessel:setzen', (_e, s) => {
     try { schluesselSetzen(s); return { ok: true }; } catch (e) { return { fehler: e.message }; }
   });
@@ -2712,7 +2715,9 @@ async function start() {
   const st = updater.startStatus();
   if (st && st.probe) setTimeout(() => updater.gesundMelden(), 5000);
   else if (st && st.phase === 'fertig') {
-    melden(t('update.titel'), st.ok ? t('update.erfolg', { version: st.version }) : t('update.zurueck', { version: st.version, fehler: st.fehler || '' }));
+    let text = st.ok ? t('update.erfolg', { version: st.version }) : t('update.zurueck', { version: st.version, fehler: st.fehler || '' });
+    if (!st.ok && st.rollbackMoeglich) text += ' ' + t('update.rollback_moeglich');
+    melden(t('update.titel'), text);
   }
 
   if (!config.get('einrichtung_fertig') || !bereit()) einstellungenOeffnen(true);

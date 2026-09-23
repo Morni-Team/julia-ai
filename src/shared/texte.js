@@ -860,6 +860,7 @@ const TEXTE = {
     'update.fehler': 'Update-Prüfung fehlgeschlagen: {fehler}',
     'update.erfolg': '{name} wurde auf {version} aktualisiert.',
     'update.zurueck': 'Das Update auf {version} ist fehlgeschlagen, {name} läuft wieder auf dem vorherigen Stand. {fehler}',
+    'update.rollback_moeglich': 'Es liegt ein Backup der vorherigen Version bereit – bei Bedarf kann darauf zurückgerollt werden.',
     'update.verfuegbar_hinweis': 'Update auf {version} verfügbar. Tray-Menü → Nach Updates suchen.',
 
     'hotkey.fehler': 'Der Hotkey {hotkey} ist schon belegt. In den Einstellungen einen anderen wählen.',
@@ -1721,6 +1722,7 @@ const TEXTE = {
     'update.fehler': 'Update check failed: {fehler}',
     'update.erfolg': '{name} was updated to {version}.',
     'update.zurueck': 'The update to {version} failed; {name} is back on the previous version. {fehler}',
+    'update.rollback_moeglich': 'A backup of the previous version is available – it can be rolled back to if needed.',
     'update.verfuegbar_hinweis': 'Update to {version} available. Tray menu → Check for updates.',
 
     'hotkey.fehler': 'The hotkey {hotkey} is already taken. Pick another one in the settings.',

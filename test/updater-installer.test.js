@@ -6,7 +6,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
-const { InstallerUpdater, latestYmlLesen } = require('../src/main/updater-installer');
+const { InstallerUpdater, latestYmlLesen, updateSchritt } = require('../src/main/updater-installer');
 
 const DL = 'https://github.com/Morni-Team/julia-ai/releases/download';
 
@@ -131,4 +131,51 @@ test('Nach dem Installer meldet Julia, ob die neue Version läuft', () => {
   const s = u.startStatus();
   assert.equal(s.ok, false);
   assert.match(s.fehler, /0\.9\.3/);
+});
+
+test('updateSchritt: verifizieren → wiederholen → aufgeben (Issue #100)', () => {
+  assert.deepEqual(updateSchritt(null, '1.0.0'), { aktion: 'nichts' });
+  assert.equal(updateSchritt({ phase: 'installer', ziel: 'v1.0.0' }, '1.0.0').aktion, 'fertig');
+  const w = updateSchritt({ phase: 'installer', ziel: 'v1.0.0', versuch: 0, von: 'v0.9.3' }, '0.9.3');
+  assert.equal(w.aktion, 'wiederholen');
+  assert.equal(w.versuch, 1);
+  const a = updateSchritt({ phase: 'installer', ziel: 'v1.0.0', versuch: 1, von: 'v0.9.3' }, '0.9.3');
+  assert.equal(a.aktion, 'aufgeben');
+  assert.equal(a.rollbackVon, 'v0.9.3');
+});
+
+test('startStatus: kam das Update nicht an, wird der Installer einmal automatisch wiederholt', () => {
+  const { u, ordner, gestartet, istBeendet } = aufbau();
+  const status = path.join(ordner, 'update-status.json');
+  const inst = path.join(ordner, 'updates', 'Julia-AI-Setup-1.0.0.exe');
+  fs.mkdirSync(path.dirname(inst), { recursive: true });
+  fs.writeFileSync(inst, 'MZ');
+  fs.writeFileSync(status, JSON.stringify({ phase: 'installer', ziel: 'v1.0.0', von: 'v0.9.3', versuch: 0, installer: inst }));
+  const s = u.startStatus(); // läuft weiter 0.9.3 → einmal wiederholen
+  assert.equal(s.phase, 'wiederholung');
+  assert.equal(gestartet.length, 1, 'Installer wird erneut gestartet');
+  assert.equal(istBeendet(), true);
+  assert.equal(JSON.parse(fs.readFileSync(status, 'utf8')).versuch, 1);
+  // Zweiter Anlauf scheitert auch → aufgeben, Status weg, kein weiterer Start.
+  const s2 = u.startStatus();
+  assert.equal(s2.ok, false);
+  assert.equal(gestartet.length, 1, 'kein Endlos-Wiederholen');
+  assert.equal(fs.existsSync(status), false);
+});
+
+test('startStatus: erfolgreiches Update sichert den Installer als Rollback-Backup, zurueckRollen nutzt es', () => {
+  const { u, ordner, gestartet } = aufbau();
+  const status = path.join(ordner, 'update-status.json');
+  const inst = path.join(ordner, 'updates', 'Julia-AI-Setup-0.9.3.exe');
+  fs.mkdirSync(path.dirname(inst), { recursive: true });
+  fs.writeFileSync(inst, 'MZ-gut');
+  fs.writeFileSync(status, JSON.stringify({ phase: 'installer', ziel: 'v0.9.3', von: 'v0.9.2', versuch: 0, installer: inst }));
+  const s = u.startStatus(); // läuft jetzt 0.9.3 = ziel → fertig + Backup
+  assert.equal(s.ok, true);
+  const backup = path.join(ordner, 'update-backup');
+  assert.ok(fs.readdirSync(backup).some((n) => /Julia-AI-Setup-0\.9\.3\.exe/.test(n)), 'Backup angelegt');
+  // Rollback startet den gesicherten Installer erneut.
+  const r = u.zurueckRollen();
+  assert.equal(r.ok, true);
+  assert.equal(gestartet.length, 1);
 });

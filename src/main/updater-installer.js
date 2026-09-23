@@ -31,6 +31,17 @@ function latestYmlLesen(text) {
   return r;
 }
 
+// Entscheidung nach einem Update (rein, testbar, Issue #100): Läuft die neue
+// Version? Sonst einmal automatisch wiederholen, danach aufgeben (mit Rollback-
+// Angebot). status = im Datenordner gemerkter Zustand; laeuft = aktuelle Version.
+function updateSchritt(status, laeuft, { maxVersuche = 1 } = {}) {
+  if (!status || status.phase !== 'installer') return { aktion: 'nichts' };
+  if (version.vergleichen(laeuft, status.ziel) === 0) return { aktion: 'fertig', version: status.ziel };
+  const versuch = status.versuch || 0;
+  if (versuch < maxVersuche) return { aktion: 'wiederholen', versuch: versuch + 1, ziel: status.ziel, von: status.von };
+  return { aktion: 'aufgeben', version: laeuft, ziel: status.ziel, rollbackVon: status.von };
+}
+
 function passendeReleases(liste, kanal) {
   return (Array.isArray(liste) ? liste : [])
     .filter((r) => r && !r.draft && typeof r.tag_name === 'string' && /^v\d/.test(r.tag_name) && version.parse(r.tag_name))
@@ -119,24 +130,76 @@ class InstallerUpdater extends Updater {
     }
     const datei = path.join(ordner, `Julia-AI-Setup-${tag.slice(1)}.exe`);
     fs.writeFileSync(datei, daten);
-    fs.writeFileSync(this.statusDatei, JSON.stringify({ phase: 'installer', ziel: tag, von: this.aktuelleVersion() }, null, 2), 'utf8');
+    // Status merken (für Verifizieren/Wiederholen nach dem Start) inkl. Pfad des
+    // neuen Installers und des vorhandenen Backups (Rollback „für den Fall der Fälle").
+    fs.writeFileSync(this.statusDatei, JSON.stringify({
+      phase: 'installer', ziel: tag, von: this.aktuelleVersion(), versuch: 0, installer: datei, backup: this._backupInstaller(),
+    }, null, 2), 'utf8');
 
     // Still installieren und danach Julia wieder starten.
+    this._installerStarten(datei);
+  }
+
+  _installerStarten(datei) {
     const kind = this.starten(datei, ['/S', '--updated', '--force-run'], { detached: true, stdio: 'ignore', windowsHide: true });
     kind.unref();
     this.beenden();
   }
 
-  // Nach dem Installer: Läuft jetzt die neue Version? Einmal melden.
+  // Ordner/Datei des letzten bekannt-guten Installers (Rollback-Punkt).
+  _backupOrdner() { return path.join(this.datenOrdner, 'update-backup'); }
+  _backupInstaller() {
+    try {
+      const d = fs.readdirSync(this._backupOrdner()).filter((n) => /^Julia-AI-Setup-.*\.exe$/.test(n));
+      return d.length ? path.join(this._backupOrdner(), d[0]) : null;
+    } catch { return null; }
+  }
+
+  // Den gerade erfolgreich eingespielten Installer als neuen Rollback-Punkt sichern.
+  _backupSetzen(installer, version) {
+    if (!installer) return;
+    try {
+      const ziel = this._backupOrdner();
+      fs.mkdirSync(ziel, { recursive: true });
+      for (const alt of fs.readdirSync(ziel)) { try { fs.unlinkSync(path.join(ziel, alt)); } catch { /* egal */ } }
+      if (fs.existsSync(installer)) fs.copyFileSync(installer, path.join(ziel, `Julia-AI-Setup-${String(version).replace(/^v/, '')}.exe`));
+    } catch { /* Backup ist optional – nie den Start blockieren */ }
+  }
+
+  // Rollback auf die letzte funktionierende Version (Nutzer-Aktion). Startet den
+  // gesicherten Installer erneut, falls vorhanden.
+  zurueckRollen() {
+    const b = this._backupInstaller();
+    if (!b || !fs.existsSync(b)) return { fehler: 'Kein Backup einer vorherigen Version vorhanden.' };
+    this._installerStarten(b);
+    return { ok: true };
+  }
+
+  // Nach dem Installer: Läuft jetzt die neue Version? Prüfen und – wenn nicht –
+  // den Installer EINMAL automatisch wiederholen (Issue #100). Klappt es auch dann
+  // nicht, klare Meldung mit Rollback-Angebot (Backup der vorherigen Version).
   startStatus() {
     let s;
     try { s = JSON.parse(fs.readFileSync(this.statusDatei, 'utf8')); } catch { return null; }
     if (s.phase !== 'installer') return super.startStatus();
-    try { fs.unlinkSync(this.statusDatei); } catch { /* egal */ }
     const jetzt = this.aktuelleVersion();
-    const ok = version.vergleichen(jetzt, s.ziel) === 0;
-    return { phase: 'fertig', ok, version: s.ziel, fehler: ok ? '' : `Es läuft weiter ${jetzt}.` };
+    const schritt = updateSchritt(s, jetzt);
+    if (schritt.aktion === 'fertig') {
+      // Neue Version läuft → ihren Installer als Rollback-Punkt sichern, Status weg.
+      this._backupSetzen(s.installer, s.ziel);
+      try { fs.unlinkSync(this.statusDatei); } catch { /* egal */ }
+      return { phase: 'fertig', ok: true, version: s.ziel };
+    }
+    if (schritt.aktion === 'wiederholen' && s.installer && fs.existsSync(s.installer)) {
+      // Update kam nicht an – einmal automatisch wiederholen.
+      try { fs.writeFileSync(this.statusDatei, JSON.stringify({ ...s, versuch: schritt.versuch }, null, 2), 'utf8'); } catch { /* egal */ }
+      this._installerStarten(s.installer);
+      return { phase: 'wiederholung', ok: false, version: jetzt, ziel: s.ziel };
+    }
+    // Aufgeben: nicht in einer Schleife weiter probieren, klar melden.
+    try { fs.unlinkSync(this.statusDatei); } catch { /* egal */ }
+    return { phase: 'fertig', ok: false, version: jetzt, fehler: `Es läuft weiter ${jetzt}.`, rollbackMoeglich: !!this._backupInstaller() };
   }
 }
 
-module.exports = { InstallerUpdater, latestYmlLesen, passendeReleases, anhang, REPO };
+module.exports = { InstallerUpdater, latestYmlLesen, passendeReleases, anhang, updateSchritt, REPO };

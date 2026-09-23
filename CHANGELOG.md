@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.6.0 – 2026-09-23
+- Updates mit doppeltem Boden - nach einem Update prueft Julia, ob die neue Version wirklich laeuft, wiederholt die Installation notfalls einmal automatisch und haelt den Installer der letzten funktionierenden Version als Backup fuer einen Rollback bereit
+
 ## 6.5.0 – 2026-09-23
 - Leeres Fenster nach Updates behoben (GPU-Prozess wird notfalls komplett abgeschaltet, wenn selbst der Software-Modus abstuerzt) und Julia kann jetzt beim Durchspielen parallel im Chat mitreden - kurze Gruesse wie hallo beantwortet sie auch ohne Namensnennung, ohne die laufende Aufgabe zu unterbrechen
 
