@@ -138,6 +138,9 @@ const STANDARD = {
     sozial: false, // BETA (Issue #94): soziales Gedächtnis & Persönlichkeit – Julia merkt sich pro Spieler Ruf/Vertrauen, ist skeptisch bei Prahlerei/Cheat-Verdacht und kann kühl/„nein“ reagieren. Standard AUS; wenn an, plaudert sie im Spiel auch mit anderen (nur im Spiel, nie am PC).
     sozial_verzoegern: true, // wenn sozial an: beim Antworten im Chat kurz „Zeit lassen“ (menschlicher), statt sofort zu tippen
     persoenlichkeit: 'freundlich', // Grundton der Persönlichkeit: 'freundlich' | 'ruhig' | 'frech' | 'schlagfertig'
+    token_limit: 0, // Issue #98: max. geschätzte Tokens fürs In-Game-Plaudern je Sitzung (0 = kein Limit). Bei Erreichen verabschiedet sich Julia und plaudert nicht mehr.
+    ruhe_von: -1, // Ruhezeit-Beginn (Stunde 0..23, -1 = aus): in diesem Fenster ist Julia im Spiel „offline“ und plaudert nicht
+    ruhe_bis: -1, // Ruhezeit-Ende (Stunde 0..23, -1 = aus)
   },
   sync: {
     an: false, // Geräte-Abgleich von PC zu PC – standardmäßig aus
@@ -329,6 +332,9 @@ function pruefen(schluessel, wert) {
     case 'shell.max_s': return Math.round(zahl(wert, 5, 3600, 'Shell-Maximum'));
     case 'minecraft.port': return Math.round(zahl(wert, 1, 65535, 'Port'));
     case 'minecraft.gruppe': return String(wert ?? '').replace(/[ -]/g, '').trim().slice(0, 64);
+    case 'minecraft.token_limit': return Math.round(zahl(wert, 0, 10000000, 'Token-Limit')); // 0 = kein Limit
+    case 'minecraft.ruhe_von':
+    case 'minecraft.ruhe_bis': return Math.round(zahl(wert, -1, 23, 'Stunde')); // -1 = keine Ruhezeit
     case 'minecraft.erlaubte': {
       const roh = Array.isArray(wert) ? wert : String(wert ?? '').split(/[\n,;]/);
       const liste = [];

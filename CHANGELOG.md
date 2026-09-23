@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.4.0 – 2026-09-23
+- Minecraft-Grenzen, Budget und Ruhezeiten (BETA) - Julia macht bei zu nervigen Spielern eine Pause und ignoriert sie eine Weile, haelt ein einstellbares Token-Limit fuers Plaudern ein und verabschiedet sich beim Erreichen, kann selbstgesetzte Ruhezeiten haben und merkt sich sparsam die Base eines Spielers
+
 ## 6.3.1 – 2026-09-23
 - Updates zuverlaessiger - neuer Knopf in den Einstellungen traegt Julias eigene Ordner als Windows-Defender-Ausnahme ein (mit Admin-Nachfrage), damit das Auto-Update nicht mehr an gesperrten Dateien scheitert
 

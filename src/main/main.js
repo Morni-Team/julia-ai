@@ -9,7 +9,7 @@ const {
 } = require('electron');
 const sicherheit = require('./sicherheit');
 const { Minecraft, kontoSpeicher, kontoAnmelden, adresseTeilen, sollBenachrichtigen: mcSollBenachrichtigen } = require('./minecraft');
-const { Sozial, antwortVerzoegerung: mcVerzoegerung } = require('./minecraft-sozial');
+const { Sozial, antwortVerzoegerung: mcVerzoegerung, istRuhezeit: mcRuhezeit, budgetStatus: mcBudget, tokenSchaetzen: mcTokens } = require('./minecraft-sozial');
 const { Sync } = require('./sync');
 const { AppServer } = require('./appserver');
 const mikrofonRecht = require('./mikrofon-recht');
@@ -2148,9 +2148,29 @@ function gespraechFortsetzen(id) {
 // Eine Frage aus dem Minecraft-Chat (nur von deinem Spielernamen). Die Antwort
 // geht kurz zurück in den Spielchat; handeln darf Julia von dort nur im Spiel
 // (Kanal "minecraft", siehe agent.js).
+let mcTokenVerbraucht = 0;
+let mcBudgetTag = null;
+let mcVerabschiedet = false;
 async function minecraftFrage({ von, text }) {
+  // Grenzen & Budget (Issue #98) – nur wenn das soziale BETA an ist.
+  const sozialAn = config.get('minecraft.sozial');
+  if (sozialAn) {
+    // Selbstgesetzte Ruhezeit: da ist Julia im Spiel „offline" und plaudert nicht.
+    if (mcRuhezeit(new Date().getHours(), config.get('minecraft.ruhe_von'), config.get('minecraft.ruhe_bis'))) return;
+    // Persönliche Grenze: nervt jemand zu sehr, ignoriert Julia ihn eine Weile.
+    if (sozial.wirdIgnoriert(von)) return;
+  }
+  // Token-Budget fürs Plaudern: pro Tag zurücksetzen.
+  const heute = new Date().toISOString().slice(0, 10);
+  if (mcBudgetTag !== heute) { mcBudgetTag = heute; mcTokenVerbraucht = 0; mcVerabschiedet = false; }
+  const limit = config.get('minecraft.token_limit');
+  if (limit > 0 && mcBudget(mcTokenVerbraucht, limit) === 'stopp') {
+    if (!mcVerabschiedet) { mcVerabschiedet = true; try { await minecraft.antworten(t('mc.budget_ende')); } catch { /* getrennt */ } }
+    return;
+  }
   protokoll.eintragen({ werkzeug: 'minecraft', stufe: 'INFO', eingabe: { von, text: text.slice(0, 250) }, ergebnis: 'Frage aus dem Minecraft-Chat' });
   anChatFenster('agent:nutzer', { text: t('mc.im_spiel', { von, text }), perSprache: false });
+  let antwort = '';
   // KI nebenbei (Issue #93): Ist der Hauptagent gerade beschäftigt (baut/kämpft/
   // spielt durch), antwortet ein leichter Nebenläufer OHNE Werkzeuge und mit
   // kleinem Token-Budget – so bekommt der Spieler mitten im Gameplay eine schnelle
@@ -2158,26 +2178,33 @@ async function minecraftFrage({ von, text }) {
   // Agent (kann im Spiel auch handeln).
   if (agent.beschaeftigt) {
     try {
-      const antwort = await agent.nebenAntwort(text, {
+      antwort = await agent.nebenAntwort(text, {
         name: assistentName(),
         sprachcode: config.get('sprachcode'),
         kontext: mcKontext({ von }),
       });
       if (antwort) {
-        if (config.get('minecraft.sozial') && config.get('minecraft.sozial_verzoegern')) {
+        if (sozialAn && config.get('minecraft.sozial_verzoegern')) {
           await new Promise((r) => setTimeout(r, mcVerzoegerung(antwort)));
         }
         anChatFenster('agent:text', { text: antwort });
         await minecraft.antworten(antwort);
       }
     } catch { /* Neben-KI nicht verfügbar (z. B. Claude-Code-Modus) – dann still */ }
-    return;
+  } else {
+    try {
+      antwort = await agent.senden(`[${t('mc.auftrag_kopf', { von })}] ${text}`, { kanal: 'minecraft' }) || '';
+      if (antwort) await minecraft.antworten(antwort);
+    } catch (e) {
+      if (e.message !== 'BESCHAEFTIGT') anChatFenster('agent:fehler', { art: 'text', text: e.message });
+    }
   }
-  try {
-    const antwort = await agent.senden(`[${t('mc.auftrag_kopf', { von })}] ${text}`, { kanal: 'minecraft' });
-    if (antwort) await minecraft.antworten(antwort);
-  } catch (e) {
-    if (e.message !== 'BESCHAEFTIGT') anChatFenster('agent:fehler', { art: 'text', text: e.message });
+  // Verbrauch fürs Budget grob mitzählen.
+  if (limit > 0) mcTokenVerbraucht += mcTokens(text) + mcTokens(antwort);
+  // Grenze prüfen: ist jemand zu nervig geworden, zieht Julia die Grenze und sagt
+  // das einmal kurz – danach ignoriert sie ihn die berechnete Zeit.
+  if (sozialAn) {
+    try { if (sozial.grenzePruefen(von) > 0) await minecraft.antworten(t('mc.grenze')); } catch { /* getrennt */ }
   }
 }
 

@@ -400,6 +400,14 @@
                 </select>
               </label>
               <label class="mc-schalter"><input type="checkbox" id="mcSozialVerzoegern"><span data-nav="mc.sozial_verzoegern"></span></label>
+              <label class="mc-feld"><span data-nav="mc.token_limit"></span>
+                <input type="number" id="mcTokenLimit" min="0" step="1000" style="width:8em">
+              </label>
+              <p class="mc-klein" data-nav="mc.token_limit_hinweis"></p>
+              <label class="mc-feld"><span data-nav="mc.ruhe"></span>
+                <span><input type="number" id="mcRuheVon" min="-1" max="23" style="width:4em"> – <input type="number" id="mcRuheBis" min="-1" max="23" style="width:4em"></span>
+              </label>
+              <p class="mc-klein" data-nav="mc.ruhe_hinweis"></p>
             </div>
             <div class="mc-zeilen" id="mcZeilen"></div>
             <form class="mc-zeile" id="mcSenden">

@@ -344,6 +344,9 @@
       if ($('mcSozialOptionen')) $('mcSozialOptionen').style.display = an ? '' : 'none';
       if ($('mcPersoenlichkeit')) $('mcPersoenlichkeit').value = c.minecraft.persoenlichkeit || 'freundlich';
       if ($('mcSozialVerzoegern')) $('mcSozialVerzoegern').checked = c.minecraft.sozial_verzoegern !== false;
+      if ($('mcTokenLimit')) $('mcTokenLimit').value = c.minecraft.token_limit || 0;
+      if ($('mcRuheVon')) $('mcRuheVon').value = c.minecraft.ruhe_von ?? -1;
+      if ($('mcRuheBis')) $('mcRuheBis').value = c.minecraft.ruhe_bis ?? -1;
     }
   }
   async function stimmeZeigen() {
@@ -397,6 +400,18 @@
   };
   if ($('mcSozialVerzoegern')) $('mcSozialVerzoegern').onchange = async () => {
     const r = await julia.setzen('minecraft.sozial_verzoegern', $('mcSozialVerzoegern').checked);
+    if (r && r.fehler) { fehler(r.fehler); stimmeZeigen(); }
+  };
+  if ($('mcTokenLimit')) $('mcTokenLimit').onchange = async () => {
+    const r = await julia.setzen('minecraft.token_limit', Number($('mcTokenLimit').value) || 0);
+    if (r && r.fehler) { fehler(r.fehler); stimmeZeigen(); }
+  };
+  if ($('mcRuheVon')) $('mcRuheVon').onchange = async () => {
+    const r = await julia.setzen('minecraft.ruhe_von', Number($('mcRuheVon').value));
+    if (r && r.fehler) { fehler(r.fehler); stimmeZeigen(); }
+  };
+  if ($('mcRuheBis')) $('mcRuheBis').onchange = async () => {
+    const r = await julia.setzen('minecraft.ruhe_bis', Number($('mcRuheBis').value));
     if (r && r.fehler) { fehler(r.fehler); stimmeZeigen(); }
   };
   julia.on('config:geaendert', schalterSetzen);

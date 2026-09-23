@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { Sozial, bewerten, vertrauenNeu, haltungVon, unglaubwuerdig, cheatVerdacht, ausnutzung, antwortVerzoegerung } = require('../src/main/minecraft-sozial');
+const { Sozial, bewerten, vertrauenNeu, haltungVon, unglaubwuerdig, cheatVerdacht, ausnutzung, antwortVerzoegerung, budgetStatus, tokenSchaetzen, ignorierDauerMin, istRuhezeit, naheBase } = require('../src/main/minecraft-sozial');
 
 const neu = () => new Sozial(fs.mkdtempSync(path.join(os.tmpdir(), 'julia-soz-')));
 
@@ -81,6 +81,61 @@ test('Sozial: Skepsis-Notiz wird bei Prahlerei festgehalten (nicht zu viele)', (
   for (let i = 0; i < 20; i++) s.verarbeiten('Prahler', 'ich hab 9999 diamanten');
   const txt = s.alsText('Prahler');
   assert.match(txt, /legit|prahl/i);
+});
+
+test('budgetStatus: ok → warnung → stopp (Issue #98)', () => {
+  assert.equal(budgetStatus(100, 0), 'ok'); // kein Limit
+  assert.equal(budgetStatus(10, 100), 'ok');
+  assert.equal(budgetStatus(90, 100), 'warnung');
+  assert.equal(budgetStatus(100, 100), 'stopp');
+  assert.equal(budgetStatus(150, 100), 'stopp');
+});
+
+test('tokenSchaetzen: grob ~4 Zeichen je Token', () => {
+  assert.equal(tokenSchaetzen(''), 0);
+  assert.equal(tokenSchaetzen('abcd'), 1);
+  assert.equal(tokenSchaetzen('abcde'), 2);
+});
+
+test('ignorierDauerMin: erst ab hoher Genervtheit, gedeckelt', () => {
+  assert.equal(ignorierDauerMin(50), 0);
+  assert.equal(ignorierDauerMin(70), 10);
+  assert.equal(ignorierDauerMin(100), 40);
+  assert.ok(ignorierDauerMin(999) <= 60);
+});
+
+test('istRuhezeit: normales und über-Mitternacht-Fenster', () => {
+  assert.equal(istRuhezeit(3, -1, -1), false); // aus
+  assert.equal(istRuhezeit(13, 9, 17), true);
+  assert.equal(istRuhezeit(20, 9, 17), false);
+  assert.equal(istRuhezeit(23, 22, 7), true); // über Mitternacht
+  assert.equal(istRuhezeit(3, 22, 7), true);
+  assert.equal(istRuhezeit(12, 22, 7), false);
+});
+
+test('naheBase: nur wenn die gemerkte Base wirklich in der Nähe ist', () => {
+  const base = { cx: 10, cz: 10 };
+  assert.equal(naheBase({ x: 160, z: 160 }, base, 2), true); // Chunk 10,10
+  assert.equal(naheBase({ x: 500, z: 500 }, base, 2), false);
+  assert.equal(naheBase({ x: 0, z: 0 }, null), false);
+});
+
+test('Sozial: Ignore-Mode setzen und automatische Grenze', () => {
+  const s = neu();
+  s.ignorieren('Nervig', 15);
+  assert.equal(s.wirdIgnoriert('Nervig'), true);
+  assert.equal(s.wirdIgnoriert('Anderer'), false);
+  // Genervtheit hochtreiben → automatische Grenze greift
+  for (let i = 0; i < 10; i++) s.verarbeiten('Spammer', `du idiot ${i}`);
+  assert.ok(s.grenzePruefen('Spammer') > 0);
+  assert.equal(s.wirdIgnoriert('Spammer'), true);
+});
+
+test('Sozial: Base merken (Chunk) und abfragen', () => {
+  const s = neu();
+  s.baseMerken('Max', 163, 205);
+  assert.deepEqual(s.base('Max'), { cx: 10, cz: 12 });
+  assert.equal(naheBase({ x: 160, z: 200 }, s.base('Max'), 1), true);
 });
 
 test('Sozial: kaputte sozial.json meldet, überschreibt nichts', () => {

@@ -97,6 +97,47 @@ function antwortVerzoegerung(text = '', { grund = 600, proZeichen = 35, max = 40
   return Math.min(max, Math.round(grund + String(text).length * proZeichen));
 }
 
+// --- Grenzen, Budget, Ruhezeiten, Base (Issue #98) --------------------------
+
+// Token-Budget fürs Minecraft-Plaudern (rein): limit<=0 heißt „kein Limit".
+// Sonst 'ok' → 'warnung' (ab warnAb) → 'stopp' (Limit erreicht). Bei 'stopp'
+// verabschiedet sich Julia und hört im Spiel auf zu schreiben.
+function budgetStatus(verbraucht = 0, limit = 0, { warnAb = 0.85 } = {}) {
+  if (!limit || limit <= 0) return 'ok';
+  if (verbraucht >= limit) return 'stopp';
+  if (verbraucht >= limit * warnAb) return 'warnung';
+  return 'ok';
+}
+
+// Grobe Token-Schätzung eines Textes (rein): ~4 Zeichen je Token.
+function tokenSchaetzen(text = '') {
+  return Math.ceil(String(text).length / 4);
+}
+
+// Persönliche Grenze (rein): Ab welcher Genervtheit blockt Julia jemanden, und
+// wie lange (Minuten)? Unter 70 gar nicht; darüber 10..60 min, je genervter länger.
+function ignorierDauerMin(genervt = 0) {
+  if (genervt < 70) return 0;
+  return Math.min(60, 10 + (genervt - 70));
+}
+
+// Selbstgesetzte Ruhezeit (rein): liegt die aktuelle Stunde im Fenster von..bis?
+// von/bis 0..23; -1 = aus. Über Mitternacht (z. B. 22..7) wird korrekt behandelt.
+function istRuhezeit(stunde, von = -1, bis = -1) {
+  if (von < 0 || bis < 0) return false;
+  const h = ((Math.floor(stunde) % 24) + 24) % 24;
+  return von <= bis ? (h >= von && h < bis) : (h >= von || h < bis);
+}
+
+// Ist eine gemerkte Base in der Nähe? (rein, in Chunk-Radius) – für „ich seh dich
+// hier oft / deine Base ist gleich nebenan", aber nur wenn es wirklich stimmt.
+function naheBase(pos, base, radiusChunks = 2) {
+  if (!pos || !base || typeof base.cx !== 'number') return false;
+  const cx = Math.floor(pos.x / 16);
+  const cz = Math.floor(pos.z / 16);
+  return Math.abs(cx - base.cx) <= radiusChunks && Math.abs(cz - base.cz) <= radiusChunks;
+}
+
 // --- Persistenz + Zusammenspiel -------------------------------------------
 
 const START = { freundlichkeit: 50, vertrauen: 20, genervt: 0, gegeben: 0, genommen: 0, begegnungen: 0, notizen: [], letzterText: '', letzter: 0 };
@@ -184,6 +225,51 @@ class Sozial {
     try { return haltungVon(this._laden().spieler[String(name || '').trim()] || {}); } catch { return 'neutral'; }
   }
 
+  // Grenze setzen (Issue #98): jemanden für ein paar Minuten ignorieren. Gibt die
+  // Dauer in Minuten zurück (0 = nicht ignoriert).
+  ignorieren(name, minuten) {
+    const daten = this._laden();
+    const rec = this._rec(daten, name);
+    rec.ignoriertBis = Date.now() + Math.max(0, minuten) * 60000;
+    this._speichern(daten);
+    return minuten;
+  }
+
+  // Wird dieser Spieler gerade (noch) ignoriert?
+  wirdIgnoriert(name) {
+    try {
+      const rec = this._laden().spieler[String(name || '').trim()];
+      return !!(rec && rec.ignoriertBis && Date.now() < rec.ignoriertBis);
+    } catch { return false; }
+  }
+
+  // Automatische Grenze: ist jemand zu nervig geworden, ignoriert Julia ihn eine
+  // Weile von selbst. Gibt die gesetzte Dauer (min) zurück oder 0.
+  grenzePruefen(name) {
+    const daten = this._laden();
+    const rec = this._rec(daten, name);
+    const min = ignorierDauerMin(rec.genervt || 0);
+    if (min > 0 && !(rec.ignoriertBis && Date.now() < rec.ignoriertBis)) {
+      rec.ignoriertBis = Date.now() + min * 60000;
+      this._speichern(daten);
+      return min;
+    }
+    return 0;
+  }
+
+  // Die Base eines Spielers merken (Chunk-Koordinaten – winzig, kostet keine Tokens).
+  baseMerken(name, x, z) {
+    const daten = this._laden();
+    const rec = this._rec(daten, name);
+    rec.base = { cx: Math.floor(x / 16), cz: Math.floor(z / 16) };
+    this._speichern(daten);
+    return rec.base;
+  }
+
+  base(name) {
+    try { return (this._laden().spieler[String(name || '').trim()] || {}).base || null; } catch { return null; }
+  }
+
   // Kompakter Beziehungs-Kontext für den Antwort-Prompt (oder null).
   alsText(name) {
     let daten;
@@ -201,4 +287,5 @@ class Sozial {
 
 module.exports = {
   Sozial, bewerten, vertrauenNeu, haltungVon, unglaubwuerdig, cheatVerdacht, ausnutzung, antwortVerzoegerung,
+  budgetStatus, tokenSchaetzen, ignorierDauerMin, istRuhezeit, naheBase,
 };
