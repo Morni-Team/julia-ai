@@ -1003,6 +1003,30 @@ async function reparaturEinrichten() {
   };
 }
 
+// Defender-Ausnahme (Issue #97): hilft gegen „Datei in Benutzung"/„kein Zugriff"
+// beim Auto-Update. Nur unter Windows sichtbar; braucht Adminrechte (UAC).
+async function defenderEinrichten() {
+  const feld = $('defenderFeld');
+  const knopf = $('defenderKnopf');
+  const status = $('defenderStatus');
+  if (!feld || !knopf || !julia.defenderStatus) return;
+  let stand = { verfuegbar: false, ausgeschlossen: false };
+  try { stand = await julia.defenderStatus(); } catch { /* kein Windows/Defender */ }
+  if (!stand.verfuegbar) { feld.hidden = true; return; }
+  feld.hidden = false;
+  const malen = () => {
+    status.textContent = tx(stand.ausgeschlossen ? 'einst.defender_aktiv' : 'einst.defender_inaktiv');
+    knopf.disabled = !!stand.ausgeschlossen;
+  };
+  malen();
+  knopf.onclick = async () => {
+    knopf.disabled = true;
+    const r = await julia.defenderAusschliessen();
+    if (r && r.ok) { stand.ausgeschlossen = true; malen(); }
+    else { alert((r && r.fehler) || tx('einst.defender_fehler')); knopf.disabled = false; }
+  };
+}
+
 // Agenten-Rollen (Issue #58, BETA): benannte Rollen mit Zusatz-Anweisung anlegen,
 // die aktive auswählen. Nur sichtbar, wenn BETA-Agenten an ist.
 async function rollenEinrichten() {
@@ -1296,6 +1320,7 @@ async function init() {
   vibeVerbinden();
   vibeZeigen(await julia.vibeworksStatus());
   reparaturEinrichten();
+  defenderEinrichten();
   $('overlayVorschau').onclick = () => julia.overlayVorschau();
   $('overlayPositionWeg').onclick = () => julia.setzen('overlay.position', null);
   sandboxZeigen();

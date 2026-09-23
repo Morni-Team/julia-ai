@@ -164,6 +164,8 @@ contextBridge.exposeInMainWorld('julia', {
   reparaturStatus: () => ipcRenderer.invoke('reparatur:status'),
   reparaturSoftware: (an) => ipcRenderer.invoke('reparatur:software', !!an),
   reparaturTreiber: (url) => ipcRenderer.invoke('reparatur:treiber', String(url || '')),
+  defenderStatus: () => ipcRenderer.invoke('defender:status'),
+  defenderAusschliessen: () => ipcRenderer.invoke('defender:ausschliessen'),
   mcChat: (text) => ipcRenderer.invoke('mc:chat', String(text || '')),
   mcKontoVerbinden: () => ipcRenderer.invoke('mc:konto:verbinden'),
   mcKontoAbmelden: () => ipcRenderer.invoke('mc:konto:abmelden'),

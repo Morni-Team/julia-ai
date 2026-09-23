@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.3.1 – 2026-09-23
+- Updates zuverlaessiger - neuer Knopf in den Einstellungen traegt Julias eigene Ordner als Windows-Defender-Ausnahme ein (mit Admin-Nachfrage), damit das Auto-Update nicht mehr an gesperrten Dateien scheitert
+
 ## 6.3.0 – 2026-09-23
 - Minecraft-Persoenlichkeit und Beziehungen (BETA) - Julia merkt sich pro Spieler wie nett oder gemein jemand war, baut Vertrauen auf, ist skeptisch bei unrealistischer Prahlerei oder Cheat-Verdacht, laesst sich nicht ausnutzen und darf freundlich, kuehl oder auch mal nein reagieren; Grundton waehlbar, standardmaessig aus
 

@@ -91,6 +91,7 @@ const { Protokoll } = require('./protokoll');
 const { Agent } = require('./agent');
 const { Updater } = require('./updater');
 const { InstallerUpdater } = require('./updater-installer');
+const defender = require('./defender');
 const { Sprache } = require('./sprache');
 const { Konten } = require('./konten');
 const { Erinnerungen } = require('./erinnerungen');
@@ -1148,6 +1149,22 @@ function ipcEinrichten() {
     startLog.schreiben('GPU', an ? 'Software-Grafik vom Nutzer eingeschaltet (Reparatur) – Neustart.' : 'Normale Grafik vom Nutzer wieder aktiviert – Neustart.');
     setTimeout(() => { beendenLaeuft = true; app.relaunch(); app.exit(0); }, 200);
     return { software: !!an };
+  });
+  // Defender-Ausnahme für Julias eigene Ordner (Issue #97): hilft gegen
+  // Lockfile-/„kein Zugriff"-Fehler beim Auto-Update. Nur Julias eigene Pfade,
+  // nutzerinitiiert, mit UAC – nie aus KI-Eingaben.
+  ipc.handle('defender:status', async () => {
+    if (process.platform !== 'win32') return { verfuegbar: false, ausgeschlossen: false };
+    try { return await defender.status([APP, DATEN]); } catch { return { verfuegbar: false, ausgeschlossen: false }; }
+  });
+  ipc.handle('defender:ausschliessen', async () => {
+    if (process.platform !== 'win32') return { fehler: 'Nur unter Windows.' };
+    const r = await defender.anwenden({ pfade: [APP, DATEN], prozesse: ['Julia AI.exe'] });
+    if (r.ok) {
+      startLog.schreiben('UPDATE', 'Defender-Ausnahme für Programm- und Datenordner gesetzt (Nutzer, Admin).');
+      protokoll.eintragen({ werkzeug: 'system', stufe: 'INFO', ergebnis: 'Defender-Ausnahme gesetzt (Nutzer)' });
+    }
+    return r;
   });
   ipc.handle('schluessel:setzen', (_e, s) => {
     try { schluesselSetzen(s); return { ok: true }; } catch (e) { return { fehler: e.message }; }
