@@ -135,6 +135,9 @@ const STANDARD = {
     erlaubte: [], // zusätzlich zum Besitzer erlaubte Spielernamen (im Spiel per „hör auch auf X“ pflegbar)
     benachrichtigen: 'wichtige', // Windows-Benachrichtigungen aus Minecraft: 'alle' | 'wichtige' | 'keine' (Standard: nur Wichtiges, damit Bauen/Essen nicht ständig pusht)
     chat_zeigen: true, // In-Game-Chat im Minecraft-Tab anzeigen (aus = die Nachrichtenliste ausblenden)
+    sozial: false, // BETA (Issue #94): soziales Gedächtnis & Persönlichkeit – Julia merkt sich pro Spieler Ruf/Vertrauen, ist skeptisch bei Prahlerei/Cheat-Verdacht und kann kühl/„nein“ reagieren. Standard AUS; wenn an, plaudert sie im Spiel auch mit anderen (nur im Spiel, nie am PC).
+    sozial_verzoegern: true, // wenn sozial an: beim Antworten im Chat kurz „Zeit lassen“ (menschlicher), statt sofort zu tippen
+    persoenlichkeit: 'freundlich', // Grundton der Persönlichkeit: 'freundlich' | 'ruhig' | 'frech' | 'schlagfertig'
   },
   sync: {
     an: false, // Geräte-Abgleich von PC zu PC – standardmäßig aus
@@ -259,6 +262,8 @@ function pruefen(schluessel, wert) {
     case 'minecraft.stimme':
     case 'minecraft.jeder':
     case 'minecraft.chat_zeigen':
+    case 'minecraft.sozial':
+    case 'minecraft.sozial_verzoegern':
     case 'overlay.automatisch':
     case 'overlay.kompakt':
     case 'overlay.immer':
@@ -269,6 +274,11 @@ function pruefen(schluessel, wert) {
     case 'minecraft.benachrichtigen': {
       const v = String(wert || '').toLowerCase();
       if (!['alle', 'wichtige', 'keine'].includes(v)) throw new Error("minecraft.benachrichtigen muss 'alle', 'wichtige' oder 'keine' sein.");
+      return v;
+    }
+    case 'minecraft.persoenlichkeit': {
+      const v = String(wert || '').toLowerCase();
+      if (!['freundlich', 'ruhig', 'frech', 'schlagfertig'].includes(v)) throw new Error("minecraft.persoenlichkeit muss 'freundlich', 'ruhig', 'frech' oder 'schlagfertig' sein.");
       return v;
     }
     case 'blase.monitor': return Math.round(zahl(wert, 0, 8, 'Monitor'));

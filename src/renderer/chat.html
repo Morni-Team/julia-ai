@@ -388,6 +388,19 @@
             </label>
             <p class="mc-klein" data-nav="mc.benachrichtigen_hinweis"></p>
             <label class="mc-schalter"><input type="checkbox" id="mcChatZeigen"><span data-nav="mc.chat_zeigen"></span></label>
+            <label class="mc-schalter"><input type="checkbox" id="mcSozial"><span data-nav="mc.sozial"></span></label>
+            <p class="mc-klein" data-nav="mc.sozial_hinweis"></p>
+            <div id="mcSozialOptionen" style="display:none">
+              <label class="mc-feld"><span data-nav="mc.persoenlichkeit"></span>
+                <select id="mcPersoenlichkeit">
+                  <option value="freundlich" data-nav="mc.pers_freundlich"></option>
+                  <option value="ruhig" data-nav="mc.pers_ruhig"></option>
+                  <option value="frech" data-nav="mc.pers_frech"></option>
+                  <option value="schlagfertig" data-nav="mc.pers_schlagfertig"></option>
+                </select>
+              </label>
+              <label class="mc-schalter"><input type="checkbox" id="mcSozialVerzoegern"><span data-nav="mc.sozial_verzoegern"></span></label>
+            </div>
             <div class="mc-zeilen" id="mcZeilen"></div>
             <form class="mc-zeile" id="mcSenden">
               <input id="mcChatText" maxlength="250" spellcheck="true" autocomplete="off">

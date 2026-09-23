@@ -1361,6 +1361,10 @@ class Minecraft extends EventEmitter {
     if (!this.bot || von === this.bot.username) return;
     this.chatVerlauf.push({ von, text: String(text).slice(0, 200) });
     if (this.chatVerlauf.length > 30) this.chatVerlauf.shift();
+    // Für das soziale Gedächtnis (Issue #94, BETA): jede gehörte Spieler-Nachricht
+    // melden – ob sie ausgewertet wird, entscheidet der Hauptprozess (nur wenn der
+    // BETA-Schalter an ist). Hier immer harmlos (nur ein Event, keine Speicherung).
+    this.emit('spielerNachricht', { von, text: String(text).slice(0, 200) });
     const namen = [this.bot.username, this.assistent];
     const istBesitzer = !this.besitzer || String(von).toLowerCase() === this.besitzer.toLowerCase();
     // Umstellen, auf wen Julia hört, darf nur der Besitzer.

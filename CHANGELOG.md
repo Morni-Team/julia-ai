@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.3.0 – 2026-09-23
+- Minecraft-Persoenlichkeit und Beziehungen (BETA) - Julia merkt sich pro Spieler wie nett oder gemein jemand war, baut Vertrauen auf, ist skeptisch bei unrealistischer Prahlerei oder Cheat-Verdacht, laesst sich nicht ausnutzen und darf freundlich, kuehl oder auch mal nein reagieren; Grundton waehlbar, standardmaessig aus
+
 ## 6.2.0 – 2026-09-23
 - Minecraft klueger im Kampf - Julia zieht sich bei Unterzahl oder wenig Leben zurueck und regeneriert statt dumm zu sterben, spart den seltenen verzauberten Goldapfel fuer Notfaelle, craftet auf Zuruf volle Ruestung in der besten Stufe, und eine leichte KI nebenbei beantwortet Fragen im Spielchat auch waehrend sie baut oder kaempft
 

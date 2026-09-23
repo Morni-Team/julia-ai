@@ -338,6 +338,13 @@
       if ($('mcChatZeigen')) $('mcChatZeigen').checked = chatAn;
       if ($('mcZeilen')) $('mcZeilen').hidden = !chatAn;
     }
+    if (c.minecraft && $('mcSozial')) {
+      const an = c.minecraft.sozial === true;
+      $('mcSozial').checked = an;
+      if ($('mcSozialOptionen')) $('mcSozialOptionen').style.display = an ? '' : 'none';
+      if ($('mcPersoenlichkeit')) $('mcPersoenlichkeit').value = c.minecraft.persoenlichkeit || 'freundlich';
+      if ($('mcSozialVerzoegern')) $('mcSozialVerzoegern').checked = c.minecraft.sozial_verzoegern !== false;
+    }
   }
   async function stimmeZeigen() {
     try { schalterSetzen(await julia.config()); } catch { /* Fenster wird geschlossen */ }
@@ -375,6 +382,21 @@
   // Wie oft Minecraft benachrichtigt (nicht ständig beim Bauen).
   if ($('mcBenachrichtigen')) $('mcBenachrichtigen').onchange = async () => {
     const r = await julia.setzen('minecraft.benachrichtigen', $('mcBenachrichtigen').value);
+    if (r && r.fehler) { fehler(r.fehler); stimmeZeigen(); }
+  };
+  // Soziales Gedächtnis & Persönlichkeit (BETA, Issue #94).
+  if ($('mcSozial')) $('mcSozial').onchange = async () => {
+    const an = $('mcSozial').checked;
+    if ($('mcSozialOptionen')) $('mcSozialOptionen').style.display = an ? '' : 'none';
+    const r = await julia.setzen('minecraft.sozial', an);
+    if (r && r.fehler) { fehler(r.fehler); stimmeZeigen(); }
+  };
+  if ($('mcPersoenlichkeit')) $('mcPersoenlichkeit').onchange = async () => {
+    const r = await julia.setzen('minecraft.persoenlichkeit', $('mcPersoenlichkeit').value);
+    if (r && r.fehler) { fehler(r.fehler); stimmeZeigen(); }
+  };
+  if ($('mcSozialVerzoegern')) $('mcSozialVerzoegern').onchange = async () => {
+    const r = await julia.setzen('minecraft.sozial_verzoegern', $('mcSozialVerzoegern').checked);
     if (r && r.fehler) { fehler(r.fehler); stimmeZeigen(); }
   };
   julia.on('config:geaendert', schalterSetzen);

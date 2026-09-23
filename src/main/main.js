@@ -9,6 +9,7 @@ const {
 } = require('electron');
 const sicherheit = require('./sicherheit');
 const { Minecraft, kontoSpeicher, kontoAnmelden, adresseTeilen, sollBenachrichtigen: mcSollBenachrichtigen } = require('./minecraft');
+const { Sozial, antwortVerzoegerung: mcVerzoegerung } = require('./minecraft-sozial');
 const { Sync } = require('./sync');
 const { AppServer } = require('./appserver');
 const mikrofonRecht = require('./mikrofon-recht');
@@ -145,6 +146,7 @@ const VORFUEHRUNG = process.env.JULIA_SCREENSHOTS || null;
 let config;
 let gedaechtnis;
 let wissensgraph;
+let sozial;
 let protokoll;
 let agent;
 let updater;
@@ -2142,9 +2144,15 @@ async function minecraftFrage({ von, text }) {
       const antwort = await agent.nebenAntwort(text, {
         name: assistentName(),
         sprachcode: config.get('sprachcode'),
-        kontext: mcKontext(),
+        kontext: mcKontext({ von }),
       });
-      if (antwort) { anChatFenster('agent:text', { text: antwort }); await minecraft.antworten(antwort); }
+      if (antwort) {
+        if (config.get('minecraft.sozial') && config.get('minecraft.sozial_verzoegern')) {
+          await new Promise((r) => setTimeout(r, mcVerzoegerung(antwort)));
+        }
+        anChatFenster('agent:text', { text: antwort });
+        await minecraft.antworten(antwort);
+      }
     } catch { /* Neben-KI nicht verfügbar (z. B. Claude-Code-Modus) – dann still */ }
     return;
   }
@@ -2156,16 +2164,28 @@ async function minecraftFrage({ von, text }) {
   }
 }
 
-// Kurzer Spielzustand als Kontext für die Neben-KI (Leben/Hunger/Aufgabe).
-function mcKontext() {
+// Kurzer Spielzustand als Kontext für die Neben-KI (Leben/Hunger/Aufgabe) und –
+// wenn das soziale BETA an ist – die Persönlichkeit und die Beziehung zu diesem
+// Spieler (Issue #94), damit die Antwort passend gefärbt wird.
+function mcKontext({ von } = {}) {
   try {
     const s = minecraft && minecraft.verbunden ? minecraft.status() : null;
-    if (!s) return '';
     const teile = [];
-    if (typeof s.leben === 'number') teile.push(`Leben ${s.leben}/20`);
-    if (typeof s.hunger === 'number') teile.push(`Hunger ${s.hunger}/20`);
-    if (s.aufgabe && s.aufgabe.art) teile.push(`Aufgabe: ${s.aufgabe.art}`);
-    return teile.join(', ');
+    if (s && typeof s.leben === 'number') teile.push(`Leben ${s.leben}/20`);
+    if (s && typeof s.hunger === 'number') teile.push(`Hunger ${s.hunger}/20`);
+    if (s && s.aufgabe && s.aufgabe.art) teile.push(`Aufgabe: ${s.aufgabe.art}`);
+    if (config.get('minecraft.sozial')) {
+      const ton = {
+        freundlich: 'Du bist von Natur aus freundlich und hilfsbereit.',
+        ruhig: 'Du bist ruhig und knapp, sachlich.',
+        frech: 'Du bist frech und schlagfertig, mit Humor – aber nie beleidigend.',
+        schlagfertig: 'Du bist schlagfertig und selbstbewusst, mit Ecken und Kanten.',
+      }[config.get('minecraft.persoenlichkeit')] || '';
+      if (ton) teile.push(ton);
+      teile.push('Du hast eine eigene Persönlichkeit: du darfst auch mal „nein“ sagen, kühl reagieren oder jemanden ignorieren, wenn er gemein ist oder nervt. Bei unrealistischer Prahlerei oder Admin-/Creative-Ansprüchen bist du skeptisch und glaubst nicht blind. Lass dich nicht ausnutzen.');
+      if (von) { const bez = sozial.alsText(von); if (bez) teile.push(`Zu ${von}: ${bez}`); }
+    }
+    return teile.join(' ');
   } catch { return ''; }
 }
 
@@ -2388,6 +2408,7 @@ async function start() {
 
   gedaechtnis = new Gedaechtnis(DATEN);
   wissensgraph = new Wissensgraph(DATEN);
+  sozial = new Sozial(DATEN);
   protokoll = new Protokoll(DATEN);
   erinnerungen = new Erinnerungen(DATEN);
   const kosten = new Kosten(DATEN);
@@ -2423,6 +2444,12 @@ async function start() {
     anAlle('mc:geaendert');
   });
   minecraft.on('frage', (f) => minecraftFrage(f));
+  // Soziales Gedächtnis (Issue #94, BETA): jede gehörte Nachricht auswerten –
+  // nur wenn der BETA-Schalter an ist. Fehler hier dürfen das Spiel nie stören.
+  minecraft.on('spielerNachricht', ({ von, text }) => {
+    if (!config.get('minecraft.sozial')) return;
+    try { sozial.verarbeiten(von, text); } catch { /* z. B. kaputte sozial.json – nicht stören */ }
+  });
   minecraft.on('stimme', (d) => minecraftStimme(d.pcm));
   minecraft.on('stimmeStatus', () => anAlle('mc:geaendert'));
   minecraft.on('geaendert', () => anAlle('mc:geaendert'));
