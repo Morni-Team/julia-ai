@@ -681,6 +681,18 @@ function frageLesen(text, namen = []) {
   return rest.length >= 2 ? rest : null;
 }
 
+// Lockere Sozial-/Gruß-Nachricht, auf die Julia auch OHNE Namensnennung antworten
+// darf – damit sie z. B. „hallo" im Chat erwidern kann, während sie durchspielt
+// (Nutzerwunsch). Nur kurze Nachrichten, die mit einem Gruß/Sozial-Wort anfangen,
+// damit nicht auf jeden Satz geantwortet wird. Eine evtl. Anrede wird abgezogen.
+const PLAUSCH = /^(hi+|hallo|hey+|moin|servus|yo|hej|hello|na|guten\s+(morgen|tag|abend)|g[nd]8?|gute\s+nacht|good\s+(morning|night)|cya|bye|tsch(ü|ue)ss|ciao|bis\s+(sp(ä|ae)ter|dann|morgen)|wie\s+ge?hts|wie\s+geht'?s|was\s+geht|alles\s+gut|thx|danke|thanks?|ty|gg|glhf|gl\s*hf|wb|welcome|willkommen)\b/i;
+function plauschLesen(text, namen = []) {
+  const a = anrede(text, namen);
+  const roh = (a.ok ? a.rest : String(text || '')).trim();
+  if (roh.length < 2 || roh.length > 40) return null; // nur kurze Nachrichten
+  return PLAUSCH.test(roh) ? roh.slice(0, 120) : null;
+}
+
 // „Hör auf alle“ / „hör nur auf mich“ – gibt 'alle', 'nur' oder null zurück.
 function hoerModus(text, namen = []) {
   const a = anrede(text, namen);
@@ -1399,9 +1411,11 @@ class Minecraft extends EventEmitter {
       }
       return;
     }
-    // Sonst eine Frage an Julia – höchstens alle vier Sekunden (Kosten, Spam).
+    // Sonst eine Frage an Julia – oder eine lockere Gruß-/Sozial-Nachricht wie
+    // „hallo", auf die sie auch ohne Namensnennung antworten darf (damit sie beim
+    // Durchspielen mitreden kann). Höchstens alle vier Sekunden (Kosten, Spam).
     // Ohne eingetragenen Besitzer nur, wenn „auf alle hören“ an ist.
-    const frage = frageLesen(text, namen);
+    const frage = frageLesen(text, namen) || plauschLesen(text, namen);
     if (!frage || (!this.besitzer && !this.jeder && this.erlaubte.size === 0)) return;
     if (Date.now() - (this.letzteFrage || 0) < 4000) return;
     this.letzteFrage = Date.now();
@@ -2786,6 +2800,6 @@ module.exports = {
   Minecraft, WERKZEUGE, GROSSE_NETZWERKE, MC_WICHTIGE, sollBenachrichtigen, kickWiederverbinden, bedrohWert, gefahrReichweite, FERNKAEMPFER, eimerPlan, mlgNoetig, EINMAL_BLOECKE, schwimmHoch, essenPlan, rueckzugPlan, heilWahl, ruestungCraftPlan,
   kontoSpeicher, kontoAnmelden,
   adresseTeilen, adressePruefen, zielFinden, besteWaffe, schlagPause, besteRuestung, werkzeugArt, besteWerkzeug, blockNamen,
-  istFeind, chatText, botName, anrede, befehlLesen, rauswurfText, frageLesen, hoerModus, hoerName, chatTeile, richtungAus, bauPlan, GESCHUETZT_ABBAU,
+  istFeind, chatText, botName, anrede, befehlLesen, rauswurfText, frageLesen, plauschLesen, hoerModus, hoerName, chatTeile, richtungAus, bauPlan, GESCHUETZT_ABBAU,
   itemNamen, ortLesen, mengeLesen, endeText, HILFE, haengerStatus, haengerAktiv, haengerDauer, haengerErkannt,
 };

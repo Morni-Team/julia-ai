@@ -271,6 +271,17 @@ test('Minecraft: Fragen im Spielchat – nur mit Anrede', () => {
   assert.equal(mc.frageLesen('Julia', ['Julia']), null);
 });
 
+test('Minecraft: lockere Grüße lösen auch ohne Namensnennung eine Antwort aus (durchspielen mitreden)', () => {
+  assert.equal(mc.plauschLesen('hallo', ['Julia']), 'hallo');
+  assert.equal(mc.plauschLesen('moin zusammen', ['Julia']), 'moin zusammen');
+  assert.equal(mc.plauschLesen('hey Julia', ['Julia']), 'hey'); // Anrede wird abgezogen
+  assert.equal(mc.plauschLesen('danke!', ['Julia']), 'danke!');
+  // Kein Plausch: lange Sätze / normale Bausatz-Beschreibungen
+  assert.equal(mc.plauschLesen('ich glaube der Berg da drüben hat viel Eisen und Kohle drin', ['Julia']), null);
+  assert.equal(mc.plauschLesen('baue mir ein Haus', ['Julia']), null);
+  assert.equal(mc.plauschLesen('', ['Julia']), null);
+});
+
 test('Minecraft: Antworten passen in den Spielchat', () => {
   assert.deepEqual(mc.chatTeile('**Klar!** Geh nach `unten`.'), ['Klar! Geh nach unten.']);
   const lang = Array.from({ length: 40 }, (_, i) => `Satz Nummer ${i} ist hier.`).join(' ');

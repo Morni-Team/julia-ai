@@ -85,15 +85,15 @@ test('Start: leere Oberfläche arbeitet sich die Grafik-Leiter hoch, meldet erst
   const o = ordner();
   try {
     const log = { schreiben() {} };
-    // normal → d3d9 → gl → swiftshader → software, jeweils Neustart …
-    for (const erwartet of ['d3d9', 'gl', 'swiftshader', 'software']) {
+    // normal → d3d9 → gl → swiftshader → software → gpu-aus, jeweils Neustart …
+    for (const erwartet of ['d3d9', 'gl', 'swiftshader', 'software', 'gpu-aus']) {
       let neu = 0;
       const r = sp.blankUiAbsichern({ datenOrdner: o, logbuch: log, neustart: () => neu++, fatal: () => {} });
       assert.equal(r, true);
       assert.equal(sp.grafikModus(o), erwartet);
       assert.equal(neu, 1);
     }
-    // … und auf der letzten Stufe (software) kein weiterer Neustart, sondern Meldung.
+    // … und auf der letzten Stufe (gpu-aus) kein weiterer Neustart, sondern Meldung.
     let neu = 0; let fatal = 0;
     const r = sp.blankUiAbsichern({ datenOrdner: o, logbuch: log, neustart: () => neu++, fatal: () => fatal++ });
     assert.equal(r, false);
@@ -140,16 +140,33 @@ test('Start: GPU-Absturz beim Start heilt sich sofort (Software-Rendering + ein 
   }
 });
 
-test('Start: Absturz trotz schon aktivem Software-Rendering meldet klar statt neu zu starten', () => {
+test('Start: GPU-Absturz trotz Software-Modus weicht auf gpu-aus aus, erst danach FATAL (Issue #101)', () => {
   const o = ordner();
   try {
-    sp.softwareRenderingSetzen(o, true); // war schon aktiv
+    sp.grafikModusSetzen(o, 'software'); // war schon im Software-Modus
     let neugestartet = 0; let fatal = 0;
     const app = fakeApp();
     sp.gpuUeberwachen({ app, logbuch: { schreiben() {} }, datenOrdner: o, neustart: () => neugestartet++, fatal: () => fatal++, jetzt: () => 1000, startFensterMs: 20000 });
-    app.feuern('render-process-gone', {}, { reason: 'crashed' });
-    assert.equal(neugestartet, 0, 'nicht in einer Schleife neu starten');
-    assert.equal(fatal, 1, 'stattdessen klare Fehlermeldung');
+    // GPU crasht trotz Software-Modus → GPU-Prozess ganz aus (gpu-aus) + ein Neustart, KEIN FATAL.
+    app.feuern('child-process-gone', { type: 'GPU', reason: 'crashed', exitCode: -2147483645 });
+    assert.equal(sp.grafikModus(o), 'gpu-aus', 'letzte Rettung: GPU-Prozess komplett aus');
+    assert.equal(neugestartet, 1);
+    assert.equal(fatal, 0, 'noch kein FATAL – es gibt eine tiefere Stufe');
+  } finally {
+    fs.rmSync(o, { recursive: true, force: true });
+  }
+});
+
+test('Start: GPU-Absturz auch ohne GPU-Prozess (gpu-aus, letzte Stufe) → dann klar FATAL (Issue #101)', () => {
+  const o = ordner();
+  try {
+    sp.grafikModusSetzen(o, 'gpu-aus'); // schon auf der letzten Stufe
+    let neugestartet = 0; let fatal = 0;
+    const app = fakeApp();
+    sp.gpuUeberwachen({ app, logbuch: { schreiben() {} }, datenOrdner: o, neustart: () => neugestartet++, fatal: () => fatal++, jetzt: () => 1000, startFensterMs: 20000 });
+    app.feuern('child-process-gone', { type: 'GPU', reason: 'crashed', exitCode: -2147483645 });
+    assert.equal(neugestartet, 0, 'keine Schleife mehr');
+    assert.equal(fatal, 1, 'jetzt klare Meldung');
   } finally {
     fs.rmSync(o, { recursive: true, force: true });
   }

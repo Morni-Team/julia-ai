@@ -5,8 +5,9 @@ const assert = require('node:assert/strict');
 const g = require('../src/main/grafik');
 
 test('Leiter-Reihenfolge und Gültigkeit', () => {
-  assert.deepEqual(g.MODI, ['normal', 'd3d9', 'gl', 'swiftshader', 'software']);
+  assert.deepEqual(g.MODI, ['normal', 'd3d9', 'gl', 'swiftshader', 'software', 'gpu-aus']);
   assert.equal(g.gueltig('swiftshader'), true);
+  assert.equal(g.gueltig('gpu-aus'), true);
   assert.equal(g.gueltig('quatsch'), false);
 });
 
@@ -15,14 +16,23 @@ test('naechster geht die Leiter hoch und bleibt oben stehen', () => {
   assert.equal(g.naechster('d3d9'), 'gl');
   assert.equal(g.naechster('gl'), 'swiftshader');
   assert.equal(g.naechster('swiftshader'), 'software');
-  assert.equal(g.naechster('software'), 'software'); // letzte Stufe bleibt
+  assert.equal(g.naechster('software'), 'gpu-aus'); // NEU: von Software auf GPU ganz aus
+  assert.equal(g.naechster('gpu-aus'), 'gpu-aus'); // letzte Stufe bleibt
   assert.equal(g.naechster('unbekannt'), 'd3d9'); // von unbekannt auf erste Fallback-Stufe
 });
 
 test('letzte erkennt die unterste (verträglichste) Stufe', () => {
-  assert.equal(g.letzte('software'), true);
+  assert.equal(g.letzte('gpu-aus'), true); // NEU: gpu-aus ist jetzt die letzte
+  assert.equal(g.letzte('software'), false);
   assert.equal(g.letzte('normal'), false);
   assert.equal(g.letzte('swiftshader'), false);
+});
+
+test('gpu-aus schaltet den GPU-Prozess komplett ab (letzte Rettung, Issue #101)', () => {
+  const f = g.flaggenFuer('gpu-aus');
+  assert.ok(f.some(([n]) => n === 'disable-gpu'));
+  assert.ok(f.some(([n]) => n === 'disable-gpu-compositing'));
+  assert.equal(g.hardwareAus('gpu-aus'), true);
 });
 
 test('flaggenFuer liefert die richtigen ANGLE/SwiftShader-Schalter', () => {

@@ -8,10 +8,13 @@
 //   gl       – ANGLE über OpenGL
 //   swiftshader – SwiftShader: rendert komplett in Software (ohne GPU)
 //   software – Hardware-Beschleunigung ganz aus (Software-Compositing)
+//   gpu-aus  – GPU-Prozess KOMPLETT abgeschaltet (--disable-gpu): letzte Rettung,
+//              wenn selbst im Software-Modus der GPU-Prozess abstürzt (degradierter
+//              Treiber). Dann gibt es keinen GPU-Prozess, der noch crashen könnte.
 // Die Auto-Heilung probiert bei einem leeren Fenster diese Stufen nacheinander
 // durch und merkt sich die, mit der es klappt.
 
-const MODI = ['normal', 'd3d9', 'gl', 'swiftshader', 'software'];
+const MODI = ['normal', 'd3d9', 'gl', 'swiftshader', 'software', 'gpu-aus'];
 
 function gueltig(modus) {
   return MODI.includes(modus);
@@ -25,13 +28,14 @@ function flaggenFuer(modus) {
     case 'd3d9': return [['use-angle', 'd3d9']];
     case 'gl': return [['use-angle', 'gl']];
     case 'swiftshader': return [['use-angle', 'swiftshader'], ['use-gl', 'angle'], ['enable-unsafe-swiftshader', '']];
+    case 'gpu-aus': return [['disable-gpu', ''], ['disable-gpu-compositing', '']];
     default: return [];
   }
 }
 
 // Braucht dieser Modus, dass die Hardware-Beschleunigung ganz aus ist?
 function hardwareAus(modus) {
-  return modus === 'software';
+  return modus === 'software' || modus === 'gpu-aus';
 }
 
 // Nächste Stufe der Leiter (bleibt bei der letzten stehen). Von unbekannt/normal

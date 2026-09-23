@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.5.0 – 2026-09-23
+- Leeres Fenster nach Updates behoben (GPU-Prozess wird notfalls komplett abgeschaltet, wenn selbst der Software-Modus abstuerzt) und Julia kann jetzt beim Durchspielen parallel im Chat mitreden - kurze Gruesse wie hallo beantwortet sie auch ohne Namensnennung, ohne die laufende Aufgabe zu unterbrechen
+
 ## 6.4.0 – 2026-09-23
 - Minecraft-Grenzen, Budget und Ruhezeiten (BETA) - Julia macht bei zu nervigen Spielern eine Pause und ignoriert sie eine Weile, haelt ein einstellbares Token-Limit fuers Plaudern ein und verabschiedet sich beim Erreichen, kann selbstgesetzte Ruhezeiten haben und merkt sich sparsam die Base eines Spielers
 

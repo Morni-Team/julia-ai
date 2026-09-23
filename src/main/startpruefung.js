@@ -229,6 +229,7 @@ async function fehlerDialog({ app, dialog, shell, titel = 'Julia', text, logDate
 const ECHTER_CRASH = /crashed|oom|launch-failed|integrity-failure|abnormal-exit/;
 
 function gpuUeberwachen({ app, logbuch, datenOrdner, melden, neustart, fatal, schwelle = GPU_SCHWELLE, jetzt = Date.now, startFensterMs = 20000 }) {
+  const grafik = require('./grafik');
   let gpuAbstuerze = 0;
   let rendererAbstuerze = 0;
   let gemeldet = false;
@@ -239,8 +240,10 @@ function gpuUeberwachen({ app, logbuch, datenOrdner, melden, neustart, fatal, sc
   const ausweichen = () => {
     if (gemeldet) return;
     gemeldet = true;
-    softwareRenderingSetzen(datenOrdner, true);
-    logbuch.schreiben('GPU', 'Wiederholter GPU-Absturz – Software-Rendering wird ab dem nächsten Start genutzt.');
+    // Schon im Software-Modus? Dann noch eine Stufe tiefer: GPU-Prozess ganz aus.
+    const ziel = grafikModus(datenOrdner) === 'software' ? 'gpu-aus' : 'software';
+    grafikModusSetzen(datenOrdner, ziel);
+    logbuch.schreiben('GPU', `Wiederholter GPU-Absturz – Grafik-Modus „${ziel}" wird ab dem nächsten Start genutzt.`);
     if (melden) melden();
     if (neustart) neustart();
   };
@@ -251,15 +254,20 @@ function gpuUeberwachen({ app, logbuch, datenOrdner, melden, neustart, fatal, sc
   // sondern eine klare Meldung gezeigt.
   const startAbsichern = (grund) => {
     if (neugestartet || gemeldet) return;
-    if (!softwareRendering(datenOrdner)) {
+    const modus = grafikModus(datenOrdner);
+    // Solange es eine tiefere Stufe gibt, dorthin ausweichen und neu starten – erst
+    // Software (bewährt), und wenn selbst DA der GPU-Prozess abstürzt, ganz ohne
+    // GPU-Prozess (gpu-aus). Erst wenn auch das crasht (letzte Stufe), FATAL.
+    if (!grafik.letzte(modus)) {
       neugestartet = true;
-      softwareRenderingSetzen(datenOrdner, true);
-      logbuch.schreiben('GPU', `${grund} beim Start – Software-Rendering ist ab jetzt aktiv, ich starte neu.`);
+      const ziel = modus === 'software' ? 'gpu-aus' : 'software';
+      grafikModusSetzen(datenOrdner, ziel);
+      logbuch.schreiben('GPU', `${grund} beim Start – Grafik-Modus „${ziel}" ist ab jetzt aktiv, ich starte neu.`);
       if (neustart) neustart();
     } else {
       gemeldet = true;
-      logbuch.schreiben('FATAL', `${grund} trotz Software-Rendering – Start abgesichert abgebrochen.`);
-      if (fatal) fatal(`${grund}: Julia startet nicht sauber, auch nicht mit Software-Grafik. Einzelheiten im Logbuch.`);
+      logbuch.schreiben('FATAL', `${grund} trotz Grafik-Modus „${modus}" – Start abgesichert abgebrochen.`);
+      if (fatal) fatal(`${grund}: Julia startet nicht sauber, auch nicht ohne GPU. Einzelheiten im Logbuch.`);
     }
   };
 
