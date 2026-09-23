@@ -271,6 +271,15 @@ test('Minecraft: Fragen im Spielchat – nur mit Anrede', () => {
   assert.equal(mc.frageLesen('Julia', ['Julia']), null);
 });
 
+test('Minecraft: in den Spielchat nur bei echter Antwort oder wenn Mitreden an ist', () => {
+  // echte Antwort auf einen Spieler (auto=false) → immer erlaubt
+  assert.equal(mc.darfInChat(false, false), true);
+  assert.equal(mc.darfInChat(false, true), true);
+  // autonome Durchspiel-Erzählung (auto=true) → nur wenn Mitreden an
+  assert.equal(mc.darfInChat(true, false), false);
+  assert.equal(mc.darfInChat(true, true), true);
+});
+
 test('Minecraft: lockere Grüße lösen auch ohne Namensnennung eine Antwort aus (durchspielen mitreden)', () => {
   assert.equal(mc.plauschLesen('hallo', ['Julia']), 'hallo');
   assert.equal(mc.plauschLesen('moin zusammen', ['Julia']), 'moin zusammen');

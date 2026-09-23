@@ -681,6 +681,15 @@ function frageLesen(text, namen = []) {
   return rest.length >= 2 ? rest : null;
 }
 
+// Darf eine Antwort in den Minecraft-SPIELCHAT geschrieben werden? (rein, Nutzer-
+// wunsch): Julia schreibt NICHT alles in den Chat. Erlaubt ist es nur, wenn ihr
+// jemand geschrieben hat (`auto=false`, also eine echte Antwort auf einen Spieler)
+// ODER wenn „von sich aus mitreden" (mitreden) eingeschaltet ist. Ihre autonome
+// Durchspiel-Erzählung (`auto=true`) landet ohne diesen Schalter nur im Fenster.
+function darfInChat(auto, mitreden) {
+  return !auto || !!mitreden;
+}
+
 // Lockere Sozial-/Gruß-Nachricht, auf die Julia auch OHNE Namensnennung antworten
 // darf – damit sie z. B. „hallo" im Chat erwidern kann, während sie durchspielt
 // (Nutzerwunsch). Nur kurze Nachrichten, die mit einem Gruß/Sozial-Wort anfangen,
@@ -1205,7 +1214,7 @@ class Minecraft extends EventEmitter {
         // minecraft_fortschritt und die Spiel-Werkzeuge Etappe für Etappe
         // vorarbeitet. Das Logbuch hält den Weg fest (überlebt Abstürze).
         const auftrag = 'Spiele Minecraft ab jetzt eigenständig weiter – Schritt für Schritt Richtung Enderdrache. Rufe zuerst minecraft_fortschritt auf, erfülle die dort genannte aktuelle Etappe mit den Minecraft-Werkzeugen (umsehen, abbauen, herstellen, schmelzen, jagen, bauen, warten), prüfe dann erneut den Fortschritt und mach weiter. Achte auf Leben und Hunger. Kommst du nicht weiter, sag kurz warum.';
-        this.emit('frage', { von: this.besitzer || 'Spieler', text: auftrag });
+        this.emit('frage', { von: this.besitzer || 'Spieler', text: auftrag, auto: true });
         if (this.logbuch) { try { this.logbuch.eintrag('info', 'Auftrag: eigenständig weiterspielen.'); } catch { /* egal */ } }
         return 'Alles klar – ich spiele selbstständig weiter und arbeite mich Etappe für Etappe zum Enderdrachen vor.';
       }
@@ -2800,6 +2809,6 @@ module.exports = {
   Minecraft, WERKZEUGE, GROSSE_NETZWERKE, MC_WICHTIGE, sollBenachrichtigen, kickWiederverbinden, bedrohWert, gefahrReichweite, FERNKAEMPFER, eimerPlan, mlgNoetig, EINMAL_BLOECKE, schwimmHoch, essenPlan, rueckzugPlan, heilWahl, ruestungCraftPlan,
   kontoSpeicher, kontoAnmelden,
   adresseTeilen, adressePruefen, zielFinden, besteWaffe, schlagPause, besteRuestung, werkzeugArt, besteWerkzeug, blockNamen,
-  istFeind, chatText, botName, anrede, befehlLesen, rauswurfText, frageLesen, plauschLesen, hoerModus, hoerName, chatTeile, richtungAus, bauPlan, GESCHUETZT_ABBAU,
+  istFeind, chatText, botName, anrede, befehlLesen, rauswurfText, frageLesen, plauschLesen, darfInChat, hoerModus, hoerName, chatTeile, richtungAus, bauPlan, GESCHUETZT_ABBAU,
   itemNamen, ortLesen, mengeLesen, endeText, HILFE, haengerStatus, haengerAktiv, haengerDauer, haengerErkannt,
 };

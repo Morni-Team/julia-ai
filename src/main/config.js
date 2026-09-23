@@ -135,6 +135,7 @@ const STANDARD = {
     erlaubte: [], // zusätzlich zum Besitzer erlaubte Spielernamen (im Spiel per „hör auch auf X“ pflegbar)
     benachrichtigen: 'wichtige', // Windows-Benachrichtigungen aus Minecraft: 'alle' | 'wichtige' | 'keine' (Standard: nur Wichtiges, damit Bauen/Essen nicht ständig pusht)
     chat_zeigen: true, // In-Game-Chat im Minecraft-Tab anzeigen (aus = die Nachrichtenliste ausblenden)
+    chat_mitreden: false, // von sich aus (z. B. beim Durchspielen) in den SPIELCHAT schreiben. Standard AUS: dann antwortet Julia im Spielchat nur, wenn ihr jemand schreibt – ihre Durchspiel-Erzählung bleibt im Fenster.
     sozial: false, // BETA (Issue #94): soziales Gedächtnis & Persönlichkeit – Julia merkt sich pro Spieler Ruf/Vertrauen, ist skeptisch bei Prahlerei/Cheat-Verdacht und kann kühl/„nein“ reagieren. Standard AUS; wenn an, plaudert sie im Spiel auch mit anderen (nur im Spiel, nie am PC).
     sozial_verzoegern: true, // wenn sozial an: beim Antworten im Chat kurz „Zeit lassen“ (menschlicher), statt sofort zu tippen
     persoenlichkeit: 'freundlich', // Grundton der Persönlichkeit: 'freundlich' | 'ruhig' | 'frech' | 'schlagfertig'
@@ -267,6 +268,7 @@ function pruefen(schluessel, wert) {
     case 'minecraft.chat_zeigen':
     case 'minecraft.sozial':
     case 'minecraft.sozial_verzoegern':
+    case 'minecraft.chat_mitreden':
     case 'overlay.automatisch':
     case 'overlay.kompakt':
     case 'overlay.immer':

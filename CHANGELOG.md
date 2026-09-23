@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.6.1 – 2026-09-23
+- Minecraft-Chat entspammt - Julia schreibt beim autonomen Durchspielen nicht mehr ihre ganze Erzaehlung in den Spielchat, sondern antwortet dort standardmaessig nur, wenn ihr jemand schreibt; mit neuem Schalter Von sich aus im Spielchat mitreden
+
 ## 6.6.0 – 2026-09-23
 - Updates mit doppeltem Boden - nach einem Update prueft Julia, ob die neue Version wirklich laeuft, wiederholt die Installation notfalls einmal automatisch und haelt den Installer der letzten funktionierenden Version als Backup fuer einen Rollback bereit
 

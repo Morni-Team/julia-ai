@@ -8,7 +8,7 @@ const {
   app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, dialog, Notification, safeStorage, screen, shell, session, nativeTheme, net, clipboard, nativeImage,
 } = require('electron');
 const sicherheit = require('./sicherheit');
-const { Minecraft, kontoSpeicher, kontoAnmelden, adresseTeilen, sollBenachrichtigen: mcSollBenachrichtigen } = require('./minecraft');
+const { Minecraft, kontoSpeicher, kontoAnmelden, adresseTeilen, sollBenachrichtigen: mcSollBenachrichtigen, darfInChat: mcDarfInChat } = require('./minecraft');
 const { Sozial, antwortVerzoegerung: mcVerzoegerung, istRuhezeit: mcRuhezeit, budgetStatus: mcBudget, tokenSchaetzen: mcTokens } = require('./minecraft-sozial');
 const { Sync } = require('./sync');
 const { AppServer } = require('./appserver');
@@ -2154,7 +2154,11 @@ function gespraechFortsetzen(id) {
 let mcTokenVerbraucht = 0;
 let mcBudgetTag = null;
 let mcVerabschiedet = false;
-async function minecraftFrage({ von, text }) {
+async function minecraftFrage({ von, text, auto = false }) {
+  // In den SPIELCHAT schreiben nur, wenn jemand Julia geschrieben hat (echte
+  // Antwort) oder „von sich aus mitreden" an ist – ihre autonome Durchspiel-
+  // Erzählung landet sonst nur im Fenster, nicht im Minecraft-Chat (Nutzerwunsch).
+  const imChat = mcDarfInChat(auto, config.get('minecraft.chat_mitreden'));
   // Grenzen & Budget (Issue #98) – nur wenn das soziale BETA an ist.
   const sozialAn = config.get('minecraft.sozial');
   if (sozialAn) {
@@ -2191,13 +2195,13 @@ async function minecraftFrage({ von, text }) {
           await new Promise((r) => setTimeout(r, mcVerzoegerung(antwort)));
         }
         anChatFenster('agent:text', { text: antwort });
-        await minecraft.antworten(antwort);
+        if (imChat) await minecraft.antworten(antwort);
       }
     } catch { /* Neben-KI nicht verfügbar (z. B. Claude-Code-Modus) – dann still */ }
   } else {
     try {
       antwort = await agent.senden(`[${t('mc.auftrag_kopf', { von })}] ${text}`, { kanal: 'minecraft' }) || '';
-      if (antwort) await minecraft.antworten(antwort);
+      if (antwort && imChat) await minecraft.antworten(antwort);
     } catch (e) {
       if (e.message !== 'BESCHAEFTIGT') anChatFenster('agent:fehler', { art: 'text', text: e.message });
     }

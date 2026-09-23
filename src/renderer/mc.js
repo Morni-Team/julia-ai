@@ -337,6 +337,7 @@
       chatAn = c.minecraft.chat_zeigen !== false;
       if ($('mcChatZeigen')) $('mcChatZeigen').checked = chatAn;
       if ($('mcZeilen')) $('mcZeilen').hidden = !chatAn;
+      if ($('mcChatMitreden')) $('mcChatMitreden').checked = c.minecraft.chat_mitreden === true;
     }
     if (c.minecraft && $('mcSozial')) {
       const an = c.minecraft.sozial === true;
@@ -380,6 +381,11 @@
     chatAn = $('mcChatZeigen').checked;
     if ($('mcZeilen')) $('mcZeilen').hidden = !chatAn;
     const r = await julia.setzen('minecraft.chat_zeigen', chatAn);
+    if (r && r.fehler) { fehler(r.fehler); stimmeZeigen(); }
+  };
+  // Von sich aus im Spielchat mitreden (Standard aus: nur antworten, wenn wer schreibt).
+  if ($('mcChatMitreden')) $('mcChatMitreden').onchange = async () => {
+    const r = await julia.setzen('minecraft.chat_mitreden', $('mcChatMitreden').checked);
     if (r && r.fehler) { fehler(r.fehler); stimmeZeigen(); }
   };
   // Wie oft Minecraft benachrichtigt (nicht ständig beim Bauen).
