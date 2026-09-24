@@ -315,6 +315,19 @@ test('Minecraft: Julia wehrt sich gegen jeden Angreifer außer dem eigenen Spiel
   assert.equal(mc.darfWehren(null, 'Morni'), false);
 });
 
+test('Minecraft: schlecht ausgerüstet → Abstand halten, mit Waffe → zurückkämpfen (Issue #113)', () => {
+  // Keine Waffe → fernhalten (nicht dumm reinrennen).
+  assert.equal(mc.wehrPlan({ hatWaffe: false, health: 20 }), 'fernhalten');
+  // Wenig Leben → auch mit Waffe erst Abstand.
+  assert.equal(mc.wehrPlan({ hatWaffe: true, health: 6 }), 'fernhalten');
+  assert.equal(mc.wehrPlan({ hatWaffe: true, health: 8 }), 'fernhalten');
+  // Waffe + genug Leben → zurückkämpfen.
+  assert.equal(mc.wehrPlan({ hatWaffe: true, health: 20 }), 'kaempfen');
+  assert.equal(mc.wehrPlan({ hatWaffe: true, health: 12 }), 'kaempfen');
+  // Standardwerte: ohne Angaben lieber vorsichtig (keine Waffe angenommen).
+  assert.equal(mc.wehrPlan({}), 'fernhalten');
+});
+
 test('Minecraft: _angegriffen merkt den nächsten fremden Spieler als Angreifer, nicht den Besitzer', () => {
   const m = new mc.Minecraft({});
   m.besitzer = 'Morni';

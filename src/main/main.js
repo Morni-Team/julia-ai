@@ -2017,6 +2017,7 @@ function gespraechFortsetzen(id) {
 let mcTokenVerbraucht = 0;
 let mcBudgetTag = null;
 let mcVerabschiedet = false;
+let mcAngriffWarnung = 0; // Zeitpunkt der letzten „lass das"-Warnung an einen Angreifer (Rate-Limit, #113)
 async function minecraftFrage({ von, text, auto = false }) {
   // In den SPIELCHAT schreiben nur, wenn jemand Julia geschrieben hat (echte
   // Antwort) oder „von sich aus mitreden" an ist – ihre autonome Durchspiel-
@@ -2364,6 +2365,16 @@ async function start() {
   minecraft.on('spielerNachricht', ({ von, text }) => {
     if (!config.get('minecraft.sozial')) return;
     try { sozial.verarbeiten(von, text); } catch { /* z. B. kaputte sozial.json – nicht stören */ }
+  });
+  // Angegriffen (Issue #113): im sozialen BETA-Modus reagiert Julia zusätzlich
+  // VERBAL – sie warnt den Angreifer kurz im Spielchat (das eigentliche Wehren
+  // regelt der Kampf-Tick). Rate-limitiert, damit es kein Gespamme wird.
+  minecraft.on('angegriffen', ({ spieler } = {}) => {
+    if (!config.get('minecraft.sozial')) return; // nur im BETA-Modus verbal reagieren
+    const jetzt = Date.now();
+    if (jetzt - (mcAngriffWarnung || 0) < 8000) return; // höchstens alle 8 s
+    mcAngriffWarnung = jetzt;
+    try { minecraft.chat(t('mc.angegriffen_warnung', { spieler: spieler || 'du' })); } catch { /* getrennt */ }
   });
   minecraft.on('stimme', (d) => minecraftStimme(d.pcm));
   minecraft.on('stimmeStatus', () => anAlle('mc:geaendert'));

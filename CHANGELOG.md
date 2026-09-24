@@ -1,5 +1,8 @@
 # Changelog
 
+## 7.2.0 – 2026-09-24
+- Minecraft - Julia verteidigt sich schlauer: schlecht ausgeruestet oder mit wenig Leben haelt sie Abstand und weicht aus (schlaegt nur zurueck, wenn sie gestellt wird), mit Waffe kaempft sie normal; im sozialen BETA-Modus warnt sie den Angreifer zusaetzlich im Spielchat
+
 ## 7.1.0 – 2026-09-24
 - Minecraft - Julias Herstell-/Status-Meldungen gehen nur noch mit dem neuen Schalter in den Spielchat (Standard aus, kein Chat-Gespamme mehr), und Julia wehrt sich jetzt auch gegen Spieler, die sie angreifen (nur den eigenen Spieler greift sie nie an)
 

@@ -528,6 +528,15 @@ function rueckzugPlan({ health, feinde = 1, hatHeilung = false } = {}) {
   return 'kaempfen';
 }
 
+// Wie soll sich Julia gegen einen ANGREIFER wehren (Issue #113, rein/testbar)?
+// Hat sie keine richtige Waffe oder wenig Leben, rennt sie nicht dumm rein, sondern
+// hält Abstand („fernhalten") und schlägt nur zurück, wenn der Angreifer sie doch
+// stellt. Mit Waffe und genug Leben kämpft sie normal zurück.
+function wehrPlan({ hatWaffe = false, health = 20 } = {}) {
+  if (!hatWaffe || health <= 8) return 'fernhalten';
+  return 'kaempfen';
+}
+
 // Sparsam mit dem Seltenen (Issue #93 „je rarer, desto besser"): den normalen
 // Goldapfel für den Alltag, den verzauberten Goldapfel nur im Notfall (sehr wenig
 // Leben) oder wenn kein normaler mehr da ist. `hat` = Map Name→Anzahl. Gibt den
@@ -1482,10 +1491,10 @@ class Minecraft extends EventEmitter {
       const feind = this._naheGefahr();
       if (feind) { this._selbstschutz(feind); return; }
       // Kein Monster in Reichweite – wehrt sich Julia noch gegen einen Angreifer
-      // (z. B. einen Spieler, der sie schlägt), kämpft sie zurück, bis das Fenster
+      // (z. B. einen Spieler, der sie schlägt), reagiert sie, bis das Fenster
       // abläuft oder der Angreifer weg ist.
       const angreifer = this._angreiferFigur();
-      if (angreifer) { this._selbstschutz(angreifer); return; }
+      if (angreifer) { this._wehren(angreifer); return; }
       if (this.selbstschutz != null) { this.selbstschutz = null; this._kampfPause(); this._aufgabeFortsetzen(); }
     }
     // Hunger von selbst stillen, sobald der Balken sinkt – nur nicht mitten im
@@ -1571,7 +1580,34 @@ class Minecraft extends EventEmitter {
     const name = naechster.username || naechster.name || 'jemand';
     const neu = this.angreifer == null || this.angreifer.id !== naechster.id;
     this.angreifer = { id: naechster.id, bis: this.ticks + 200 }; // ~10 s Vergeltungsfenster
-    if (neu) this._melden('gefahr', `${name} greift mich an – ich wehre mich!`);
+    if (neu) {
+      this._melden('gefahr', `${name} greift mich an – ich wehre mich!`);
+      // Signal für den Hauptprozess: im sozialen BETA-Modus darf Julia zusätzlich
+      // VERBAL reagieren (agieren), z. B. den Angreifer im Spielchat warnen (#113).
+      this.emit('angegriffen', { spieler: name });
+    }
+  }
+
+  // Reaktion auf einen Angreifer (Issue #113): Reicht die Ausrüstung nicht (keine
+  // Waffe) oder ist wenig Leben da, hält Julia Abstand und flieht – schlägt aber
+  // zurück, wenn der Angreifer sie doch stellt. Sonst kämpft sie normal zurück.
+  _wehren(ziel) {
+    const bot = this.bot;
+    const plan = wehrPlan({
+      hatWaffe: !!besteWaffe(bot.inventory.items(), this.neuesKampfsystem),
+      health: bot.health,
+    });
+    if (plan === 'fernhalten') {
+      const d = bot.entity.position.distanceTo(ziel.position);
+      if (d < 2.5) { this._selbstschutz(ziel); return; } // in die Enge getrieben → doch zurückschlagen
+      if (this.ticks - (this.letzteRueckzugMeldung || -1000) > 100) {
+        this.letzteRueckzugMeldung = this.ticks;
+        this._melden('rueckzug', 'Ich bin schlecht ausgerüstet – ich halte Abstand und weiche aus.');
+      }
+      this._weg(ziel);
+      return;
+    }
+    this._selbstschutz(ziel);
   }
 
   // Der aktuelle Angreifer, gegen den sich Julia gerade wehrt – oder null, wenn das
@@ -2871,7 +2907,7 @@ function sollBenachrichtigen(art, modus = 'wichtige') {
 }
 
 module.exports = {
-  Minecraft, WERKZEUGE, GROSSE_NETZWERKE, MC_WICHTIGE, sollBenachrichtigen, kickWiederverbinden, bedrohWert, gefahrReichweite, FERNKAEMPFER, eimerPlan, mlgNoetig, EINMAL_BLOECKE, schwimmHoch, essenPlan, rueckzugPlan, heilWahl, ruestungCraftPlan,
+  Minecraft, WERKZEUGE, GROSSE_NETZWERKE, MC_WICHTIGE, sollBenachrichtigen, kickWiederverbinden, bedrohWert, gefahrReichweite, FERNKAEMPFER, eimerPlan, mlgNoetig, EINMAL_BLOECKE, schwimmHoch, essenPlan, rueckzugPlan, wehrPlan, heilWahl, ruestungCraftPlan,
   kontoSpeicher, kontoAnmelden,
   adresseTeilen, adressePruefen, zielFinden, besteWaffe, schlagPause, besteRuestung, werkzeugArt, besteWerkzeug, blockNamen,
   istFeind, darfWehren, chatText, botName, anrede, befehlLesen, rauswurfText, frageLesen, plauschLesen, darfInChat, hoerModus, hoerName, chatTeile, richtungAus, bauPlan, GESCHUETZT_ABBAU,
