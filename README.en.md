@@ -66,6 +66,7 @@
 
 ## What's new
 
+- **Minecraft: Julia sounds more human in chat (BETA)** – the "AI on the side" now replies in the in-game chat like a real teammate: short, casual, in the moment, mirroring your tone and slang – **no** AI clichés or lectures anymore. Together with the personality tone (friendly/cheeky/…) and the relationship memory she reacts more naturally, and may tease back or say no.
 - **App integrations removed** – the integrations for the user's own apps (ToDoch, Streamo, VibeWork/VibeWorks, Patchfeld, Codewerk, Content-Helper) were **removed entirely** on request – including the `apps` tool, the VibeWorks login and the related settings. Julia stays lean and focuses on PC control, voice, Minecraft and the usual accounts. General **MCP server support** and the **phone-app connection** remain.
 - **Minecraft: Julia no longer spams the chat** – she used to write her whole narration into the **in-game chat** while playing through autonomously. Now she only writes there **when someone writes to her** (then she replies) by default – you still see her playthrough thoughts **in the window**, just not in the chat. If you want her to **chime in on her own**, turn on "Chime in on the in-game chat on her own" in the Minecraft section.
 - **Updates with a safety net** – after an update Julia now checks whether the new version actually launched. If it didn't take, it **retries the installation once automatically**; if it still fails, you get a clear message instead of a loop. It also keeps the installer of the **last working version as a backup** – so it can **roll back** if needed.
@@ -96,7 +97,6 @@
 - **Minecraft no longer clutters the overlay & bubble** – Julia's Minecraft replies and actions no longer show up in the gaming overlay and the floating bubble; they stay in the window (chat/Minecraft tab). Important approvals (traffic light) are still shown.
 - **Automatic updates work again** – after the project moved to its new home (`Morni-Team/julia-ai`), the app was still looking for updates at the old location. Everything now points to the right address. (Please install this one version by hand once, after that it's automatic again.)
 - **Minecraft comes back on its own after a kick** – if the character is kicked from the server (e.g. a periodic timeout/anti-bot kick), it now reconnects automatically. Only when it's pointless (ban, whitelist, wrong version, "flying" anti-cheat) does it stay away – with a clear message.
-- **Outlook sign-in: clear help instead of a cryptic error** – if a Microsoft-owned application ID (e.g. the Azure Portal's) is entered by mistake, Julia now says so directly. And the common "AADSTS90072" error is explained clearly (you need your own app registration that also allows personal Microsoft accounts).
 
 All changes are in the [CHANGELOG](CHANGELOG.md). There's a little easter egg too – type (or say) `jarvis`. In Jarvis mode just “Jarvis” works as the wake word and the voice changes; “julia” switches back. 😉
 

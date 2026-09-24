@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.8.0 – 2026-09-24
+- Minecraft-Persoenlichkeit menschlicher (BETA) - die KI nebenbei antwortet im Spielchat wie ein echter Mitspieler: kurz, locker, spiegelt Ton und Slang, keine KI-Floskeln oder Belehrungen mehr, darf frech kontern oder Nein sagen
+
 ## 6.7.0 – 2026-09-23
 - App-Anbindungen entfernt - die Integrationen der eigenen Apps (ToDoch, Streamo, VibeWork/VibeWorks, Patchfeld, Codewerk, Content-Helper) samt apps-Werkzeug, VibeWorks-Login und zugehoerigen Einstellungen sind komplett raus; MCP-Server-Support und Handy-App-Verbindung bleiben
 
