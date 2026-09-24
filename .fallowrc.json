@@ -1,0 +1,26 @@
+{
+  "$schema": "https://docs.fallow.tools/schema/fallowrc.json",
+  // Einstiegspunkte, die NICHT per `import`/`require` erreicht werden und die der
+  // statische Analyzer deshalb fälschlich als „ungenutzt" meldet (julia-ai#44):
+  //   - src/preload/**   : lädt Electron über webPreferences.preload (Pfad, kein import)
+  //   - src/renderer/**  : Skripte/Styles werden per <script src>/<link> in den HTML-Seiten
+  //                        eingebunden (z. B. chat.html lädt chat.js/boost.js) – HTML-Einbindungen
+  //                        verfolgt der Analyzer nicht
+  //   - scripts/**       : eigenständige CLI-Skripte (per `node scripts/…` ausgeführt)
+  //   - test/**          : Tests laufen über `node --test`, werden nicht importiert
+  //   - julia-android    : App-Einstieg (index.js/App.js), Expo-Config-Plugins (aus app.json),
+  //                        native Modul-Bridge (modules/**) und die per Bridge/Global genutzten
+  //                        Quellen (src/**)
+  // src/main/main.js ist bereits package.json "main" und wird automatisch erkannt.
+  "entry": [
+    "src/preload/**",
+    "src/renderer/**",
+    "scripts/**",
+    "test/**",
+    "julia-android/index.js",
+    "julia-android/App.js",
+    "julia-android/plugins/**",
+    "julia-android/modules/**",
+    "julia-android/src/**"
+  ]
+}
