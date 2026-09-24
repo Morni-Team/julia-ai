@@ -10,6 +10,10 @@ const fs = require('fs');
 const path = require('path');
 const { spawn, spawnSync } = require('child_process');
 
+// Dieses Skript wird ALLEIN in den Datenordner kopiert und dort ausgeführt – es
+// darf daher KEINE lokalen Module requiren (nur Node-Built-ins). Die kleine
+// Wiederhol-Logik ist deshalb hier inline (Schwester von src/main/wiederholen.js).
+
 const auftrag = JSON.parse(Buffer.from(process.argv[2] || '', 'base64').toString('utf8'));
 const { repo, ziel, vorher, elternPid, statusDatei, logDatei } = auftrag;
 
@@ -35,12 +39,29 @@ function lauf(befehl, args) {
   if (r.status !== 0) throw new Error(`${befehl} ${args[0]} ist fehlgeschlagen (Code ${r.status}).`);
 }
 
+// Wie `lauf`, aber wiederholt bei einem Fehlschlag ein paar Mal mit wachsender
+// Pause (Issue #119/#120): git-checkout / npm ci scheitern gern an TRANSIENT
+// gesperrten Dateien (Virenscanner/Backup-Tool hält kurz ein Handle). Erst nach
+// mehreren Versuchen wird endgültig aufgegeben.
+async function laufWiederholt(befehl, args, versuche = 3, pauseMs = 2000) {
+  let letzter;
+  for (let v = 1; v <= versuche; v++) {
+    try { lauf(befehl, args); return; } catch (e) {
+      letzter = e;
+      if (v >= versuche) break;
+      log(`Versuch ${v} fehlgeschlagen (${e.message}) – evtl. Datei gesperrt, neuer Versuch in ${pauseMs * v} ms.`);
+      await warte(pauseMs * v);
+    }
+  }
+  throw letzter;
+}
+
 // Lockfile-genau und ohne die Installationsskripte der Pakete – über solche
 // Skripte verbreiten sich Lieferketten-Würmer (Shai-Hulud, 2025). Nur Electrons
 // eigenes Skript läuft danach, es lädt das Programm selbst herunter.
-function abhaengigkeiten() {
-  lauf('npm', ['ci', '--ignore-scripts', '--no-audit', '--no-fund']);
-  lauf('node', [path.join('node_modules', 'electron', 'install.js')]);
+async function abhaengigkeiten() {
+  await laufWiederholt('npm', ['ci', '--ignore-scripts', '--no-audit', '--no-fund']);
+  await laufWiederholt('node', [path.join('node_modules', 'electron', 'install.js')]);
 }
 
 function starten(extraEnv) {
@@ -72,8 +93,8 @@ async function main() {
 
   let neuPid = null;
   try {
-    lauf('git', ['-c', 'advice.detachedHead=false', 'checkout', '--quiet', ziel]);
-    abhaengigkeiten();
+    await laufWiederholt('git', ['-c', 'advice.detachedHead=false', 'checkout', '--quiet', ziel]);
+    await abhaengigkeiten();
     status({ phase: 'probe' });
     neuPid = starten({});
     for (let i = 0; i < 90; i++) {
@@ -90,8 +111,8 @@ async function main() {
     log(`Fehler: ${e.message} – zurück auf ${vorher}`);
     if (neuPid && lebt(neuPid)) spawnSync('taskkill', ['/pid', String(neuPid), '/T', '/F'], { windowsHide: true });
     try {
-      lauf('git', ['-c', 'advice.detachedHead=false', 'checkout', '--quiet', vorher]);
-      abhaengigkeiten();
+      await laufWiederholt('git', ['-c', 'advice.detachedHead=false', 'checkout', '--quiet', vorher]);
+      await abhaengigkeiten();
     } catch (e2) {
       log(`Rückweg hatte Probleme: ${e2.message}`);
     }

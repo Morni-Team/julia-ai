@@ -66,6 +66,7 @@
 
 ## What's new
 
+- **Updates: more robust when a "file is locked"** – if an update failed because an antivirus or backup tool briefly locked a file, Julia used to give up immediately. Now she automatically **retries** the affected steps a few times with a short pause (checkout, dependencies, installer download – the checksum is still verified every time). If that doesn't help, it's usually **security software** locking the folder (there's a Defender-exclusion button in the settings for that).
 - **Long chats: the conversation is summarized instead of cut off** – in very long conversations Julia used to simply forget the oldest messages. Now she condenses the older part into a **short summary** and keeps the most recent rounds verbatim – so the thread stays intact and it saves tokens (runs entirely locally, without an extra AI request).
 - **Minecraft: Julia is herself – not an "assistant"** – in the game she sometimes introduced herself as "Julia's assistant". Now it's clear: **she IS Julia (Juli) herself**, a real teammate, not an assistant – she speaks in the first person, keeps it short and doesn't point to commands. (Her in-game personality is instructed compactly and in English, which the model follows more reliably; her replies still come in German.)
 - **Minecraft: notices a game-mode change** – if someone changes Julia's game mode (e.g. to creative or spectator), she **now notices** and says so in the Julia window; in the social BETA mode she also reacts briefly in the in-game chat ("Hey, my game mode is now Kreativ – who did that?").
@@ -96,7 +97,6 @@
 - **Minecraft: individual players & chat toggle** – in the Minecraft tab you can now add individual **players** that Julia also listens to (with "Add" and ✕ to remove) – effective immediately in-game. And the **chat messages** in the tab can be hidden with a toggle.
 - **Minecraft: swimming & less getting stuck** – Julia now surfaces on her own when she runs low on air in water, so she no longer drowns. And when she gets stuck on an obstacle while walking (e.g. a tree trunk), she recalculates the path and goes around instead of jumping against it forever.
 - **Minecraft: thriftier with crafting table & furnace** – Julia no longer builds a new crafting table or furnace every time. If she already has one or one is nearby, she uses it – saving wood and stone.
-- **Minecraft: water MLG & nicer inventory** – Julia now saves herself from deep falls with the **water bucket** (places water just before impact and picks it back up) – needs a water bucket in the inventory. Also, the **inventory** is its own clear area in the Minecraft tab (items as chips with counts) instead of being squeezed into one line.
 
 All changes are in the [CHANGELOG](CHANGELOG.md). There's a little easter egg too – type (or say) `jarvis`. In Jarvis mode just “Jarvis” works as the wake word and the voice changes; “julia” switches back. 😉
 

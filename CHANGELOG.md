@@ -1,5 +1,8 @@
 # Changelog
 
+## 7.7.0 – 2026-09-24
+- Updates robuster bei gesperrten Dateien - Auschecken, Abhaengigkeiten und Installer-Download werden bei transienten Sperren/Netzfehlern automatisch mit kurzer Pause wiederholt (Pruefsumme wird weiter jedes Mal geprueft), statt beim ersten Fehler aufzugeben
+
 ## 7.6.0 – 2026-09-24
 - Chat-Compacting - sehr lange Gespraeche werden jetzt zu einer Kurzfassung zusammengezogen (die letzten Runden bleiben woertlich), statt alte Nachrichten einfach zu vergessen; spart Tokens und behaelt den roten Faden, rein lokal ohne zusaetzliche KI-Anfrage
 

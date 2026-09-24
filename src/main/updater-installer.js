@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const { spawn } = require('child_process');
 const version = require('./version');
 const { Updater, hoechsterTag } = require('./updater');
+const { mitWiederholung } = require('./wiederholen');
 
 // Updates für die installierte Fassung (Julia-AI-Setup.exe). Statt Git-Tags
 // gelten hier die Releases im öffentlichen Repo julia-ai. Julia lädt den
@@ -183,12 +184,19 @@ class InstallerUpdater extends Updater {
     // Nur aus dem offiziellen Release-Download laden.
     if (!exeUrl.startsWith(`${DOWNLOAD}${encodeURIComponent(tag)}/`)) throw new Error('Unerwartete Download-Adresse – ich lade nichts.');
 
-    const antwort = await this.holen(exeUrl, { headers: KOPF });
-    if (!antwort.ok) throw new Error(`Download fehlgeschlagen (${antwort.status}).`);
-    const daten = Buffer.from(await antwort.arrayBuffer());
-    if (!(daten.length > 0 && daten.length <= MAX_GROESSE)) throw new Error('Unerwartete Größe des Installers.');
-    const summe = crypto.createHash('sha512').update(daten).digest('base64');
-    if (summe !== info.sha512) throw new Error('Die Prüfsumme des Installers stimmt nicht – ich spiele ihn nicht ein.');
+    // Download bei transienten Netzfehlern/abgebrochenen Übertragungen ein paar
+    // Mal wiederholen (Issue #119). Größe + SHA-512 werden JEDES Mal geprüft – ein
+    // unvollständiger Download fällt so durch und wird erneut geholt, statt kaputt
+    // eingespielt zu werden.
+    const daten = await mitWiederholung(async () => {
+      const antwort = await this.holen(exeUrl, { headers: KOPF });
+      if (!antwort.ok) throw new Error(`Download fehlgeschlagen (${antwort.status}).`);
+      const buf = Buffer.from(await antwort.arrayBuffer());
+      if (!(buf.length > 0 && buf.length <= MAX_GROESSE)) throw new Error('Unerwartete Größe des Installers.');
+      const s = crypto.createHash('sha512').update(buf).digest('base64');
+      if (s !== info.sha512) throw new Error('Die Prüfsumme des Installers stimmt nicht – ich spiele ihn nicht ein.');
+      return buf;
+    }, { versuche: 3, pauseMs: 2000, beiFehler: (e, v) => this._log('Download-Versuch fehlgeschlagen, neuer Versuch', { versuch: v, fehler: e.message }) });
 
     const ordner = path.join(this.datenOrdner, 'updates');
     fs.mkdirSync(ordner, { recursive: true });
