@@ -92,7 +92,7 @@ const TIERE = new Set(['cow', 'pig', 'chicken', 'sheep', 'rabbit', 'mooshroom'])
 const TIER_WOERTER = { kuh: 'cow', kuehe: 'cow', kühe: 'cow', schwein: 'pig', schweine: 'pig', huhn: 'chicken', huehner: 'chicken', hühner: 'chicken', schaf: 'sheep', schafe: 'sheep', hase: 'rabbit', hasen: 'rabbit', kaninchen: 'rabbit', pilzkuh: 'mooshroom' };
 // Das behält die Figur beim Einräumen: Waffen, Werkzeug, Rüstung, Essen, Fackeln.
 const BEHALTEN = /_(sword|axe|pickaxe|shovel|hoe|helmet|chestplate|leggings|boots)$|^(shield|bow|crossbow|trident|arrow|torch)$/;
-const HILFE = 'Befehle: !folge · !komm · !beschütze mich · !duell · !stopp · !geh X Y Z · !gib 5 brot · !sammel · !jag 3 kuh · !craft 4 fackel · !bau ab holz 10 · !bau turm 8 · !bau mauer 10 3 · !bau hütte · !bau brücke 12 · !schmelz 8 eisen · !stell werkbank hin · !ess · !rüste dich · !verstau · !schlaf · !steig ein · !steig aus · !spiel durch · !hör auch auf NAME · !hör nur auf mich';
+const HILFE = 'Befehle: !folge · !komm · !beschütze mich · !duell · !stopp · !geh X Y Z · !merke NAME · !wegpunkte · !geh NAME · !gib 5 brot · !sammel · !jag 3 kuh · !craft 4 fackel · !bau ab holz 10 · !bau turm 8 · !bau mauer 10 3 · !bau hütte · !bau brücke 12 · !schmelz 8 eisen · !stell werkbank hin · !ess · !rüste dich · !verstau · !schlaf · !steig ein · !steig aus · !spiel durch · !hör auch auf NAME · !hör nur auf mich';
 // Brennstoff für den Ofen: Name (oder Endung) und wie viele Dinge eins schafft.
 const BRENNSTOFF = [['coal', 8], ['charcoal', 8], ['_planks', 1.5], ['_log', 1.5], ['stick', 0.5]];
 // Was die Figur beim Umsehen meldet.
@@ -664,6 +664,12 @@ function befehlLesen(text, namen = []) {
   if (/^(verstau(e|en)?|r(ä|ae)um( das inventar)? ein|einr(ä|ae)umen|store|stash)( alles)?( in die truhe)?$/.test(s)) return { aufgabe: 'verstauen' };
   const g = /^(?:geh|gehe|lauf|laufe|go|goto)(?:\s+(?:zu|nach|to))?\s+(-?\d+)\s+(-?\d+)(?:\s+(-?\d+))?$/.exec(s);
   if (g) return g[3] !== undefined ? { aufgabe: 'gehen', x: Number(g[1]), y: Number(g[2]), z: Number(g[3]) } : { aufgabe: 'gehen', x: Number(g[1]), z: Number(g[2]) };
+  // Wegpunkte (Issue #114): „!merke zuhause", „!wegpunkte", „!geh zuhause".
+  const mw = /^(?:merk dir|merke|merk|speicher(?:e|n)?|save)\s+(?:den\s+wegpunkt\s+|wegpunkt\s+|hier\s+als\s+)?(.{1,24}?)(?:\s+hier)?$/i.exec(rest);
+  if (mw) return { aufgabe: 'merken', item: mw[1].trim() };
+  if (/^(wegpunkte?|waypoints?|orte|meine orte)$/.test(s)) return { aufgabe: 'wegpunkte' };
+  const gn = /^(?:geh|gehe|lauf|laufe|go|goto)(?:\s+(?:zu|nach|to))?\s+(.{1,24})$/i.exec(rest);
+  if (gn && !/^-?\d/.test(gn[1].trim())) return { aufgabe: 'gehen', item: gn[1].trim() };
   const j = /^(?:jag|jage|jagen|hunt)(?:\s+(\d{1,2}))?(?:\s+([a-zäöüß_]+))?(?:\s+(\d{1,2}))?$/.exec(s);
   if (j) return { aufgabe: 'jagen', anzahl: Number(j[1] || j[3]) || null, tier: j[2] || null };
   const abbau = /^(?:bau(?:e)?\s+ab|abbauen|mine|hack(?:e)?)\s+(.+)$/.exec(s);
@@ -865,6 +871,7 @@ class Minecraft extends EventEmitter {
     this.isst = false;
     this.selbstschutz = null; // id des Feindes, gegen den sie sich gerade selbst wehrt
     this.angreifer = null; // { id, bis }: Spieler/Wesen, das Julia gerade angegriffen hat – solange wehrt sie sich
+    this.wegpunkte = this._wegpunkteLaden(); // Name→{x,y,z}: dauerhaft gemerkte Orte (#114)
     this.jeder = false; // auf alle Spieler hören statt nur auf den Besitzer
     this.erlaubte = new Map(); // zusätzlich erlaubte Spieler: kleingeschrieben → Anzeigename
     this.fortschrittInChat = false; // ihre Status-/Fortschritts-Meldungen (z. B. „16× stick hergestellt") NICHT in den Spielchat, nur ins Fenster (Nutzerwunsch, per Schalter)
@@ -1175,11 +1182,25 @@ class Minecraft extends EventEmitter {
       if (!name) throw new Error('Mit wem? Nenn den Spielernamen oder trag deinen in den Einstellungen unter Minecraft ein.');
     };
     // Erst prüfen, dann anhalten – ein Tippfehler soll nichts abbrechen.
-    const ort = art === 'gehen' ? ortLesen({ x, y, z }) : null;
+    // „gehen" versteht Koordinaten ODER einen gemerkten Wegpunkt-Namen (#114).
+    let ort = null;
+    if (art === 'gehen') {
+      if (x == null && item) {
+        const wp = this.wegpunkte.get(String(item).trim().toLowerCase());
+        if (!wp) throw new Error(`Den Wegpunkt „${item}" kenne ich nicht. „!wegpunkte" zeigt meine gemerkten Orte.`);
+        ort = wp;
+      } else {
+        ort = ortLesen({ x, y, z });
+      }
+    }
     this._anhalten();
     switch (art) {
       case 'stopp':
         return 'Angehalten.';
+      case 'merken':
+        return this._merken(item);
+      case 'wegpunkte':
+        return this._wegpunkteText();
       case 'folgen': {
         brauchtName();
         const e = this._spielerFigur(name);
@@ -1246,7 +1267,7 @@ class Minecraft extends EventEmitter {
         // Eigenständig weiterspielen: als Auftrag an die KI, die sich über
         // minecraft_fortschritt und die Spiel-Werkzeuge Etappe für Etappe
         // vorarbeitet. Das Logbuch hält den Weg fest (überlebt Abstürze).
-        const auftrag = 'Spiele Minecraft ab jetzt eigenständig weiter – Schritt für Schritt Richtung Enderdrache. Rufe zuerst minecraft_fortschritt auf, erfülle die dort genannte aktuelle Etappe mit den Minecraft-Werkzeugen (umsehen, abbauen, herstellen, schmelzen, jagen, bauen, warten), prüfe dann erneut den Fortschritt und mach weiter. Achte auf Leben und Hunger. Kommst du nicht weiter, sag kurz warum.';
+        const auftrag = 'Spiele Minecraft ab jetzt eigenständig weiter – Schritt für Schritt Richtung Enderdrache. Rufe zuerst minecraft_fortschritt auf, erfülle die dort genannte aktuelle Etappe mit den Minecraft-Werkzeugen (umsehen, abbauen, herstellen, schmelzen, jagen, bauen, warten), prüfe dann erneut den Fortschritt und mach weiter. Achte auf Leben und Hunger. Sieh dir ruhig die Umgebung an (umsehen) und setz dir sinnvolle Zwischenziele selbst, je nachdem was du brauchst und was du findest. Wichtig: Du BIST Julia, die Spielfigur – sprich in der ICH-Form, nie in der dritten Person über dich („ich baue …", nicht „Julia baut …"). Wenn du im Chat etwas sagst, halt dich sehr kurz (ein paar Worte), keine langen Texte. Ist jemand in der Nähe, darfst du kurz mit ihm interagieren. Kommst du nicht weiter, sag kurz warum.';
         this.emit('frage', { von: this.besitzer || 'Spieler', text: auftrag, auto: true });
         if (this.logbuch) { try { this.logbuch.eintrag('info', 'Auftrag: eigenständig weiterspielen.'); } catch { /* egal */ } }
         return 'Alles klar – ich spiele selbstständig weiter und arbeite mich Etappe für Etappe zum Enderdrachen vor.';
@@ -2194,6 +2215,58 @@ class Minecraft extends EventEmitter {
     // (Nutzerwunsch: das „48× oak_planks hergestellt"-Gespamme im Chat abschaltbar).
     // Im Fenster ist es über _melden immer sichtbar.
     if (this.fortschrittInChat) { try { this.chat(text); } catch { /* getrennt */ } }
+  }
+
+  // --- Wegpunkte (Issue #114): Orte dauerhaft merken und wieder ansteuern ---
+
+  _wegpunkteDatei() {
+    const ordner = this.logbuch && this.logbuch.ordner;
+    return ordner ? path.join(ordner, 'wegpunkte.json') : null;
+  }
+
+  _wegpunkteLaden() {
+    const m = new Map();
+    try {
+      const d = this._wegpunkteDatei();
+      if (d && fs.existsSync(d)) {
+        const roh = JSON.parse(fs.readFileSync(d, 'utf8'));
+        for (const [k, v] of Object.entries(roh || {})) {
+          if (v && Number.isFinite(v.x) && Number.isFinite(v.y) && Number.isFinite(v.z)) {
+            m.set(k, { x: v.x, y: v.y, z: v.z });
+          }
+        }
+      }
+    } catch { /* kaputte/fehlende Datei: einfach ohne Wegpunkte starten */ }
+    return m;
+  }
+
+  _wegpunkteSpeichern() {
+    try {
+      const d = this._wegpunkteDatei();
+      if (!d) return;
+      fs.mkdirSync(path.dirname(d), { recursive: true });
+      const obj = {};
+      for (const [k, v] of this.wegpunkte) obj[k] = v;
+      const tmp = `${d}.tmp`;
+      fs.writeFileSync(tmp, JSON.stringify(obj));
+      fs.renameSync(tmp, d); // atomar: nie eine halb geschriebene Datei
+    } catch { /* nicht speichern zu können darf das Spiel nie stören */ }
+  }
+
+  // Aktuelle Position unter einem Namen merken.
+  _merken(name) {
+    const key = String(name || '').trim().toLowerCase().slice(0, 24);
+    if (!key) throw new Error('Wie soll der Wegpunkt heißen? z. B. „!merke zuhause".');
+    const p = this.bot.entity.position;
+    const ort = { x: Math.round(p.x), y: Math.round(p.y), z: Math.round(p.z) };
+    this.wegpunkte.set(key, ort);
+    this._wegpunkteSpeichern();
+    return `Wegpunkt „${key}" gemerkt bei ${ortText(ort)}. Sag „!geh ${key}", dann laufe ich hin.`;
+  }
+
+  _wegpunkteText() {
+    if (!this.wegpunkte.size) return 'Ich habe noch keine Wegpunkte gemerkt. Sag z. B. „!merke zuhause", dann merke ich mir diesen Ort.';
+    return 'Meine Wegpunkte: ' + [...this.wegpunkte].map(([k, v]) => `${k} (${ortText(v)})`).join(', ') + '. Mit „!geh NAME" laufe ich hin.';
   }
 
   _gehen(ort) {

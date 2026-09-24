@@ -1,5 +1,8 @@
 # Changelog
 
+## 7.3.0 – 2026-09-24
+- Minecraft - Julia merkt sich jetzt Orte dauerhaft (!merke NAME, !wegpunkte, !geh NAME), spricht in der Ich-Form statt in der dritten Person, haelt sich im Spielchat kurz, nervt nicht mehr mit Befehlshinweisen und setzt sich beim Durchspielen eigene Zwischenziele
+
 ## 7.2.0 – 2026-09-24
 - Minecraft - Julia verteidigt sich schlauer: schlecht ausgeruestet oder mit wenig Leben haelt sie Abstand und weicht aus (schlaegt nur zurueck, wenn sie gestellt wird), mit Waffe kaempft sie normal; im sozialen BETA-Modus warnt sie den Angreifer zusaetzlich im Spielchat
 

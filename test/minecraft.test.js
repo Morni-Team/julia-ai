@@ -315,6 +315,29 @@ test('Minecraft: Julia wehrt sich gegen jeden Angreifer außer dem eigenen Spiel
   assert.equal(mc.darfWehren(null, 'Morni'), false);
 });
 
+test('Minecraft: Wegpunkt-Befehle werden erkannt (Issue #114)', () => {
+  assert.deepEqual(mc.befehlLesen('!merke zuhause', []), { aufgabe: 'merken', item: 'zuhause' });
+  assert.deepEqual(mc.befehlLesen('!merk dir Basis', []), { aufgabe: 'merken', item: 'Basis' });
+  assert.deepEqual(mc.befehlLesen('!wegpunkte', []), { aufgabe: 'wegpunkte' });
+  assert.deepEqual(mc.befehlLesen('!geh zuhause', []), { aufgabe: 'gehen', item: 'zuhause' });
+  // Koordinaten dürfen NICHT als Name interpretiert werden.
+  assert.deepEqual(mc.befehlLesen('!geh 100 64 -20', []), { aufgabe: 'gehen', x: 100, y: 64, z: -20 });
+});
+
+test('Minecraft: Wegpunkt merken und auflisten (Issue #114)', () => {
+  const m = new mc.Minecraft({}); // kein Logbuch → keine Persistenz nötig für den Test
+  m.bot = { entity: { position: { x: 10.4, y: 64, z: -20.6 } } };
+  const r = m._merken('Zuhause');
+  assert.match(r, /zuhause/i);
+  assert.deepEqual(m.wegpunkte.get('zuhause'), { x: 10, y: 64, z: -21 });
+  assert.match(m._wegpunkteText(), /zuhause/);
+  // Leerer Name wird abgelehnt.
+  assert.throws(() => m._merken('  '), /heißen/);
+  // Ohne Wegpunkte ein klarer Hinweis.
+  const leer = new mc.Minecraft({});
+  assert.match(leer._wegpunkteText(), /noch keine Wegpunkte/);
+});
+
 test('Minecraft: schlecht ausgerüstet → Abstand halten, mit Waffe → zurückkämpfen (Issue #113)', () => {
   // Keine Waffe → fernhalten (nicht dumm reinrennen).
   assert.equal(mc.wehrPlan({ hatWaffe: false, health: 20 }), 'fernhalten');
