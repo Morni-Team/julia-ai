@@ -68,8 +68,21 @@ if (grafik.hardwareAus(grafikModus) || startFlaggen.konflikt || reparatur) app.d
 if (grafikModus !== 'normal' || startFlaggen.konflikt || reparatur) {
   startLog.schreiben('GPU', `Grafik-Modus „${grafikModus}"${reparatur ? ' (per --reparatur)' : ''}${startFlaggen.konflikt ? ' (Flag-Konflikt)' : ''} aktiv.`);
 }
-const startFatal = (text) => startpruefung.fehlerDialog({ app, dialog, shell, text, logDatei: startLog.datei, ordner: DATEN })
-  .then(() => { beendenLaeuft = true; app.exit(1); });
+let neugestartetNachFatal = false;
+const startFatal = (text) => startpruefung.fehlerDialog({
+  app, dialog, shell, text, logDatei: startLog.datei, ordner: DATEN,
+  // Wiederherstellen ohne Neuinstallation (Issue #110): Grafik-Modus auf Standard
+  // zurücksetzen und neu starten – startet die Grafik-Fallback-Leiter frisch.
+  zuruecksetzen: () => {
+    try { startpruefung.grafikModusSetzen(DATEN, 'normal'); } catch { /* egal */ }
+    try { startLog.schreiben('GPU', 'Grafik auf Standard zurückgesetzt (Nutzer, FATAL-Dialog) – Neustart.'); } catch { /* egal */ }
+    neugestartetNachFatal = true;
+    beendenLaeuft = true;
+    app.relaunch();
+    app.exit(0);
+  },
+  treiberUrl: (() => { try { const q = require('./treiber').treiberQuelle((letzteGpu || {}).vendorId); return q && q.url; } catch { return null; } })(),
+}).then(() => { if (!neugestartetNachFatal) { beendenLaeuft = true; app.exit(1); } });
 
 // Globaler Fangschirm für den Hauptprozess (XXL-Robustheit): ein unbehandelter
 // Fehler beendet sonst die ganze App WORTLOS. Beim Start ist er tödlich (klare

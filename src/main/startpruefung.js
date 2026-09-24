@@ -192,14 +192,18 @@ function blankUiAbsichern({ datenOrdner, logbuch, neustart, fatal }) {
 
 // Zeigt eine native Meldung mit klarer Ursache und Knöpfen zum Logbuch. Gibt
 // den gewählten Knopf zurück. Braucht ein bereites app-Objekt (dialog).
-async function fehlerDialog({ app, dialog, shell, titel = 'Julia', text, logDatei, ordner }) {
+async function fehlerDialog({ app, dialog, shell, titel = 'Julia', text, logDatei, ordner, zuruecksetzen, treiberUrl }) {
   try {
     await app.whenReady();
   } catch { /* wenn selbst das scheitert, bleibt nur der Text unten */ }
   const knoepfe = ['Schließen'];
+  // Wiederherstellen ohne Neuinstallation: Grafik-Einstellung zurücksetzen und neu
+  // starten (der übliche Ausweg, den bisher nur eine Neuinstallation brachte).
+  if (typeof zuruecksetzen === 'function') knoepfe.push('Grafik zurücksetzen & neu starten');
+  if (treiberUrl) knoepfe.push('Grafiktreiber aktualisieren');
   if (logDatei) knoepfe.push('Logdatei öffnen');
   if (ordner) knoepfe.push('Ordner im Explorer zeigen');
-  const voll = logDatei ? `${text}\n\nEinzelheiten stehen im Logbuch:\n${logDatei}` : text;
+  const voll = logDatei ? `${text}\n\nTipp: „Grafik zurücksetzen & neu starten" behebt das oft ohne Neuinstallation. Hilft das nicht, den Grafiktreiber aktualisieren.\n\nEinzelheiten stehen im Logbuch:\n${logDatei}` : text;
   let wahl = 0;
   try {
     wahl = dialog.showMessageBoxSync({ type: 'error', title: titel, message: titel, detail: voll, buttons: knoepfe, defaultId: 0, noLink: true });
@@ -209,9 +213,11 @@ async function fehlerDialog({ app, dialog, shell, titel = 'Julia', text, logDate
   }
   const gewaehlt = knoepfe[wahl];
   try {
-    if (gewaehlt === 'Logdatei öffnen' && logDatei) shell.openPath(logDatei);
+    if (gewaehlt === 'Grafik zurücksetzen & neu starten') { zuruecksetzen(); return wahl; }
+    if (gewaehlt === 'Grafiktreiber aktualisieren' && treiberUrl) shell.openExternal(treiberUrl);
+    else if (gewaehlt === 'Logdatei öffnen' && logDatei) shell.openPath(logDatei);
     else if (gewaehlt === 'Ordner im Explorer zeigen' && ordner) shell.showItemInFolder(logDatei || ordner);
-  } catch { /* Explorer nicht erreichbar */ }
+  } catch { /* Explorer/Link nicht erreichbar */ }
   return wahl;
 }
 

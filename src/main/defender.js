@@ -47,6 +47,15 @@ function istAusgeschlossen(ausgabe, pfad) {
   return String(ausgabe || '').split(/\r?\n/).map(norm).some((z) => z && z === ziel);
 }
 
+// Reine Deutung der Start-Process-Fehlerausgabe, wenn die Ausnahme NICHT gesetzt
+// wurde (Issue #110). Liefert 'uac' NUR bei echtem UAC-Abbruch (Windows-Fehler
+// 1223 „durch den Benutzer abgebrochen"), sonst 'tamper' (Manipulationsschutz –
+// gilt auch für „Zugriff verweigert" trotz „Ja").
+function fehlerArt(err) {
+  if (/durch den benutzer abgebrochen|canceled by the user|cancelled by the user|\b1223\b|operationcanceled/i.test(String(err || ''))) return 'uac';
+  return 'tamper';
+}
+
 function psLauf(cmd, { timeout = 120000 } = {}) {
   return new Promise((resolve) => {
     let aus = '';
@@ -83,13 +92,19 @@ async function anwenden({ pfade = [], prozesse = [] } = {}) {
   // dass ES gestartet wurde, nicht ob Add-MpPreference geklappt hat).
   const st = await status(alle);
   if (st.ausgeschlossen) return { ok: true };
-  // UAC abgelehnt / Elevation blockiert → „Zugriff verweigert" von Start-Process.
-  if (/zugriff verweigert|access is denied|denied|verweigert|abgebrochen|canceled|cancelled|invalidoperation/i.test(r.err)) {
-    return { fehler: 'Die Windows-Adminfreigabe (UAC) wurde abgelehnt oder ist blockiert. Bitte den Knopf erneut drücken und bei der Windows-Nachfrage auf „Ja" klicken.' };
+  // WICHTIG (Issue #110): Nur ein ECHTES Abbrechen der UAC-Nachfrage liefert den
+  // Windows-Fehler 1223 „Der Vorgang wurde durch den Benutzer abgebrochen"
+  // (Start-Process wirft dann). NUR das als „UAC abgelehnt" deuten. Ein bloßes
+  // „Zugriff verweigert"/„Access is denied" kommt dagegen fast immer vom
+  // Manipulationsschutz, OBWOHL der Nutzer auf „Ja" geklickt hat – das früher
+  // mitzuzählen war die Ursache der Fehlmeldung „UAC abgelehnt trotz Ja".
+  if (fehlerArt(r.err) === 'uac') {
+    return { fehler: 'Die Windows-Adminfreigabe (UAC) wurde abgebrochen. Bitte den Knopf erneut drücken und bei der Windows-Nachfrage auf „Ja" klicken.' };
   }
-  // Elevation lief, aber die Ausnahme steht trotzdem nicht → meist blockiert der
-  // Windows-Manipulationsschutz automatische Änderungen. Dann muss sie von Hand rein.
-  return { fehler: 'Der Ausschluss konnte nicht gesetzt werden – vermutlich blockiert der Windows-Manipulationsschutz automatische Änderungen. Bitte einmal von Hand: Windows-Sicherheit → Viren- & Bedrohungsschutz → Einstellungen verwalten → Ausschlüsse → Ordner hinzufügen (Julias Programm- und Datenordner).' };
+  // Elevation lief (oder „Zugriff verweigert" trotz Ja) und die Ausnahme steht
+  // trotzdem nicht → der Windows-Manipulationsschutz blockiert automatische
+  // Änderungen an den Defender-Einstellungen. Dann geht es nur von Hand.
+  return { fehler: 'Der Ausschluss konnte nicht automatisch gesetzt werden – das blockiert der Windows-Manipulationsschutz (Tamper Protection), auch mit Adminrechten. So geht es von Hand: Windows-Sicherheit → Viren- & Bedrohungsschutz → „Einstellungen verwalten" → ganz unten „Ausschlüsse" → „Ausschluss hinzufügen" → „Ordner" → Julias Programm-Ordner (und den Datenordner) wählen. Alternativ oben den Manipulationsschutz kurz ausschalten, dann diesen Knopf erneut drücken.' };
 }
 
-module.exports = { psQuote, ausschlussSkript, startBefehl, istAusgeschlossen, status, anwenden };
+module.exports = { psQuote, ausschlussSkript, startBefehl, istAusgeschlossen, fehlerArt, status, anwenden };
