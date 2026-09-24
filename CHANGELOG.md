@@ -1,5 +1,8 @@
 # Changelog
 
+## 7.9.0 – 2026-09-24
+- Content-Modul - Schnittplan-Motor und FFmpeg-Rohschnitt als getesteter Unterbau: Julia baut aus Transkript plus Creator-/Stilprofil einen strukturierten Schnittplan (nur Text an die KI) und kann daraus als Adobe-Fallback per FFmpeg einen echten Rohschnitt zusammensetzen
+
 ## 7.8.0 – 2026-09-24
 - Neues Content-Creation-Modul (erste Stufe) - eigenstaendiger Tab Content, per Schalter aktivierbar, mit Creator-Profil-Speicher (Kanaldaten, Marke, Musik-/SFX-Ordner, feste Regeln, Stilprofil; anlegen/aktiv/loeschen/Import/Export). Fundament fuer die spaetere Video-Erstellung lokal in den Adobe-Programmen; reine Formate/Analyse-Regeln getestet
 

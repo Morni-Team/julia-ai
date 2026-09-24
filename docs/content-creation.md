@@ -52,9 +52,11 @@ Gebaut (erste vertikale Scheibe):
 
 Als Nächstes (aufbauend):
 
+- [~] Konzept: `konzept.js` baut den (englischen) Prompt aus Profil+Transkript+Stil
+      und löst die JSON-Antwort robust zum Schnittplan auf – Modell-Aufruf/UI folgt.
+- [~] FFmpeg-Fallback: `rohschnitt.js` baut aus dem Schnittplan den FFmpeg-Befehl
+      (Trim+Concat der Clips) – Ausführung/Verdrahtung folgt.
 - [ ] Analyse-Pipeline (Whisper-Transkript, Stille/Peaks per FFmpeg) verdrahten.
-- [ ] Konzept/Schnittplan über Claude (nur Text) erzeugen, lesbar im UI.
-- [ ] FFmpeg-Fallback: echten Rohschnitt aus dem Schnittplan exportieren.
 - [ ] Adapter: Premiere (UXP), Photoshop-Thumbnails (UXP), After Effects (JSX-Vorlagen).
 - [ ] Zuschauen-Modus (sichtbar, Tempo-Regler, Pause/Weiter/Abbrechen).
 - [ ] Laptop-Worker + Warteschlange (LAN, kein Cloud-Relay), Laptop-Schutz.
