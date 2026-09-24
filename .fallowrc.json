@@ -7,6 +7,8 @@
   //                        eingebunden (z. B. chat.html lädt chat.js/boost.js) – HTML-Einbindungen
   //                        verfolgt der Analyzer nicht
   //   - scripts/**       : eigenständige CLI-Skripte (per `node scripts/…` ausgeführt)
+  //   - src/update-waechter.js : eigenständiges Update-Wächter-Skript, das updater.js
+  //                        als Kindprozess startet (nur per Pfad, kein import)
   //   - test/**          : Tests laufen über `node --test`, werden nicht importiert
   //   - julia-android    : App-Einstieg (index.js/App.js), Expo-Config-Plugins (aus app.json),
   //                        native Modul-Bridge (modules/**) und die per Bridge/Global genutzten
@@ -15,6 +17,7 @@
   "entry": [
     "src/preload/**",
     "src/renderer/**",
+    "src/update-waechter.js",
     "scripts/**",
     "test/**",
     "julia-android/index.js",
