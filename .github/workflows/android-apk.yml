@@ -106,3 +106,22 @@ jobs:
               --title 'Julia für Android (aktuelle APK)' \
               --notes 'Automatisch gebaute, installierbare Android-APK der Handy-App. Auf dem Handy herunterladen, Installation aus unbekannter Quelle erlauben, dann öffnen. Diese Datei wird bei jedem Build hier aktualisiert.'
           fi
+
+      - name: Eigenes, versioniertes Release bei einem android-v*-Tag anlegen
+        # Wird nur bei einem Tag wie `android-v0.1.0` ausgelöst (Issue #111): dann
+        # entsteht ein FESTES, veröffentlichtes Android-Release mit dieser Version –
+        # zusätzlich zum rollenden `android-latest`. So gibt es einen dauerhaften,
+        # zitierbaren Download je Version.
+        if: startsWith(github.ref, 'refs/tags/android-v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" Julia.apk --clobber
+          else
+            gh release create "$TAG" Julia.apk \
+              --title "Julia für Android ${TAG#android-}" \
+              --notes 'Installierbare Android-APK der Handy-App (feste Version). Auf dem Handy herunterladen, Installation aus unbekannter Quelle erlauben, dann öffnen. Julia bedient das Handy über den Bedienungshilfen-Dienst (ohne Root); jeder steuernde Schritt läuft einzeln über die Freigabe.'
+          fi
