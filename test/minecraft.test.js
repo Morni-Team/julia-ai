@@ -280,6 +280,71 @@ test('Minecraft: in den Spielchat nur bei echter Antwort oder wenn Mitreden an i
   assert.equal(mc.darfInChat(true, true), true);
 });
 
+test('Minecraft: Fortschritts-Meldungen gehen nur mit eingeschaltetem Schalter in den Spielchat (Nutzerwunsch)', () => {
+  const m = new mc.Minecraft({});
+  const chats = [];
+  m.chat = (t) => chats.push(t); // Spielchat abfangen (kein echter Bot)
+  const fenster = [];
+  m.on('ereignis', (e) => fenster.push(e.text));
+
+  // Standard: Schalter AUS → Fortschritt nur im Fenster, NICHT im Spielchat.
+  assert.equal(m.fortschrittInChat, false);
+  m.auftrag = { art: 'herstellen' };
+  const a1 = m.auftrag;
+  m._fertig(a1, '16× stick hergestellt.');
+  assert.equal(chats.length, 0, 'kein Spielchat-Spam, wenn aus');
+  assert.ok(fenster.includes('16× stick hergestellt.'), 'im Fenster trotzdem sichtbar');
+
+  // Schalter AN → geht zusätzlich in den Spielchat.
+  m.setFortschrittInChat(true);
+  m.auftrag = { art: 'herstellen' };
+  const a2 = m.auftrag;
+  m._fertig(a2, '1× wooden_pickaxe hergestellt.');
+  assert.deepEqual(chats, ['1× wooden_pickaxe hergestellt.']);
+});
+
+test('Minecraft: Julia wehrt sich gegen jeden Angreifer außer dem eigenen Spieler (Nutzerwunsch)', () => {
+  // Gegen einen fremden Spieler/Angreifer wehrt sie sich.
+  assert.equal(mc.darfWehren('Griefer99', 'Morni'), true);
+  assert.equal(mc.darfWehren('irgendwer', ''), true);
+  // Den eigenen Chef greift sie NIE an (Groß/klein egal).
+  assert.equal(mc.darfWehren('Morni', 'Morni'), false);
+  assert.equal(mc.darfWehren('MORNI', 'morni'), false);
+  // Ohne Namen kein Angriff.
+  assert.equal(mc.darfWehren('', 'Morni'), false);
+  assert.equal(mc.darfWehren(null, 'Morni'), false);
+});
+
+test('Minecraft: _angegriffen merkt den nächsten fremden Spieler als Angreifer, nicht den Besitzer', () => {
+  const m = new mc.Minecraft({});
+  m.besitzer = 'Morni';
+  m.ticks = 100;
+  const meldungen = [];
+  m.on('ereignis', (e) => meldungen.push(e));
+  const pos = (d) => ({ distanceTo: () => d });
+  m.bot = {
+    entity: { position: pos(0) },
+    entities: {
+      1: { id: 1, type: 'player', username: 'Morni', isValid: true, position: pos(2) }, // Besitzer, ganz nah
+      2: { id: 2, type: 'player', username: 'Griefer99', isValid: true, position: pos(3) }, // fremder Angreifer
+      3: { id: 3, type: 'mob', name: 'zombie', isValid: true, position: pos(1) },
+    },
+  };
+  // Besitzer ist näher, wird aber übersprungen → der fremde Spieler wird Angreifer.
+  m._angegriffen();
+  assert.ok(m.angreifer, 'ein Angreifer wurde gemerkt');
+  assert.equal(m.angreifer.id, 2);
+  assert.equal(m.angreifer.bis, 300); // ticks(100) + 200
+  assert.ok(meldungen.some((e) => e.art === 'gefahr' && /Griefer99/.test(e.text)));
+
+  // Nur der Besitzer in der Nähe → kein Angriff, kein Angreifer.
+  const m2 = new mc.Minecraft({});
+  m2.besitzer = 'Morni';
+  m2.bot = { entity: { position: pos(0) }, entities: { 1: { id: 1, type: 'player', username: 'Morni', isValid: true, position: pos(2) } } };
+  m2._angegriffen();
+  assert.equal(m2.angreifer, null);
+});
+
 test('Minecraft: lockere Grüße lösen auch ohne Namensnennung eine Antwort aus (durchspielen mitreden)', () => {
   assert.equal(mc.plauschLesen('hallo', ['Julia']), 'hallo');
   assert.equal(mc.plauschLesen('moin zusammen', ['Julia']), 'moin zusammen');

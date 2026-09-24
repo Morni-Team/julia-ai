@@ -445,6 +445,16 @@ function istFeind(e) {
   return !!e && e.type !== 'player' && e.isValid !== false && (e.type === 'hostile' || FEINDE.has(e.name));
 }
 
+// Darf Julia sich gegen diesen Angreifer wehren? (rein, testbar). Ja bei jedem
+// Angreifer MIT Namen – NUR den eigenen Spieler (Besitzer) greift sie nie an, damit
+// sie sich nicht gegen ihren eigenen Chef wendet (Nutzerwunsch: wehren, wenn sie von
+// jemandem angegriffen wird). Groß/klein egal.
+function darfWehren(name, besitzer) {
+  const n = String(name || '').trim();
+  if (!n) return false;
+  return n.toLowerCase() !== String(besitzer || '').trim().toLowerCase();
+}
+
 // Reitbare Tiere (mit Sattel). Boote und Loren erkennt man am Namen.
 const REITTIERE = new Set(['horse', 'donkey', 'mule', 'skeleton_horse', 'zombie_horse', 'pig', 'strider', 'camel']);
 function istFahrzeug(e) {
@@ -845,8 +855,17 @@ class Minecraft extends EventEmitter {
     this.jagt = null;
     this.isst = false;
     this.selbstschutz = null; // id des Feindes, gegen den sie sich gerade selbst wehrt
+    this.angreifer = null; // { id, bis }: Spieler/Wesen, das Julia gerade angegriffen hat – solange wehrt sie sich
     this.jeder = false; // auf alle Spieler hören statt nur auf den Besitzer
     this.erlaubte = new Map(); // zusätzlich erlaubte Spieler: kleingeschrieben → Anzeigename
+    this.fortschrittInChat = false; // ihre Status-/Fortschritts-Meldungen (z. B. „16× stick hergestellt") NICHT in den Spielchat, nur ins Fenster (Nutzerwunsch, per Schalter)
+  }
+
+  // Schalter: sollen Julias Status-/Fortschritts-Meldungen auch in den SPIELCHAT?
+  // Standard aus – sie erscheinen dann nur im Julia-Fenster. Normale Antworten an
+  // Spieler bleiben davon unberührt (Nutzerwunsch: nur EIN/AUS für den Fortschritt).
+  setFortschrittInChat(an) {
+    this.fortschrittInChat = !!an;
   }
 
   get verbunden() {
@@ -982,6 +1001,11 @@ class Minecraft extends EventEmitter {
       try { this._tick(); } catch (e) { this.letzterFehler = e.message; }
     });
     bot.on('chat', (von, text) => this._chat(von, text));
+    // Wird Julia verletzt, wehrt sie sich – auch gegen einen SPIELER, der sie
+    // angreift (Nutzerwunsch). Wer der Angreifer ist, verrät das Event nicht, also
+    // nehmen wir den nächsten Spieler in Schlagreichweite. Mobs regelt die
+    // bestehende Monster-Verteidigung separat.
+    bot.on('entityHurt', (e) => { try { if (e === bot.entity) this._angegriffen(); } catch (err) { this.letzterFehler = err && err.message; } });
     bot.on('death', () => this._gestorben());
     bot.on('entityDead', (e) => this._tot(e));
     bot.on('kicked', (g) => { this.grund = rauswurfText(g); });
@@ -1457,6 +1481,11 @@ class Minecraft extends EventEmitter {
     if (!kampfArt) {
       const feind = this._naheGefahr();
       if (feind) { this._selbstschutz(feind); return; }
+      // Kein Monster in Reichweite – wehrt sich Julia noch gegen einen Angreifer
+      // (z. B. einen Spieler, der sie schlägt), kämpft sie zurück, bis das Fenster
+      // abläuft oder der Angreifer weg ist.
+      const angreifer = this._angreiferFigur();
+      if (angreifer) { this._selbstschutz(angreifer); return; }
       if (this.selbstschutz != null) { this.selbstschutz = null; this._kampfPause(); this._aufgabeFortsetzen(); }
     }
     // Hunger von selbst stillen, sobald der Balken sinkt – nur nicht mitten im
@@ -1521,6 +1550,39 @@ class Minecraft extends EventEmitter {
       && e.position.distanceTo(p) < gefahrReichweite(e.name));
     if (!feinde.length) return null;
     return feinde.sort((x, y) => bedrohWert(y, p) - bedrohWert(x, p))[0];
+  }
+
+  // Julia wurde verletzt: den nächsten Spieler in Schlagreichweite als Angreifer
+  // merken und sich eine Weile gegen ihn wehren. Den eigenen Spieler (Besitzer)
+  // greift sie nie an. Ist kein Spieler nah, war es vermutlich ein Mob (regelt die
+  // Monster-Verteidigung) oder Sturz/Lava – dann nichts tun.
+  _angegriffen() {
+    const bot = this.bot;
+    if (!bot || !bot.entity) return;
+    const p = bot.entity.position;
+    // Nur Spieler in Schlagreichweite, gegen die sie sich wehren DARF (nie den
+    // eigenen Chef) – von denen der nächste ist der wahrscheinliche Angreifer.
+    const spieler = Object.values(bot.entities)
+      .filter((e) => e && e.type === 'player' && e !== bot.entity && e.isValid !== false && e.position
+        && e.position.distanceTo(p) < 5 && darfWehren(e.username || e.name, this.besitzer))
+      .sort((x, y) => x.position.distanceTo(p) - y.position.distanceTo(p));
+    if (!spieler.length) return;
+    const naechster = spieler[0];
+    const name = naechster.username || naechster.name || 'jemand';
+    const neu = this.angreifer == null || this.angreifer.id !== naechster.id;
+    this.angreifer = { id: naechster.id, bis: this.ticks + 200 }; // ~10 s Vergeltungsfenster
+    if (neu) this._melden('gefahr', `${name} greift mich an – ich wehre mich!`);
+  }
+
+  // Der aktuelle Angreifer, gegen den sich Julia gerade wehrt – oder null, wenn das
+  // Fenster abgelaufen ist oder der Angreifer nicht mehr (erreichbar) da ist.
+  _angreiferFigur() {
+    if (!this.angreifer) return null;
+    if (this.ticks > this.angreifer.bis) { this.angreifer = null; return null; }
+    const e = this.bot.entities[this.angreifer.id];
+    if (!e || e.isValid === false || !e.position) { this.angreifer = null; return null; }
+    if (e.position.distanceTo(this.bot.entity.position) > 16) return null; // gerade zu weit – Fenster bleibt
+    return e;
   }
 
   // Selbstverteidigung: Waffe/Rüstung an und den Feind bekämpfen (Kampf regelt
@@ -2092,7 +2154,10 @@ class Minecraft extends EventEmitter {
     if (this.auftrag !== a) return;
     this.auftrag = null;
     this._melden('fertig', text);
-    try { this.chat(text); } catch { /* getrennt */ }
+    // Fortschritts-/Status-Meldung nur in den Spielchat, wenn der Schalter an ist
+    // (Nutzerwunsch: das „48× oak_planks hergestellt"-Gespamme im Chat abschaltbar).
+    // Im Fenster ist es über _melden immer sichtbar.
+    if (this.fortschrittInChat) { try { this.chat(text); } catch { /* getrennt */ } }
   }
 
   _gehen(ort) {
@@ -2809,6 +2874,6 @@ module.exports = {
   Minecraft, WERKZEUGE, GROSSE_NETZWERKE, MC_WICHTIGE, sollBenachrichtigen, kickWiederverbinden, bedrohWert, gefahrReichweite, FERNKAEMPFER, eimerPlan, mlgNoetig, EINMAL_BLOECKE, schwimmHoch, essenPlan, rueckzugPlan, heilWahl, ruestungCraftPlan,
   kontoSpeicher, kontoAnmelden,
   adresseTeilen, adressePruefen, zielFinden, besteWaffe, schlagPause, besteRuestung, werkzeugArt, besteWerkzeug, blockNamen,
-  istFeind, chatText, botName, anrede, befehlLesen, rauswurfText, frageLesen, plauschLesen, darfInChat, hoerModus, hoerName, chatTeile, richtungAus, bauPlan, GESCHUETZT_ABBAU,
+  istFeind, darfWehren, chatText, botName, anrede, befehlLesen, rauswurfText, frageLesen, plauschLesen, darfInChat, hoerModus, hoerName, chatTeile, richtungAus, bauPlan, GESCHUETZT_ABBAU,
   itemNamen, ortLesen, mengeLesen, endeText, HILFE, haengerStatus, haengerAktiv, haengerDauer, haengerErkannt,
 };

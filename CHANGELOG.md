@@ -1,5 +1,8 @@
 # Changelog
 
+## 7.1.0 – 2026-09-24
+- Minecraft - Julias Herstell-/Status-Meldungen gehen nur noch mit dem neuen Schalter in den Spielchat (Standard aus, kein Chat-Gespamme mehr), und Julia wehrt sich jetzt auch gegen Spieler, die sie angreifen (nur den eigenen Spieler greift sie nie an)
+
 ## 7.0.2 – 2026-09-24
 - Startet nach Update gar nicht mehr (Renderer-Crash -2147483645) behoben - neue Notfall-Grafikstufe schaltet Sandbox und Renderer-Code-Integrity ab (Windows-Mitigation gegen injizierte Fremd-DLLs von Antivirus/Overlay/Tuning-Tools), bevor Julia aufgibt; danach klare Meldung, dass es am Treiber oder an Sicherheitssoftware liegt
 

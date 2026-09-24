@@ -2348,6 +2348,7 @@ async function start() {
   // Ein tägliches Logbuch im Datenordner überlebt Abstürze, damit ein Spieltag nicht verloren geht.
   const { Logbuch } = require('./minecraft-logbuch');
   minecraft = new Minecraft({ logbuch: new Logbuch({ ordner: path.join(DATEN, 'minecraft-logbuch') }) });
+  minecraft.setFortschrittInChat(config.get('minecraft.chat_fortschritt') === true);
   mcSpeicher = kontoSpeicher({ datei: path.join(DATEN, 'minecraft-konto.bin'), krypto });
   minecraft.on('ereignis', (e) => {
     // Nicht bei JEDEM Minecraft-Ereignis pushen (Nutzerwunsch: nicht ständig
@@ -2538,6 +2539,7 @@ async function start() {
     if (k.startsWith('appserver.')) appServerAnwenden();
     if (k === 'minecraft.jeder' && minecraft) minecraft.aufAlleHoeren(config.get('minecraft.jeder') === true);
     if (k === 'minecraft.erlaubte' && minecraft) minecraft.setErlaubte(config.get('minecraft.erlaubte'));
+    if (k === 'minecraft.chat_fortschritt' && minecraft) minecraft.setFortschrittInChat(config.get('minecraft.chat_fortschritt') === true);
     // Jarvis-Easter-Egg: Name, Prompt, Tray und Texte umstellen (Look macht designAnwenden + config:geaendert).
     if (k === 'design.jarvis') {
       promptCache = null;
