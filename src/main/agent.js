@@ -51,6 +51,62 @@ function verlaufKuerzen(verlauf, maxRunden = MAX_VERLAUF_RUNDEN) {
   return verlauf.slice(starts[starts.length - maxRunden]);
 }
 
+// --- Chat-Compacting (Issue #119) ---
+// Statt alte Runden bei langen Gesprächen einfach wegzuwerfen, werden sie zu EINER
+// kurzen Kurzfassungs-Runde zusammengezogen; die letzten Runden bleiben wörtlich.
+// Deterministisch (kein zusätzlicher Modell-Aufruf → keine Kosten/Latenz) und so
+// gebaut, dass der Verlauf gültig bleibt (beginnt mit einer Nutzer-Runde, keine
+// zerrissene Werkzeug-Kette).
+const KOMPAKT_SCHWELLE = 30; // ab so vielen echten Nutzer-Runden wird kompaktiert
+const KOMPAKT_BEHALTEN = 12; // so viele der letzten Runden bleiben wörtlich
+
+function textVonNachricht(m) {
+  if (!m) return '';
+  if (typeof m.content === 'string') return m.content;
+  return textAus(m.content);
+}
+function ohneKopf(t) {
+  return String(t || '').replace(/^\[[^\]\n]*\]\n/, '').trim(); // die „[Kanal: …]"-Kopfzeile abziehen
+}
+function kuerzen(t, n) {
+  const s = String(t || '').replace(/\s+/g, ' ').trim();
+  return s.length > n ? `${s.slice(0, n - 1)}…` : s;
+}
+
+// Reiner Plan: ab wann kompaktieren? null, wenn (noch) nicht nötig.
+function kompaktierPlan(verlauf, { schwelle = KOMPAKT_SCHWELLE, behalten = KOMPAKT_BEHALTEN } = {}) {
+  if (!Array.isArray(verlauf)) return null;
+  const starts = [];
+  for (let i = 0; i < verlauf.length; i++) if (istNutzerRunde(verlauf[i])) starts.push(i);
+  if (starts.length <= schwelle) return null;
+  const schnitt = starts[starts.length - behalten];
+  if (!(schnitt > 0)) return null;
+  return { schnitt, alt: verlauf.slice(0, schnitt), neu: verlauf.slice(schnitt) };
+}
+
+// Deterministische Kurzfassung alter Runden: je Runde eine Zeile „Du: …/Julia: …",
+// Werkzeug-Ketten werden weggelassen.
+function verlaufDigest(alt) {
+  const zeilen = [];
+  for (const m of alt || []) {
+    if (istNutzerRunde(m)) { const t = ohneKopf(textVonNachricht(m)); if (t) zeilen.push(`Du: ${kuerzen(t, 200)}`); }
+    else if (m && m.role === 'assistant') { const t = textVonNachricht(m); if (t) zeilen.push(`Julia: ${kuerzen(t, 200)}`); }
+  }
+  return zeilen.join('\n');
+}
+
+function verlaufKompaktieren(verlauf, opts = {}) {
+  const plan = kompaktierPlan(verlauf, opts);
+  if (!plan) return verlauf;
+  const digest = verlaufDigest(plan.alt);
+  const kopf = digest ? `[Kurzfassung des bisherigen Gesprächs]\n${digest}` : '[Kurzfassung des bisherigen Gesprächs] (nichts Wesentliches)';
+  return [
+    { role: 'user', content: [{ type: 'text', text: kopf }] },
+    { role: 'assistant', content: [{ type: 'text', text: 'Alles klar, ich habe den bisherigen Verlauf im Kopf.' }] },
+    ...plan.neu,
+  ];
+}
+
 function modellFaehigkeiten(modell) {
   const m = String(modell);
   return {
@@ -188,9 +244,11 @@ class Agent extends EventEmitter {
     // Claude Code bekommt die Nachricht als reinen Text – Textanhänge kommen dazu.
     this.letzteAnhaengeText = extra.filter((b) => b.type === 'text').map((b) => b.text).join('\n\n');
     if (extra.length) this.fremdKontakt = true;
-    // Sehr lange Gespräche vor der neuen Runde kappen (Issue #16). Hier ist die
-    // sichere Stelle: die vorige Runde ist abgeschlossen, keine offene Werkzeug-Kette.
-    this.verlauf = verlaufKuerzen(this.verlauf);
+    // Sehr lange Gespräche vor der neuen Runde kompaktieren (Issue #16/#119): alte
+    // Runden zu einer Kurzfassung zusammenziehen (spart Tokens, behält den Faden),
+    // die letzten Runden bleiben wörtlich. Hier ist die sichere Stelle: die vorige
+    // Runde ist abgeschlossen, keine offene Werkzeug-Kette.
+    this.verlauf = verlaufKompaktieren(this.verlauf);
     this.verlauf.push({ role: 'user', content: [{ type: 'text', text: this.letzteNachricht }, ...extra] });
     let letzterText = null;
     try {
@@ -690,4 +748,4 @@ class Agent extends EventEmitter {
   }
 }
 
-module.exports = { Agent, spielSystem, modellFaehigkeiten, verlaufKuerzen, istNutzerRunde, MAX_VERLAUF_RUNDEN };
+module.exports = { Agent, spielSystem, modellFaehigkeiten, verlaufKuerzen, verlaufKompaktieren, kompaktierPlan, verlaufDigest, istNutzerRunde, MAX_VERLAUF_RUNDEN };

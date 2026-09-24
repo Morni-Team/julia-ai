@@ -66,6 +66,7 @@
 
 ## Das ist neu
 
+- **Lange Gespräche: Chat wird zusammengefasst statt abgeschnitten** – bei sehr langen Unterhaltungen hat Julia früher die ältesten Nachrichten einfach vergessen. Jetzt zieht sie den älteren Teil zu einer **Kurzfassung** zusammen und behält die letzten Runden wörtlich – so bleibt der rote Faden erhalten und es spart Tokens (läuft rein lokal, ohne zusätzliche KI-Anfrage).
 - **Minecraft: Julia ist sie selbst – keine „Assistentin"** – im Spiel stellte sie sich manchmal als „Julias Assistentin" vor. Jetzt ist klar: **sie IST Julia (Juli) selbst**, ein echter Mitspieler, keine Assistentin – sie spricht in der Ich-Form, hält sich kurz und verweist nicht auf Befehle. (Ihre Spiel-Persönlichkeit wird intern kompakt und auf Englisch instruiert, was das Modell zuverlässiger befolgt; ihre Antworten kommen weiter auf Deutsch.)
 - **Minecraft: merkt einen Spielmodus-Wechsel** – ändert jemand Julias Spielmodus (z. B. auf Kreativ oder Zuschauer), **merkt sie das jetzt** und sagt es im Julia-Fenster; im sozialen BETA-Modus reagiert sie zusätzlich kurz im Spielchat („Hey, mein Spielmodus ist jetzt Kreativ – wer war das?").
 - **Minecraft: Wegpunkte + natürlicher reden** – Julia merkt sich jetzt **Orte dauerhaft**: „**!merke zuhause**" speichert deine Position, „**!wegpunkte**" listet sie, „**!geh zuhause**" läuft hin (überlebt Neustarts). Außerdem redet sie natürlicher: sie spricht jetzt in der **Ich-Form** (nicht mehr „Julia macht …" in der dritten Person), hält sich im Spielchat **kurz** (keine Romane) und nervt nicht mehr mit „tipp !komm". Beim Durchspielen schaut sie sich die Umgebung an und setzt sich **eigene Zwischenziele**.
@@ -96,7 +97,6 @@
 - **Minecraft: schwimmen & weniger Hängenbleiben** – Julia taucht jetzt von selbst auf, wenn ihr im Wasser die Luft ausgeht, und ertrinkt nicht mehr. Und wenn sie beim Laufen an einem Hindernis (z. B. Baumstamm) klemmt, berechnet sie den Weg neu und läuft außenrum, statt endlos dagegen zu springen.
 - **Minecraft: sparsamer mit Werkbank & Ofen** – Julia baut sich nicht mehr jedes Mal eine neue Werkbank oder einen neuen Ofen. Hat sie schon eine dabei oder steht eine in der Nähe, nutzt sie die – das spart Holz und Stein.
 - **Minecraft: Water-MLG & schöneres Inventar** – Julia fängt jetzt tiefe Stürze mit dem **Wassereimer** ab (setzt kurz vor dem Aufprall Wasser und nimmt es danach wieder auf) – braucht dafür einen Wassereimer im Inventar. Außerdem ist das **Inventar** ein eigener, übersichtlicher Bereich im Minecraft-Tab (Gegenstände als Chips mit Anzahl), statt in einer Zeile gequetscht.
-- **Minecraft: Herstellen bleibt nicht mehr hängen** – auf laggy/zickigen Servern schlug das Craften oft mit einem 20-Sekunden-Timeout fehl, obwohl der Gegenstand eigentlich hergestellt war – Julia versuchte es dann mehrfach umsonst. Jetzt prüft sie nach jedem Craft am Inventar, ob es geklappt hat, und macht weiter statt festzuhängen.
 
 Alle Änderungen stehen im [CHANGELOG](CHANGELOG.md). Und ein kleines Easter-Egg gibt es auch – tippe (oder sag) mal `jarvis`. Im Jarvis-Modus reicht „Jarvis" als Weckwort, und die Stimme klingt anders; „julia" schaltet zurück. 😉
 

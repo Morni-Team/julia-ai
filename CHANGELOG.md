@@ -1,5 +1,8 @@
 # Changelog
 
+## 7.6.0 – 2026-09-24
+- Chat-Compacting - sehr lange Gespraeche werden jetzt zu einer Kurzfassung zusammengezogen (die letzten Runden bleiben woertlich), statt alte Nachrichten einfach zu vergessen; spart Tokens und behaelt den roten Faden, rein lokal ohne zusaetzliche KI-Anfrage
+
 ## 7.5.0 – 2026-09-24
 - Minecraft - Julia gibt sich nicht mehr als Julias Assistentin aus, sondern ist im Spiel klar sie selbst (Juli), ein echter Mitspieler in der Ich-Form; ihre Spiel-Persoenlichkeit wird kompakt und auf Englisch instruiert (Antworten weiter in Nutzersprache)
 
