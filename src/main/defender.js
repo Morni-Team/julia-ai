@@ -35,7 +35,8 @@ function startBefehl(innen) {
   const b64 = Buffer.from(innen, 'utf16le').toString('base64');
   // Start-Process … -Verb RunAs löst die UAC-Abfrage aus; das Kind bekommt den
   // Befehl base64-kodiert (keine Anführungszeichen-Probleme über die Grenze).
-  return `Start-Process powershell -Verb RunAs -WindowStyle Hidden -ArgumentList '-NoProfile','-EncodedCommand','${b64}'`;
+  // -Wait: auf den elevated Vorgang warten, damit wir danach verifizieren können.
+  return `Start-Process powershell -Verb RunAs -WindowStyle Hidden -Wait -ArgumentList '-NoProfile','-EncodedCommand','${b64}'`;
 }
 
 // Prüft in der Ausgabe von `Get-MpPreference … ExclusionPath`, ob ein Pfad schon
@@ -70,16 +71,25 @@ async function status(pfade = []) {
   return { verfuegbar: true, ausgeschlossen: alle.length > 0 && alle.every((p) => istAusgeschlossen(r.aus, p)) };
 }
 
-// Trägt die Ausnahme ein (mit UAC). Gibt { ok } oder { fehler } zurück.
+// Trägt die Ausnahme ein (mit UAC) und VERIFIZIERT danach. Gibt { ok } oder
+// { fehler } mit einer verständlichen Meldung zurück (Issue #108).
 async function anwenden({ pfade = [], prozesse = [] } = {}) {
+  const alle = pfade.filter(Boolean);
   let innen;
   try { innen = ausschlussSkript(pfade, prozesse); } catch (e) { return { fehler: e.message }; }
   const r = await psLauf(startBefehl(innen), { timeout: 120000 });
-  // Bricht der Nutzer die UAC-Abfrage ab, wirft Start-Process einen Fehler.
-  if (r.code !== 0 || /abgebrochen|canceled|cancelled|denied|verweigert/i.test(r.err)) {
-    return { fehler: r.err.trim() || 'Die Ausnahme wurde nicht gesetzt (Adminrechte nötig – die Abfrage wurde vermutlich abgebrochen).' };
+  // Nach dem (elevated, -Wait) Lauf prüfen, ob die Pfade jetzt wirklich drin sind –
+  // nur DAS ist der verlässliche Erfolgsnachweis (Start-Process meldet sonst nur,
+  // dass ES gestartet wurde, nicht ob Add-MpPreference geklappt hat).
+  const st = await status(alle);
+  if (st.ausgeschlossen) return { ok: true };
+  // UAC abgelehnt / Elevation blockiert → „Zugriff verweigert" von Start-Process.
+  if (/zugriff verweigert|access is denied|denied|verweigert|abgebrochen|canceled|cancelled|invalidoperation/i.test(r.err)) {
+    return { fehler: 'Die Windows-Adminfreigabe (UAC) wurde abgelehnt oder ist blockiert. Bitte den Knopf erneut drücken und bei der Windows-Nachfrage auf „Ja" klicken.' };
   }
-  return { ok: true };
+  // Elevation lief, aber die Ausnahme steht trotzdem nicht → meist blockiert der
+  // Windows-Manipulationsschutz automatische Änderungen. Dann muss sie von Hand rein.
+  return { fehler: 'Der Ausschluss konnte nicht gesetzt werden – vermutlich blockiert der Windows-Manipulationsschutz automatische Änderungen. Bitte einmal von Hand: Windows-Sicherheit → Viren- & Bedrohungsschutz → Einstellungen verwalten → Ausschlüsse → Ordner hinzufügen (Julias Programm- und Datenordner).' };
 }
 
 module.exports = { psQuote, ausschlussSkript, startBefehl, istAusgeschlossen, status, anwenden };

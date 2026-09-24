@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.9.1 – 2026-09-24
+- Defender-Ausnahme robuster - Julia wartet den Admin-Vorgang ab und prueft, ob der Ausschluss wirklich gesetzt wurde; klare Meldung bei abgelehnter UAC-Nachfrage oder wenn der Windows-Manipulationsschutz die automatische Aenderung blockiert (mit Anleitung zum manuellen Ausschluss)
+
 ## 6.9.0 – 2026-09-24
 - Grafik-Notstufe schaltet den GPU-Prozess jetzt wirklich komplett ab (disable-software-rasterizer) - behebt Abstuerze auf stark degradierten Treibern auch im gpu-aus-Modus; ausserdem Update-Protokolle im Start-Logbuch fuers Debugging
 
