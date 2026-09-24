@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.8.1 – 2026-09-24
+- Updates gehen wieder - die Update-Pruefung lief ueber die rate-limitierte GitHub-API und schlug mit 403 fehl (keine Updates/Patches mehr); jetzt laeuft Pruefung und Download ueber die nicht limitierte Release-Download-URL, der Installer wird weiter per Pruefsumme abgesichert
+
 ## 6.8.0 – 2026-09-24
 - Minecraft-Persoenlichkeit menschlicher (BETA) - die KI nebenbei antwortet im Spielchat wie ein echter Mitspieler: kurz, locker, spiegelt Ton und Slang, keine KI-Floskeln oder Belehrungen mehr, darf frech kontern oder Nein sagen
 

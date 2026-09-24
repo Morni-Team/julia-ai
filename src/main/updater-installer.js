@@ -15,6 +15,9 @@ const { Updater, hoechsterTag } = require('./updater');
 const REPO = 'Morni-Team/julia-ai';
 const API = `https://api.github.com/repos/${REPO}/releases?per_page=30`;
 const DOWNLOAD = `https://github.com/${REPO}/releases/download/`;
+// latest.yml über die Release-Download-URL – anders als die GitHub-API (60 Anfragen/
+// Stunde/IP, sonst 403) ist dieser Datei-Download NICHT rate-limitiert (Issue #105).
+const DOWNLOAD_LATEST = `https://github.com/${REPO}/releases/latest/download/`;
 const MAX_GROESSE = 400 * 1024 * 1024;
 const KOPF = { 'User-Agent': 'Julia-AI' };
 
@@ -71,30 +74,67 @@ class InstallerUpdater extends Updater {
     return r.json();
   }
 
+  // Neueste STABILE Version über die Download-URL (kein API-Rate-Limit): liest
+  // latest.yml direkt aus dem „latest"-Release. Gibt { version, datei, sha512 }.
+  async _neuesteStabil() {
+    const r = await this.holen(`${DOWNLOAD_LATEST}latest.yml`, { headers: KOPF });
+    if (!r.ok) throw new Error(`GitHub antwortet mit ${r.status}.`);
+    return latestYmlLesen(await r.text());
+  }
+
+  // Changelog-Zeilen aus den (API-)Releases zwischen aktuell und höchster.
+  _zeilen(releases, aktuell, hoechster) {
+    return releases
+      .filter((r) => version.vergleichen(r.tag_name, aktuell) > 0 && version.vergleichen(r.tag_name, hoechster) <= 0)
+      .sort((a, b) => version.vergleichen(b.tag_name, a.tag_name))
+      .map((r) => {
+        const text = (String(r.body || '').split(/\r?\n/).map((z) => z.trim()).find(Boolean) || '').replace(/^[-*]\s+/, '');
+        return text ? `${r.tag_name.slice(1)} – ${text}` : r.tag_name.slice(1);
+      });
+  }
+
   async pruefen() {
     const aktuell = this.aktuelleVersion();
+    const freundlich = (msg) => (/\b403\b/.test(String(msg)) ? 'GitHub bremst die Update-Prüfung gerade aus (zu viele Anfragen). Bitte später noch einmal versuchen.' : msg);
     try {
       const kanal = this.config.get('update.kanal');
+      // Stabiler Kanal: robust über die Download-URL prüfen (umgeht das API-403).
+      if (kanal !== 'test') {
+        let info;
+        try {
+          info = await this._neuesteStabil();
+        } catch (e) {
+          // Download-URL nicht erreichbar → einmal über die API versuchen.
+          const releases = passendeReleases(await this._json(API), kanal);
+          this.releases = releases;
+          const h = hoechsterTag(releases.map((r) => r.tag_name), kanal);
+          if (!h || version.vergleichen(h, aktuell) <= 0) return { aktuell, neu: null, zeilen: [] };
+          return { aktuell, neu: h, zeilen: this._zeilen(releases, aktuell, h) };
+        }
+        const neu = `v${info.version}`;
+        if (version.vergleichen(neu, aktuell) <= 0) return { aktuell, neu: null, zeilen: [] };
+        // Changelog ist nur schmückend – wenn die API bremst (403), ohne Zeilen weiter.
+        let zeilen = [];
+        try {
+          const releases = passendeReleases(await this._json(API), kanal);
+          this.releases = releases;
+          zeilen = this._zeilen(releases, aktuell, neu);
+        } catch { /* Changelog optional */ }
+        return { aktuell, neu, zeilen };
+      }
+      // Testkanal: Vorabversionen gibt es nur über die API.
       const releases = passendeReleases(await this._json(API), kanal);
       this.releases = releases;
       const hoechster = hoechsterTag(releases.map((r) => r.tag_name), kanal);
       if (!hoechster || version.vergleichen(hoechster, aktuell) <= 0) return { aktuell, neu: null, zeilen: [] };
-      const zeilen = releases
-        .filter((r) => version.vergleichen(r.tag_name, aktuell) > 0 && version.vergleichen(r.tag_name, hoechster) <= 0)
-        .sort((a, b) => version.vergleichen(b.tag_name, a.tag_name))
-        .map((r) => {
-          const text = (String(r.body || '').split(/\r?\n/).map((z) => z.trim()).find(Boolean) || '').replace(/^[-*]\s+/, '');
-          return text ? `${r.tag_name.slice(1)} – ${text}` : r.tag_name.slice(1);
-        });
-      return { aktuell, neu: hoechster, zeilen };
+      return { aktuell, neu: hoechster, zeilen: this._zeilen(releases, aktuell, hoechster) };
     } catch (e) {
-      return { aktuell, neu: null, zeilen: [], fehler: e.message };
+      return { aktuell, neu: null, zeilen: [], fehler: freundlich(e.message) };
     }
   }
 
-  async _einspielen(tag) {
-    // Unmittelbar vorher frisch nachsehen: Kam seit der Prüfung eine neuere
-    // Version dazu, wird gleich die eingespielt – nie ein alter Stand.
+  // Release + Assets über die GitHub-API auflösen (Test-Kanal / Fallback).
+  async _aufloesenApi(tag) {
     const kanal = this.config.get('update.kanal');
     let releases = this.releases;
     try {
@@ -107,19 +147,37 @@ class InstallerUpdater extends Updater {
     if (neuester && version.vergleichen(neuester, tag) > 0) tag = neuester;
     const release = releases.find((r) => r.tag_name === tag);
     if (!release) throw new Error(`Release ${tag} nicht gefunden.`);
-
     const yml = anhang(release, 'latest.yml');
     const antwortYml = await this.holen(yml.url, { headers: KOPF });
     if (!antwortYml.ok) throw new Error(`latest.yml nicht ladbar (${antwortYml.status}).`);
     const info = latestYmlLesen(await antwortYml.text());
-    if (version.vergleichen(info.version, tag) !== 0) throw new Error('latest.yml passt nicht zu diesem Release.');
+    return { tag, info, exeUrl: anhang(release, info.datei).url };
+  }
 
-    const exe = anhang(release, info.datei);
-    if (!(exe.groesse > 0 && exe.groesse <= MAX_GROESSE)) throw new Error('Unerwartete Größe des Installers.');
-    const antwort = await this.holen(exe.url, { headers: KOPF });
+  async _einspielen(tag) {
+    const kanal = this.config.get('update.kanal');
+    // Stabiler Kanal: alles über die Download-URL auflösen (kein API-403, Issue
+    // #105). Streikt die Download-URL, einmal über die API. Test-Kanal: nur API.
+    let info; let exeUrl;
+    if (kanal !== 'test') {
+      try {
+        info = await this._neuesteStabil();
+        tag = `v${info.version}`;
+        exeUrl = `${DOWNLOAD}${encodeURIComponent(tag)}/${info.datei}`;
+      } catch {
+        ({ tag, info, exeUrl } = await this._aufloesenApi(tag));
+      }
+    } else {
+      ({ tag, info, exeUrl } = await this._aufloesenApi(tag));
+    }
+    if (version.vergleichen(`v${info.version}`, tag) !== 0) throw new Error('latest.yml passt nicht zu diesem Release.');
+    // Nur aus dem offiziellen Release-Download laden.
+    if (!exeUrl.startsWith(`${DOWNLOAD}${encodeURIComponent(tag)}/`)) throw new Error('Unerwartete Download-Adresse – ich lade nichts.');
+
+    const antwort = await this.holen(exeUrl, { headers: KOPF });
     if (!antwort.ok) throw new Error(`Download fehlgeschlagen (${antwort.status}).`);
     const daten = Buffer.from(await antwort.arrayBuffer());
-    if (daten.length !== exe.groesse) throw new Error('Der Download ist unvollständig.');
+    if (!(daten.length > 0 && daten.length <= MAX_GROESSE)) throw new Error('Unerwartete Größe des Installers.');
     const summe = crypto.createHash('sha512').update(daten).digest('base64');
     if (summe !== info.sha512) throw new Error('Die Prüfsumme des Installers stimmt nicht – ich spiele ihn nicht ein.');
 
