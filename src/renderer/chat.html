@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="basis.css">
   <link rel="stylesheet" href="chat.css">
   <link rel="stylesheet" href="start.css">
+  <link rel="stylesheet" href="content.css">
   <script src="design.js"></script>
 </head>
 <body data-ansicht="chat">
@@ -35,6 +36,7 @@
       <button class="nav-punkt" data-ansicht="code" id="navCode"><span class="nav-ico" data-ico="code"></span><span class="nav-text" data-nav="nav.code"></span></button>
       <button class="nav-punkt" data-ansicht="minecraft" id="navMinecraft"><span class="nav-ico" data-ico="wuerfel"></span><span class="nav-text" data-nav="nav.minecraft"></span></button>
       <button class="nav-punkt" data-ansicht="boost" id="navBoost"><span class="nav-ico" data-ico="blitz"></span><span class="nav-text" data-nav="nav.boost"></span></button>
+      <button class="nav-punkt" data-ansicht="content" id="navContent"><span class="nav-ico" data-ico="film"></span><span class="nav-text" data-nav="nav.content"></span></button>
       <div class="leiste-fuss">
         <div class="chip-modell" id="chipModell"><b id="chipAnbieter"></b><span id="chipName"></span></div>
         <button class="nav-punkt" id="navEinst"><span class="nav-ico" data-ico="einst"></span><span class="nav-text" data-nav="nav.einstellungen"></span></button>
@@ -431,6 +433,61 @@
         </div>
       </section>
 
+      <section class="ansicht content" id="ansichtContent" hidden>
+        <div class="content-kopf">
+          <h2 data-nav="nav.content"></h2>
+          <label class="mc-schalter"><input type="checkbox" id="contentAktiv"><span data-t="content.aktiv"></span></label>
+        </div>
+        <p class="hinweis" data-t="content.hinweis"></p>
+
+        <div id="contentAus" class="content-aus">
+          <p data-t="content.aus_text"></p>
+        </div>
+
+        <div id="contentAn" hidden>
+          <div class="content-block">
+            <div class="content-block-kopf">
+              <h3 data-t="content.profile"></h3>
+              <div class="content-profil-knoepfe">
+                <select id="contentProfilWahl"></select>
+                <button class="zweit" id="contentProfilNeu" data-t="content.neu"></button>
+                <button class="zweit" id="contentProfilAktiv" data-t="content.als_aktiv"></button>
+                <button class="zweit" id="contentProfilLoeschen" data-t="content.loeschen"></button>
+                <button class="zweit" id="contentProfilImport" data-t="content.import"></button>
+                <button class="zweit" id="contentProfilExport" data-t="content.export"></button>
+              </div>
+            </div>
+            <div class="content-formular">
+              <label><span data-t="content.kanalname"></span><input id="cfKanalname" type="text"></label>
+              <label><span data-t="content.zielgruppe"></span><input id="cfZielgruppe" type="text"></label>
+              <label><span data-t="content.tonalitaet"></span><input id="cfTonalitaet" type="text"></label>
+              <label><span data-t="content.sprache"></span><select id="cfSprache"><option value="de">Deutsch</option><option value="en">English</option></select></label>
+              <label><span data-t="content.logo"></span><input id="cfLogo" type="text" placeholder="C:\…\logo.png"></label>
+              <label><span data-t="content.farben"></span><input id="cfFarben" type="text" placeholder="#FFDD00, #111"></label>
+              <label><span data-t="content.schriften"></span><input id="cfSchriften" type="text" placeholder="Inter, Montserrat"></label>
+              <label><span data-t="content.intro"></span><input id="cfIntro" type="text"></label>
+              <label><span data-t="content.outro"></span><input id="cfOutro" type="text"></label>
+              <label><span data-t="content.sfx_ordner"></span><input id="cfSfx" type="text"></label>
+              <label><span data-t="content.musik_ordner"></span><input id="cfMusik" type="text"></label>
+              <label class="content-breit"><span data-t="content.regeln"></span><textarea id="cfRegeln" rows="3" placeholder="nie länger als 3 s Stille&#10;Untertitel immer gelb"></textarea></label>
+            </div>
+            <div class="content-block-kopf">
+              <h3 data-t="content.stilprofil"></h3>
+            </div>
+            <div class="content-formular">
+              <label><span data-t="content.stil_name"></span><input id="csName" type="text"></label>
+              <label><span data-t="content.stil_schnitte"></span><input id="csSchnitte" type="number" min="1" max="60"></label>
+              <label><span data-t="content.stil_hook"></span><input id="csHook" type="number" min="0" max="30"></label>
+              <label><span data-t="content.stil_broll"></span><input id="csBroll" type="number" min="0" max="100" step="5"></label>
+            </div>
+            <div class="content-speichern">
+              <button class="haupt" id="contentProfilSpeichern" data-t="content.speichern"></button>
+              <span class="content-gespeichert" id="contentGespeichert" hidden data-t="content.gespeichert"></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="ansicht chat-ansicht" id="ansichtChat">
         <main id="verlauf" class="verlauf">
           <div class="leer" id="leer">
@@ -465,5 +522,6 @@
   <script src="code.js"></script>
   <script src="mc.js"></script>
   <script src="boost.js"></script>
+  <script src="content.js"></script>
 </body>
 </html>

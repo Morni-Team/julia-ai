@@ -1,0 +1,16 @@
+/* Content-Creation-Modul – erste Scheibe (Aktivierung + Creator-Profile). */
+.ansicht.content { padding: 20px; overflow-y: auto; }
+.content-kopf { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.content-aus { margin: 16px 0; opacity: 0.85; }
+.content-block { margin-top: 16px; }
+.content-block-kopf { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 14px 0 8px; flex-wrap: wrap; }
+.content-profil-knoepfe { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.content-profil-knoepfe select { min-width: 160px; }
+.content-formular { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; }
+.content-formular label { display: flex; flex-direction: column; gap: 4px; font-size: 0.9em; }
+.content-formular label.content-breit { grid-column: 1 / -1; }
+.content-formular input, .content-formular select, .content-formular textarea { width: 100%; box-sizing: border-box; }
+.content-formular textarea { resize: vertical; }
+.content-speichern { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+.content-gespeichert { color: var(--gruen, #2e7d32); font-size: 0.9em; }
+@media (max-width: 560px) { .content-formular { grid-template-columns: 1fr; } }

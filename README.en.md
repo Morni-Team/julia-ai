@@ -66,6 +66,7 @@
 
 ## What's new
 
+- **New "Content" module (first stage)** – a dedicated area where Julia will later turn raw footage into a finished cut **locally in the Adobe apps** (Premiere, After Effects, Photoshop). The first stage starts now: turn the module on in the "Content" tab and create your **creator profile** (channel name, colors/fonts, music/SFX folders, fixed rules, style profile) – it then applies to every project automatically. Profiles can be created, set active, deleted and im-/exported as JSON. (Off by default; editing/thumbnails/watch mode come in the next stages.)
 - **Updates: more robust when a "file is locked"** – if an update failed because an antivirus or backup tool briefly locked a file, Julia used to give up immediately. Now she automatically **retries** the affected steps a few times with a short pause (checkout, dependencies, installer download – the checksum is still verified every time). If that doesn't help, it's usually **security software** locking the folder (there's a Defender-exclusion button in the settings for that).
 - **Long chats: the conversation is summarized instead of cut off** – in very long conversations Julia used to simply forget the oldest messages. Now she condenses the older part into a **short summary** and keeps the most recent rounds verbatim – so the thread stays intact and it saves tokens (runs entirely locally, without an extra AI request).
 - **Minecraft: Julia is herself – not an "assistant"** – in the game she sometimes introduced herself as "Julia's assistant". Now it's clear: **she IS Julia (Juli) herself**, a real teammate, not an assistant – she speaks in the first person, keeps it short and doesn't point to commands. (Her in-game personality is instructed compactly and in English, which the model follows more reliably; her replies still come in German.)
@@ -96,7 +97,6 @@
 - **Minecraft: survives longer (eats in time)** – Julia now eats earlier and keeps her hunger high so her health regenerates on its own – so she goes down far less often while mining and exploring (and uses the golden apple earlier). She also searches a larger radius for animals when hunting, so she runs out of food less quickly.
 - **Minecraft: individual players & chat toggle** – in the Minecraft tab you can now add individual **players** that Julia also listens to (with "Add" and ✕ to remove) – effective immediately in-game. And the **chat messages** in the tab can be hidden with a toggle.
 - **Minecraft: swimming & less getting stuck** – Julia now surfaces on her own when she runs low on air in water, so she no longer drowns. And when she gets stuck on an obstacle while walking (e.g. a tree trunk), she recalculates the path and goes around instead of jumping against it forever.
-- **Minecraft: thriftier with crafting table & furnace** – Julia no longer builds a new crafting table or furnace every time. If she already has one or one is nearby, she uses it – saving wood and stone.
 
 All changes are in the [CHANGELOG](CHANGELOG.md). There's a little easter egg too – type (or say) `jarvis`. In Jarvis mode just “Jarvis” works as the wake word and the voice changes; “julia” switches back. 😉
 

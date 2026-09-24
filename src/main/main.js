@@ -41,6 +41,8 @@ app.enableSandbox();
 
 const diagnose = require('./diagnose');
 const selbstpruefung = require('./selbstpruefung');
+const { Content } = require('./content'); // Content-Creation-Modul (Video-Erstellung)
+const content = new Content({ ordner: DATEN });
 let letzteGpu = {}; // zuletzt erkannte GPU/Treiber, für den Diagnose-Bericht
 let pruefTimer = null; // wöchentliche Selbstprüfung
 let startFertig = false; // true, sobald start() durch ist – steuert den Absturzschutz
@@ -1102,6 +1104,19 @@ function ipcEinrichten() {
     if (/^(api|freigabe)\.|^minecraft\.konto$/.test(String(schluessel))) return { fehler: 'Nicht erlaubt.' };
     try { return { wert: config.set(schluessel, wert) }; } catch (e) { return { fehler: e.message }; }
   });
+  // Content-Creation-Modul: Creator-Profile verwalten (nur über die Oberfläche;
+  // kein KI-Werkzeug ändert diese Daten). Jeder Handler kapselt Fehler.
+  ipc.handle('content:status', () => {
+    const c = config.get('content') || {};
+    return { aktiv: c.aktiv === true, modus: c.modus || 'lokal', tempo: c.tempo || 'normal', pfade: c.pfade || {} };
+  });
+  ipc.handle('content:profile-list', () => { try { return content.profileListe(); } catch (e) { return { fehler: e.message }; } });
+  ipc.handle('content:profile-vorlage', (_e, name) => content.profilVorlage(name));
+  ipc.handle('content:profile-speichern', (_e, profil) => { try { return { profil: content.profilSpeichern(profil) }; } catch (e) { return { fehler: e.message }; } });
+  ipc.handle('content:profile-aktiv', (_e, id) => { try { return { ok: content.profilAktivSetzen(String(id || '')) }; } catch (e) { return { fehler: e.message }; } });
+  ipc.handle('content:profile-loeschen', (_e, id) => { try { return { ok: content.profilLoeschen(String(id || '')) }; } catch (e) { return { fehler: e.message }; } });
+  ipc.handle('content:profile-import', (_e, jsonText) => { try { return { anzahl: content.profilImportieren(String(jsonText || '')) }; } catch (e) { return { fehler: e.message }; } });
+  ipc.handle('content:profile-export', (_e, id) => { try { return { json: content.profilExportieren(String(id || '')) }; } catch (e) { return { fehler: e.message }; } });
   // "Allem zustimmen" (und "auch nach fremden Inhalten") lassen sich nur hier
   // einschalten – nach einem Ja im Windows-Dialog. Julia selbst kann es nicht
   // (einstellung_setzen: ROT).
