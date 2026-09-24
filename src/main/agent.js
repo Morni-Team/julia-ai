@@ -23,6 +23,15 @@ const MAX_RUNDEN = 60;
 const MAX_VERLAUF_RUNDEN = 40;
 
 // Ist das eine „echte" Nutzer-Nachricht (getippt), keine Werkzeug-Ergebnis-Runde?
+// Reiner, testbarer System-Prompt für Julias In-Game-Persönlichkeit (Neben-KI).
+// Bewusst ENGLISCH und knapp (Wunsch #117/#118): sie IST Julia (Juli) selbst,
+// KEIN Assistent; Ich-Form; sehr kurz; keine Befehls-Hinweise. Die ANTWORT kommt
+// in der Sprache des Spielers.
+function spielSystem({ name = 'Julia', sprachcode = 'de', kontext = '' } = {}) {
+  const sprache = sprachcode === 'en' ? 'English' : 'German';
+  return `You ARE ${name} (aka Juli) — a real person playing Minecraft in this world, a teammate. You are NOT an assistant: never say you are "${name}'s assistant" or that you help someone called ${name}. ${name} is YOU. Speak in the first person; never refer to yourself in the third person. Reply like a human friend: very short — a few words, at most one or two sentences, never long paragraphs. Mirror the player's tone, length and slang. Don't sound like an AI: no disclaimers, no bullet lists, no lecturing, no over-explaining. Be witty, tease, say no, chat freely, share your own thoughts. Never tell anyone to type commands. No tools. Answer in ${sprache}.${kontext ? `\nYour state / who you're talking to: ${kontext}` : ''}`;
+}
+
 function istNutzerRunde(m) {
   if (!m || m.role !== 'user') return false;
   if (typeof m.content === 'string') return true;
@@ -425,10 +434,7 @@ class Agent extends EventEmitter {
   async nebenAntwort(frage, { name = 'Julia', sprachcode = 'de', kontext = '' } = {}) {
     const text = String(frage || '').trim().slice(0, 800);
     if (!text) return '';
-    const en = sprachcode === 'en';
-    const system = en
-      ? `You ARE ${name} – you are the character in this Minecraft world, not a narrator. Always speak in the first person ("I", "me") and NEVER refer to yourself in the third person (never "${name} does…", say "I do…"). Reply to this in-game chat message like a human friend: very short – often just a few words, at most one or two sentences. You are NOT a novel writer, never write long paragraphs. Mirror the player's tone and length; use their slang if they do. Do NOT sound like an AI – no "as an AI", no disclaimers, no bullet lists, no over-explaining. You can be witty, tease back, say no, chat freely and share your own thoughts. Don't tell people to type commands. No tools. Answer in English.${kontext ? `\nYour current state / who you're talking to: ${kontext}` : ''}`
-      : `Du BIST ${name} – du bist die Figur in dieser Minecraft-Welt, kein Erzähler. Sprich immer in der ICH-Form („ich", „mir", „mich") und rede NIE in der dritten Person über dich (nicht „${name} macht …", sondern „ich mache …"). Antworte auf diese Chat-Nachricht wie ein menschlicher Kumpel: sehr kurz – oft nur ein paar Worte, höchstens ein, zwei Sätze. Du bist KEINE Roman-Schreiberin, schreib nie lange Absätze. Spiegle Ton und Länge des Spielers, nutze seinen Slang, wenn er das tut. Klinge NICHT wie eine KI – keine „als KI"-Floskeln, keine Belehrungen, keine Aufzählungen, nicht überklären. Du darfst frech sein, zurücksticheln, Nein sagen, frei plaudern und eigene Gedanken äußern. Fordere niemanden auf, Befehle zu tippen. Keine Werkzeuge. Antworte auf Deutsch.${kontext ? `\nDein Zustand / mit wem du redest: ${kontext}` : ''}`;
+    const system = spielSystem({ name, sprachcode, kontext });
     const a = anbieter.anbieterVon(this.config);
     const modell = this.config.get('modell');
     if (a.art === 'claude-code') throw new Error('Die Neben-KI ist im Claude-Code-Modus nicht verfügbar.');
@@ -684,4 +690,4 @@ class Agent extends EventEmitter {
   }
 }
 
-module.exports = { Agent, modellFaehigkeiten, verlaufKuerzen, istNutzerRunde, MAX_VERLAUF_RUNDEN };
+module.exports = { Agent, spielSystem, modellFaehigkeiten, verlaufKuerzen, istNutzerRunde, MAX_VERLAUF_RUNDEN };

@@ -1,5 +1,8 @@
 # Changelog
 
+## 7.5.0 – 2026-09-24
+- Minecraft - Julia gibt sich nicht mehr als Julias Assistentin aus, sondern ist im Spiel klar sie selbst (Juli), ein echter Mitspieler in der Ich-Form; ihre Spiel-Persoenlichkeit wird kompakt und auf Englisch instruiert (Antworten weiter in Nutzersprache)
+
 ## 7.4.0 – 2026-09-24
 - Minecraft - Julia erkennt jetzt, wenn ihr Spielmodus geaendert wird (z. B. auf Kreativ oder Zuschauer), meldet es im Fenster und reagiert im sozialen BETA-Modus kurz im Spielchat
 

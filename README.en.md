@@ -66,6 +66,7 @@
 
 ## What's new
 
+- **Minecraft: Julia is herself – not an "assistant"** – in the game she sometimes introduced herself as "Julia's assistant". Now it's clear: **she IS Julia (Juli) herself**, a real teammate, not an assistant – she speaks in the first person, keeps it short and doesn't point to commands. (Her in-game personality is instructed compactly and in English, which the model follows more reliably; her replies still come in German.)
 - **Minecraft: notices a game-mode change** – if someone changes Julia's game mode (e.g. to creative or spectator), she **now notices** and says so in the Julia window; in the social BETA mode she also reacts briefly in the in-game chat ("Hey, my game mode is now Kreativ – who did that?").
 - **Minecraft: waypoints + talks more naturally** – Julia now **remembers places permanently**: "**!merke zuhause**" saves your position, "**!wegpunkte**" lists them, "**!geh zuhause**" walks there (survives restarts). She also talks more naturally: she now speaks in the **first person** (no more "Julia does …" in the third person), keeps in-game chat **short** (no novels) and no longer nags with "type !come". While playing through she looks around and sets **her own sub-goals**.
 - **Minecraft: smarter defense** – Julia now defends herself with some sense: if she has **no proper weapon or low health**, she no longer charges blindly into melee but **keeps her distance and dodges** – yet fights back if the attacker corners her. With a weapon and enough health she fights back normally. And in the **social BETA mode** she also reacts **verbally** (briefly warns the attacker in the in-game chat) instead of fighting silently.
@@ -96,7 +97,6 @@
 - **Minecraft: thriftier with crafting table & furnace** – Julia no longer builds a new crafting table or furnace every time. If she already has one or one is nearby, she uses it – saving wood and stone.
 - **Minecraft: water MLG & nicer inventory** – Julia now saves herself from deep falls with the **water bucket** (places water just before impact and picks it back up) – needs a water bucket in the inventory. Also, the **inventory** is its own clear area in the Minecraft tab (items as chips with counts) instead of being squeezed into one line.
 - **Minecraft: crafting no longer gets stuck** – on laggy/finicky servers, crafting often failed with a 20-second timeout even though the item was actually made – Julia then retried in vain. Now she checks the inventory after each craft to see whether it worked, and moves on instead of getting stuck.
-- **Minecraft: bucket & "Leave"** – Julia can now handle the **bucket**: pick up water/lava, place water/lava (e.g. for a safe descent or to douse fire) and drink milk (clears effects). Also: when you press **"Leave"**, she now stays away for good – she only comes back on her own after a real crash/kick.
 
 All changes are in the [CHANGELOG](CHANGELOG.md). There's a little easter egg too – type (or say) `jarvis`. In Jarvis mode just “Jarvis” works as the wake word and the voice changes; “julia” switches back. 😉
 
