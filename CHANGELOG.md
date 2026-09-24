@@ -1,5 +1,8 @@
 # Changelog
 
+## 7.0.0 – 2026-09-24
+- Julia bedient echte Schnitt-/Animationsprogramme (Premiere Pro, DaVinci Resolve, CapCut, After Effects, Creative Cloud u.a.) selbst ueber den Bildschirm - mit Wissen zu Tastenkuerzeln und Ablauf inkl. Keyframe-Animation; neuer videoschnitt-Helfer oeffnet die Programme und liefert den Spickzettel; der alte eingebaute Schnitt-Tab wurde entfernt (ffmpeg-Schnitte laufen weiter, ffmpeg wird bei Bedarf geladen)
+
 ## 6.9.2 – 2026-09-24
 - Grafik-Notstufe rendert wieder - statt disable-software-rasterizer (was den Renderer abstuerzen liess) laeuft die GPU-/SwiftShader-Arbeit jetzt in-process im Hauptprozess; so kommt das Bild auch bei kaputtem Treiber ohne separaten GPU-Prozess hoch
 

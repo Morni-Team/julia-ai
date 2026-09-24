@@ -37,10 +37,3 @@ test('jeder BEREICH hat einen passenden <section>-Block im HTML', () => {
     assert.ok(html.includes(`id="${id}"`), `Bereich „${name}" → #${id} fehlt als <section> in chat.html`);
   }
 });
-
-test('der Video-/Schnitt-Tab ist vollständig verdrahtet (Regression)', () => {
-  const map = bereicheMap();
-  assert.equal(map.video, 'ansichtVideo');
-  assert.ok(navBereiche().includes('video'));
-  assert.ok(html.includes('id="ansichtVideo"'));
-});

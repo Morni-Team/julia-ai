@@ -48,7 +48,7 @@
 
   // --- Ansichten ---
 
-  const BEREICHE = { start: 'ansichtStart', chat: 'ansichtChat', verlauf: 'ansichtVerlauf', routinen: 'ansichtRoutinen', clips: 'ansichtClips', video: 'ansichtVideo', code: 'ansichtCode', minecraft: 'ansichtMinecraft', boost: 'ansichtBoost' };
+  const BEREICHE = { start: 'ansichtStart', chat: 'ansichtChat', verlauf: 'ansichtVerlauf', routinen: 'ansichtRoutinen', clips: 'ansichtClips', code: 'ansichtCode', minecraft: 'ansichtMinecraft', boost: 'ansichtBoost' };
   // Weitere Ansichten (Verlauf …) hängen sich hier ein: beim Öffnen aufgerufen.
   window.juliaAnsichtBeimOeffnen = {};
 

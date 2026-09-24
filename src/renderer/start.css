@@ -306,24 +306,6 @@ body[data-zustand="thinking"] .held-kugel i { animation-duration: 2s; border-sty
 .cl-knoepfe { display: flex; flex-wrap: wrap; gap: 8px; }
 .cl-knoepfe [data-ico] svg { width: 16px; height: 16px; }
 
-/* Video-Tab (eigener Schneide-Bereich) */
-.vid-feld { display: flex; flex-direction: column; gap: 6px; }
-.vid-label { font-size: 13px; color: var(--text-2); }
-.vid-zeile { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
-.vid-zeile > input { flex: 1 1 260px; min-width: 0; }
-.vid-klein { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-2); }
-.vid-klein input { width: 90px; }
-#ansichtVideo input[type="text"], #ansichtVideo input:not([type]) {
-  padding: 8px 10px; border-radius: 8px; border: 1px solid var(--rand);
-  background: var(--feld); color: var(--text); font: inherit;
-}
-.vid-warnung { padding: 10px 12px; border-radius: 8px; background: color-mix(in srgb, var(--rot) 12%, transparent); border: 1px solid color-mix(in srgb, var(--rot) 40%, transparent); }
-.vid-warnung p { margin: 0; font-size: 13px; }
-.vid-status { margin: 0; color: var(--text-2); font-size: 13px; }
-.vid-ergebnisse { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
-.vid-ergebnis { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; background: var(--feld); }
-.vid-ok { color: var(--gruen, #2ecc71); font-weight: 700; }
-.vid-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
 .cl-rec { width: 10px; height: 10px; border-radius: 50%; background: var(--akzent-text); box-shadow: 0 0 0 3px color-mix(in srgb, var(--akzent-text) 25%, transparent); }
 .knopf:disabled .cl-rec { animation: blinken 0.8s ease-in-out infinite; }
 .cl-warnung {

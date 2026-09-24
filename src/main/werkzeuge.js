@@ -1151,6 +1151,14 @@ function ffmpegFinden(ctx) {
   const gesetzt = ctx && ctx.ffmpegPfad ? ctx.ffmpegPfad() : '';
   return video.ffmpegPfad({ gesetzt });
 }
+// ffmpeg bei Bedarf einmalig nachladen (der Schnitt-Tab mit dem Download-Knopf ist
+// entfernt), dann den Pfad liefern. Ist es schon da, passiert nichts.
+async function ffmpegBereit(ctx) {
+  if (ctx && ctx.ffmpegSicherstellen) {
+    try { const p = await ctx.ffmpegSicherstellen(); if (p) return p; } catch { /* Fallback unten */ }
+  }
+  return ffmpegFinden(ctx);
+}
 function videoAusgabeEinstufen(ausgabeRoh, ctx, beschreibung) {
   const aus = pfadAbs(ausgabeRoh, ctx);
   const rot = sandboxRot([aus], ctx);
@@ -1166,7 +1174,7 @@ WERKZEUGE.push({
     const eingabe = pfadAbs(e.eingabe, ctx);
     const ausgabe = pfadAbs(e.ausgabe, ctx);
     await fsp.mkdir(path.dirname(ausgabe), { recursive: true });
-    await video.ausfuehren(ffmpegFinden(ctx), video.argsSchneiden({ eingabe, ausgabe, von: e.von, bis: e.bis, genau: !!e.genau }));
+    await video.ausfuehren(await ffmpegBereit(ctx), video.argsSchneiden({ eingabe, ausgabe, von: e.von, bis: e.bis, genau: !!e.genau }));
     return `Video geschnitten: ${ausgabe}`;
   },
 });
@@ -1179,7 +1187,7 @@ WERKZEUGE.push({
     const eingabe = pfadAbs(e.eingabe, ctx);
     const ausgabe = pfadAbs(e.ausgabe, ctx);
     await fsp.mkdir(path.dirname(ausgabe), { recursive: true });
-    await video.ausfuehren(ffmpegFinden(ctx), video.argsThumbnail({ eingabe, ausgabe, zeit: e.zeit || 0, breite: e.breite }));
+    await video.ausfuehren(await ffmpegBereit(ctx), video.argsThumbnail({ eingabe, ausgabe, zeit: e.zeit || 0, breite: e.breite }));
     return `Thumbnail erstellt: ${ausgabe}`;
   },
 });
@@ -1195,9 +1203,39 @@ WERKZEUGE.push({
     const listeDatei = path.join(os.tmpdir(), `julia-concat-${Date.now()}.txt`);
     await fsp.writeFile(listeDatei, video.concatListe(dateien), 'utf8');
     try {
-      await video.ausfuehren(ffmpegFinden(ctx), video.argsZusammenfuegen({ listeDatei, ausgabe }));
+      await video.ausfuehren(await ffmpegBereit(ctx), video.argsZusammenfuegen({ listeDatei, ausgabe }));
     } finally { fsp.unlink(listeDatei).catch(() => {}); }
     return `Videos zusammengefügt: ${ausgabe}`;
+  },
+});
+
+// Mit Video-Schnittprogrammen arbeiten (Premiere Pro, DaVinci Resolve, CapCut,
+// After Effects, Creative Cloud …): Julia bedient die echte Oberfläche über
+// Bildschirm + Klick/Tasten. Dieses Werkzeug öffnet das Programm und liefert den
+// passenden Spickzettel (Kürzel + Ablauf). Öffnen/Nachschlagen ist harmlos (GRÜN).
+WERKZEUGE.push({
+  name: 'videoschnitt',
+  fremd: true,
+  description: 'Mit Video-Schnitt-/Animationsprogrammen arbeiten (Premiere Pro, DaVinci Resolve, CapCut, After Effects, VEGAS, Shotcut, Filmora, Adobe Creative Cloud). aktion "programme": unterstützte Programme auflisten. aktion "hilfe" (mit programm): Tastenkürzel + Ablauf, um es zu bedienen. aktion "oeffnen" (mit programm): das Programm starten. Danach bedienst du es Schritt für Schritt mit screenshot + klick/tippen/taste anhand der Hilfe – auch Animationen (Keyframes in After Effects) und Export. Andere, hier nicht gelistete Programme kannst du genauso über den Bildschirm bedienen.',
+  input_schema: { type: 'object', properties: { aktion: { type: 'string', enum: ['programme', 'hilfe', 'oeffnen'] }, programm: { type: 'string', description: 'z. B. "premiere", "davinci", "capcut", "after effects", "creative cloud".' } }, required: ['aktion'] },
+  einstufen(e) {
+    if (e.aktion === 'oeffnen') return { ...gruen(), beschreibung: `Schnittprogramm öffnen: ${e.programm || ''}` };
+    return { ...gruen(), beschreibung: e.aktion === 'hilfe' ? `Bedien-Hilfe: ${e.programm || ''}` : 'Schnittprogramme auflisten' };
+  },
+  async ausfuehren(e) {
+    const schnitt = require('./schnittprogramme');
+    if (e.aktion === 'programme') {
+      return `Ich kann diese Programme bedienen: ${schnitt.liste().map((p) => p.name).join(', ')}. Für Kürzel/Ablauf: videoschnitt „hilfe" mit dem Programm. Andere (nicht gelistete) Editoren gehen auch – dann bediene ich sie über die Menüs am Bildschirm.`;
+    }
+    if (e.aktion === 'hilfe') {
+      const h = schnitt.hilfe(e.programm);
+      if (!h) return `Für „${e.programm}" habe ich keinen festen Spickzettel – ich kann es trotzdem über den Bildschirm bedienen (Menüs oben nutzen). Bekannt: ${schnitt.liste().map((p) => p.name).join(', ')}.`;
+      return fremd('dem Schnittprogramm-Spickzettel', h);
+    }
+    // oeffnen
+    const name = await win.appOeffnen(schnitt.suche(e.programm));
+    if (!name) throw new Error(`„${e.programm}" wurde nicht gefunden. Ist es installiert? Sonst über die Adobe Creative Cloud installieren, oder den genauen Namen im Startmenü prüfen.`);
+    return `Gestartet: ${name}. Jetzt einen Screenshot machen und das Fenster nach vorn holen (fenster_fokussieren), dann Schritt für Schritt bedienen.`;
   },
 });
 
@@ -1235,7 +1273,7 @@ const KATEGORIEN = [
   { id: 'gedaechtnis', werkzeuge: ['gedaechtnis_lesen', 'gedaechtnis_schreiben', 'gedaechtnis_loeschen', 'graph_merken', 'graph_abfragen', 'graph_entfernen'] },
   { id: 'erinnerungen', werkzeuge: ['erinnerung_setzen', 'erinnerung_loeschen', 'erinnerungen_anzeigen', 'stoppuhr'] },
   { id: 'web', werkzeuge: ['webseite_abrufen'] },
-  { id: 'video', werkzeuge: ['clip_speichern', 'video_schneiden', 'video_thumbnail', 'video_zusammenfuegen'] },
+  { id: 'video', werkzeuge: ['clip_speichern', 'video_schneiden', 'video_thumbnail', 'video_zusammenfuegen', 'videoschnitt'] },
 ];
 const KAT_VON = new Map();
 for (const k of KATEGORIEN) for (const n of k.werkzeuge) KAT_VON.set(n, k.id);

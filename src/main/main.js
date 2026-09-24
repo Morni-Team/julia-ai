@@ -1529,76 +1529,6 @@ function ipcEinrichten() {
     try { const neu = clips.umbenennen(p, name); anAlle('clips:geaendert'); return { ok: true, pfad: neu, url: pathToFileURL(neu).href }; } catch (e) { return { fehler: e.message }; }
   });
   ipc.handle('clips:windows', () => { shell.openExternal('ms-settings:gaming-gamedvr'); return true; });
-  // ── Video-Tab (eigener Schneide-Bereich, Nutzerwunsch) – lokal per ffmpeg ──
-  // ffmpeg wird bei Bedarf geladen (nicht in den Installer gepackt); Auflösung:
-  // vom Nutzer gesetzt → heruntergeladen → PATH.
-  const ffmpegPfadFinden = () => videoFfmpeg.aufgeloest(DATEN, (config.get('video') || {}).ffmpeg || '');
-  let ffmpegLaedt = null;
-  ipc.handle('video:ffmpegLaden', async () => {
-    if (ffmpegLaedt) return { fehler: t('video.laedt_schon') };
-    const abbruch = new AbortController();
-    ffmpegLaedt = abbruch;
-    try {
-      await videoFfmpeg.herunterladen({
-        datenOrdner: DATEN,
-        holen: (u, o) => net.fetch(u, o),
-        signal: abbruch.signal,
-        fortschritt: (n) => anAlle('video:ffmpegFortschritt', Math.round((n / videoFfmpeg.FFMPEG.groesse) * 100)),
-      });
-      anAlle('video:ffmpegFortschritt', 100);
-      protokoll.eintragen({ werkzeug: 'video', stufe: 'INFO', ergebnis: 'ffmpeg heruntergeladen' });
-      return { ok: true };
-    } catch (e) {
-      return { fehler: e.message };
-    } finally {
-      ffmpegLaedt = null;
-    }
-  });
-  // Freien Ausgabe-Dateinamen neben der Quelle finden (nichts überschreiben).
-  const freierName = (eingabe, suffix, ext) => {
-    const dir = path.dirname(eingabe);
-    const basis = path.basename(eingabe, path.extname(eingabe));
-    for (let i = 0; i < 1000; i++) {
-      const name = path.join(dir, `${basis}_${suffix}${i ? `_${i}` : ''}${ext}`);
-      if (!fs.existsSync(name)) return name;
-    }
-    return path.join(dir, `${basis}_${suffix}_${Date.now()}${ext}`);
-  };
-  ipc.handle('video:bereit', () => ({ bereit: videoFfmpeg.bereit(DATEN, (config.get('video') || {}).ffmpeg || '') }));
-  ipc.handle('video:waehlen', async () => {
-    const r = await dialog.showOpenDialog(chatFenster || undefined, {
-      title: t('video.waehlen'),
-      properties: ['openFile'],
-      filters: [{ name: 'Video', extensions: ['mp4', 'mkv', 'mov', 'avi', 'webm', 'm4v', 'flv', 'wmv', 'ts'] }],
-    });
-    if (r.canceled || !r.filePaths || !r.filePaths[0]) return { abgebrochen: true };
-    return { pfad: r.filePaths[0] };
-  });
-  ipc.handle('video:schneiden', async (_e, o) => {
-    const d = o && typeof o === 'object' ? o : {};
-    try {
-      if (!d.eingabe || !fs.existsSync(d.eingabe)) throw new Error(t('video.erst_datei'));
-      const ausgabe = freierName(d.eingabe, 'schnitt', path.extname(d.eingabe) || '.mp4');
-      const args = video.argsSchneiden({ eingabe: d.eingabe, ausgabe, von: d.von, bis: d.bis, genau: !!d.genau });
-      await video.ausfuehren(ffmpegPfadFinden(), args);
-      protokoll.eintragen({ werkzeug: 'video', stufe: 'INFO', ergebnis: 'Video im Video-Tab geschnitten' });
-      return { ok: true, ausgabe };
-    } catch (e) { return { fehler: e.message }; }
-  });
-  ipc.handle('video:thumbnail', async (_e, o) => {
-    const d = o && typeof o === 'object' ? o : {};
-    try {
-      if (!d.eingabe || !fs.existsSync(d.eingabe)) throw new Error(t('video.erst_datei'));
-      const ausgabe = freierName(d.eingabe, 'thumb', '.jpg');
-      const args = video.argsThumbnail({ eingabe: d.eingabe, ausgabe, zeit: d.zeit || '0' });
-      await video.ausfuehren(ffmpegPfadFinden(), args);
-      protokoll.eintragen({ werkzeug: 'video', stufe: 'INFO', ergebnis: 'Thumbnail im Video-Tab erstellt' });
-      return { ok: true, ausgabe };
-    } catch (e) { return { fehler: e.message }; }
-  });
-  ipc.handle('video:zeigen', (_e, p) => {
-    try { shell.showItemInFolder(String(p)); return { ok: true }; } catch (e) { return { fehler: e.message }; }
-  });
   ipc.handle('mc:status', () => (VORFUEHRUNG ? require('./vorfuehrung').beispielMinecraft() : mcStand()));
   ipc.handle('mc:beitreten', async (_e, d) => {
     try {
@@ -2494,6 +2424,19 @@ async function start() {
     werkzeugeAus: () => config.get('werkzeuge_aus') || [], // einzelne Werkzeuge
     kategorienAus: () => config.get('kategorien_aus') || [], // ganze Kategorien
     ffmpegPfad: () => videoFfmpeg.aufgeloest(DATEN, (config.get('video') || {}).ffmpeg || ''), // gesetzt → geladen → PATH
+    // ffmpeg bei Bedarf einmalig nachladen (wie Whisper/Piper), falls es weder
+    // gesetzt noch schon da noch im PATH ist – so funktionieren die Video-Werkzeuge
+    // auch ohne den (entfernten) Schnitt-Tab.
+    ffmpegSicherstellen: async () => {
+      const gesetzt = (config.get('video') || {}).ffmpeg || '';
+      if (videoFfmpeg.aufgeloest(DATEN, gesetzt)) return videoFfmpeg.aufgeloest(DATEN, gesetzt);
+      if (ctx._ffmpegLaedt) { await ctx._ffmpegLaedt; return videoFfmpeg.aufgeloest(DATEN, gesetzt); }
+      ctx._ffmpegLaedt = videoFfmpeg.herunterladen({ datenOrdner: DATEN, holen: (u, o) => net.fetch(u, o) })
+        .catch((e) => { throw e; })
+        .finally(() => { ctx._ffmpegLaedt = null; });
+      await ctx._ffmpegLaedt;
+      return videoFfmpeg.aufgeloest(DATEN, gesetzt);
+    },
     unterAgent: (rolle, aufgabe) => agent.unterAgent(rolle, aufgabe),
     // Teil B von #51: Die KI bittet um einen geheimen Wert. Eine Box im Chat holt
     // ihn; der WERT fließt direkt vom Fenster in den verschlüsselten Speicher

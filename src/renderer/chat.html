@@ -32,7 +32,6 @@
       <button class="nav-punkt" data-ansicht="verlauf" id="navVerlauf"><span class="nav-ico" data-ico="uhr"></span><span class="nav-text" data-nav="nav.verlauf"></span></button>
       <button class="nav-punkt" data-ansicht="routinen" id="navRoutinen"><span class="nav-ico" data-ico="blitz"></span><span class="nav-text" data-nav="nav.routinen"></span></button>
       <button class="nav-punkt" data-ansicht="clips" id="navClips"><span class="nav-ico" data-ico="film"></span><span class="nav-text" data-nav="nav.clips"></span></button>
-      <button class="nav-punkt" data-ansicht="video" id="navVideo"><span class="nav-ico" data-ico="film"></span><span class="nav-text" data-nav="nav.video"></span></button>
       <button class="nav-punkt" data-ansicht="code" id="navCode"><span class="nav-ico" data-ico="code"></span><span class="nav-text" data-nav="nav.code"></span></button>
       <button class="nav-punkt" data-ansicht="minecraft" id="navMinecraft"><span class="nav-ico" data-ico="wuerfel"></span><span class="nav-text" data-nav="nav.minecraft"></span></button>
       <button class="nav-punkt" data-ansicht="boost" id="navBoost"><span class="nav-ico" data-ico="blitz"></span><span class="nav-text" data-nav="nav.boost"></span></button>
@@ -214,40 +213,6 @@
         </div>
       </section>
 
-      <section class="ansicht vl" id="ansichtVideo" hidden>
-        <div class="rt-innen">
-          <header class="rt-kopf">
-            <div class="rt-kopf-text"><h1 data-nav="nav.video"></h1><p data-nav="video.hinweis"></p></div>
-          </header>
-          <div class="vid-warnung" id="vidWarnung" hidden>
-            <p data-nav="video.kein_ffmpeg"></p>
-            <button class="knopf primaer" id="vidFfmpegLaden" data-nav="video.ffmpeg_laden"></button>
-            <p class="vid-status" id="vidFfmpegStatus" hidden></p>
-          </div>
-          <div class="vid-feld">
-            <label class="vid-label" data-nav="video.datei"></label>
-            <div class="vid-zeile">
-              <input id="vidDatei" readonly spellcheck="false" placeholder="…">
-              <button class="knopf" id="vidWaehlen" data-nav="video.waehlen"></button>
-            </div>
-          </div>
-          <div class="vid-zeile">
-            <label class="vid-klein"><span data-nav="video.von"></span><input id="vidVon" spellcheck="false" autocomplete="off" placeholder="0:00"></label>
-            <label class="vid-klein"><span data-nav="video.bis"></span><input id="vidBis" spellcheck="false" autocomplete="off" placeholder="1:30"></label>
-            <label class="mc-schalter"><input type="checkbox" id="vidGenau"><span data-nav="video.genau"></span></label>
-          </div>
-          <div class="cl-knoepfe">
-            <button class="knopf primaer" id="vidSchneiden" data-nav="video.schneiden"></button>
-          </div>
-          <div class="vid-feld">
-            <label class="vid-klein"><span data-nav="video.tzeit"></span><input id="vidTzeit" spellcheck="false" autocomplete="off" placeholder="0:05"></label>
-            <button class="knopf" id="vidThumbnail" data-nav="video.thumbnail"></button>
-          </div>
-          <p class="vid-status" id="vidStatus" hidden></p>
-          <p class="rt-fehler" id="vidFehler" hidden></p>
-          <div class="vid-ergebnisse" id="vidErgebnisse"></div>
-        </div>
-      </section>
       <section class="ansicht rt mc" id="ansichtMinecraft" hidden>
         <div class="rt-innen">
           <header class="rt-kopf">
@@ -495,7 +460,6 @@
   <script src="verlauf.js"></script>
   <script src="routinen.js"></script>
   <script src="clips.js"></script>
-  <script src="videotab.js"></script>
   <script src="code.js"></script>
   <script src="mc.js"></script>
   <script src="boost.js"></script>

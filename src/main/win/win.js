@@ -291,6 +291,22 @@ if ($a.argumente) { Start-Process -FilePath $a.name -ArgumentList $a.argumente }
 $true`), 30000);
 }
 
+// Eine installierte App per (unscharfem) Namen öffnen – unabhängig vom
+// Installationspfad. Nutzt Get-StartApps (alle Startmenü-Apps: Win32 + Store) und
+// startet den besten Treffer über shell:AppsFolder\<AppID>. So lassen sich auch
+// Schnittprogramme wie „DaVinci Resolve", „Adobe Premiere Pro" oder „CapCut"
+// starten, die nicht im PATH liegen. Gibt den gefundenen App-Namen zurück oder ''.
+async function appOeffnen(suche) {
+  const q = String(suche || '').replace(/[^\p{L}\p{N} .+_-]/gu, '').trim();
+  if (!q) throw new Error('Kein App-Name angegeben.');
+  const name = await worker.ausfuehren(mitArgs({ suche: q }, `
+$q = $a.suche
+$treffer = Get-StartApps | Where-Object { $_.Name -like "*$q*" }
+$app = $treffer | Sort-Object { $_.Name.Length } | Select-Object -First 1
+if (-not $app) { '' } else { Start-Process ("shell:AppsFolder\\" + $app.AppID); $app.Name }`), 30000);
+  return String(name || '').trim();
+}
+
 // Eine Medientaste drücken (playpause, weiter, zurueck, stopp, lauter, leiser, stumm).
 async function medien(aktion) {
   const name = `medien_${aktion}`;
@@ -355,6 +371,6 @@ $true`), 15000);
 
 module.exports = {
   worker, aufwaermen, fensterAuflisten, vordergrund, vordergrundInfo, prozesse, systemStatus, passwortFelder, passwortFelderIn, SENSIBLE_PROGRAMME,
-  klick, scrollen, tippen, taste, vkCodes, fokussieren, fensterAnordnen, FENSTER_SEITEN, programmOeffnen, programmSchliessen, medien, kopierenNachHotkey,
+  klick, scrollen, tippen, taste, vkCodes, fokussieren, fensterAnordnen, FENSTER_SEITEN, programmOeffnen, appOeffnen, programmSchliessen, medien, kopierenNachHotkey,
   prozessBremsen, darfBremsen, SPERRLISTE_BREMSEN,
 };
