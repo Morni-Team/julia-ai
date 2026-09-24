@@ -28,7 +28,10 @@ function flaggenFuer(modus) {
     case 'd3d9': return [['use-angle', 'd3d9']];
     case 'gl': return [['use-angle', 'gl']];
     case 'swiftshader': return [['use-angle', 'swiftshader'], ['use-gl', 'angle'], ['enable-unsafe-swiftshader', '']];
-    case 'gpu-aus': return [['disable-gpu', ''], ['disable-gpu-compositing', '']];
+    // GPU-Prozess WIRKLICH ganz aus: zusätzlich SwiftShader (Software-GL im GPU-
+    // Prozess) abschalten, sonst startet Chromium trotz --disable-gpu noch einen
+    // GPU-Prozess, der auf kaputten Treibern crasht (Issue #107). Dann rein CPU.
+    case 'gpu-aus': return [['disable-gpu', ''], ['disable-gpu-compositing', ''], ['disable-software-rasterizer', ''], ['disable-gpu-sandbox', '']];
     default: return [];
   }
 }

@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.9.0 – 2026-09-24
+- Grafik-Notstufe schaltet den GPU-Prozess jetzt wirklich komplett ab (disable-software-rasterizer) - behebt Abstuerze auf stark degradierten Treibern auch im gpu-aus-Modus; ausserdem Update-Protokolle im Start-Logbuch fuers Debugging
+
 ## 6.8.1 – 2026-09-24
 - Updates gehen wieder - die Update-Pruefung lief ueber die rate-limitierte GitHub-API und schlug mit 403 fehl (keine Updates/Patches mehr); jetzt laeuft Pruefung und Download ueber die nicht limitierte Release-Download-URL, der Installer wird weiter per Pruefsumme abgesichert
 

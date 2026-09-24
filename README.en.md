@@ -66,6 +66,7 @@
 
 ## What's new
 
+- **Graphics rescue now works even on totally broken drivers** – on a badly degraded graphics driver the graphics process still crashed even in the "GPU off" fallback (because Chromium secretly still started a software-GPU process). That stage now **fully disables the GPU process** (pure CPU rendering), so the UI comes up even on such PCs. Julia also now writes **update logs** to the startup log (when checked/downloaded/installed, which version) for easier debugging.
 - **Updates work again – no more "GitHub 403"** – the update check failed for some with "GitHub answered with 403", so **no updates/security patches** arrived. Cause: the GitHub **API** used is heavily rate-limited when unauthenticated (60 requests/hour). Julia now checks and downloads updates via the **release download URL**, which is **not** rate-limited – so updates come through reliably (the installer is still verified by checksum).
 - **Minecraft: Julia sounds more human in chat (BETA)** – the "AI on the side" now replies in the in-game chat like a real teammate: short, casual, in the moment, mirroring your tone and slang – **no** AI clichés or lectures anymore. Together with the personality tone (friendly/cheeky/…) and the relationship memory she reacts more naturally, and may tease back or say no.
 - **App integrations removed** – the integrations for the user's own apps (ToDoch, Streamo, VibeWork/VibeWorks, Patchfeld, Codewerk, Content-Helper) were **removed entirely** on request – including the `apps` tool, the VibeWorks login and the related settings. Julia stays lean and focuses on PC control, voice, Minecraft and the usual accounts. General **MCP server support** and the **phone-app connection** remain.
@@ -96,7 +97,6 @@
 - **Google/Outlook sign-in: clearer help** – the Google "access blocked / 403" error now explains that your account must be added as a **test user** (or the app published), instead of just saying "declined".
 - **Dedicated Video tab for cutting** – cutting videos and making thumbnails now has its own area (the "Video" nav item), not just via chat: pick a file, enter from–to, **Cut** – or grab a **thumbnail** at a given time. Runs entirely locally via ffmpeg, nothing is uploaded; the result is saved next to the source file and can be shown in the folder directly. (Needs ffmpeg on the PC; if it's missing, the tab says so clearly.)
 - **Minecraft no longer clutters the overlay & bubble** – Julia's Minecraft replies and actions no longer show up in the gaming overlay and the floating bubble; they stay in the window (chat/Minecraft tab). Important approvals (traffic light) are still shown.
-- **Automatic updates work again** – after the project moved to its new home (`Morni-Team/julia-ai`), the app was still looking for updates at the old location. Everything now points to the right address. (Please install this one version by hand once, after that it's automatic again.)
 
 All changes are in the [CHANGELOG](CHANGELOG.md). There's a little easter egg too – type (or say) `jarvis`. In Jarvis mode just “Jarvis” works as the wake word and the voice changes; “julia” switches back. 😉
 

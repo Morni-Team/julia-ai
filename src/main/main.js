@@ -2547,6 +2547,9 @@ async function start() {
     istBeschaeftigt: () => agent.beschaeftigt,
     beiFertig: (r) => melden(t('update.titel'), r.ok ? t('update.erfolg', { version: r.version }) : t('update.zurueck', { version: r.version, fehler: r.fehler || '' })),
     beenden: () => { beendenLaeuft = true; app.quit(); },
+    // Update-Ereignisse ins Start-Logbuch (Issue #106: Debugging – wann geprüft/
+    // geladen/installiert, welche Version).
+    protokollieren: (art, text, obj) => startLog.schreiben(art, text, obj),
   });
   ctx.updater = updater;
   agentVerdrahten();

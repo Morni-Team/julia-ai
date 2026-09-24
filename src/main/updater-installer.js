@@ -66,6 +66,13 @@ class InstallerUpdater extends Updater {
     this.holen = opts.holen || ((url, o) => globalThis.fetch(url, o));
     this.starten = opts.starten || spawn;
     this.releases = null;
+    // Update-Debugging (Issue #106): Ereignisse ins Start-Logbuch schreiben –
+    // wann geprüft/geladen/installiert wurde und welche Version. Nie störend.
+    this.protokoll = typeof opts.protokollieren === 'function' ? opts.protokollieren : () => {};
+  }
+
+  _log(text, daten) {
+    try { this.protokoll('UPDATE', text, daten); } catch { /* Logging darf nie stören */ }
   }
 
   async _json(url) {
@@ -120,6 +127,7 @@ class InstallerUpdater extends Updater {
           this.releases = releases;
           zeilen = this._zeilen(releases, aktuell, neu);
         } catch { /* Changelog optional */ }
+        this._log('Neue Version gefunden', { aktuell, neu });
         return { aktuell, neu, zeilen };
       }
       // Testkanal: Vorabversionen gibt es nur über die API.
@@ -129,6 +137,7 @@ class InstallerUpdater extends Updater {
       if (!hoechster || version.vergleichen(hoechster, aktuell) <= 0) return { aktuell, neu: null, zeilen: [] };
       return { aktuell, neu: hoechster, zeilen: this._zeilen(releases, aktuell, hoechster) };
     } catch (e) {
+      this._log('Prüfung fehlgeschlagen', { aktuell, fehler: freundlich(e.message) });
       return { aktuell, neu: null, zeilen: [], fehler: freundlich(e.message) };
     }
   }
@@ -195,6 +204,7 @@ class InstallerUpdater extends Updater {
     }, null, 2), 'utf8');
 
     // Still installieren und danach Julia wieder starten.
+    this._log('Installer geprüft (SHA-512 ok), wird gestartet', { ziel: tag, von: this.aktuelleVersion() });
     this._installerStarten(datei);
   }
 
@@ -242,6 +252,7 @@ class InstallerUpdater extends Updater {
     if (s.phase !== 'installer') return super.startStatus();
     const jetzt = this.aktuelleVersion();
     const schritt = updateSchritt(s, jetzt);
+    this._log('Nach dem Start geprüft', { aktion: schritt.aktion, jetzt, ziel: s.ziel });
     if (schritt.aktion === 'fertig') {
       // Neue Version läuft → ihren Installer als Rollback-Punkt sichern, Status weg.
       this._backupSetzen(s.installer, s.ziel);
