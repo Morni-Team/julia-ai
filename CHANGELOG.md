@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.9.2 – 2026-09-24
+- Grafik-Notstufe rendert wieder - statt disable-software-rasterizer (was den Renderer abstuerzen liess) laeuft die GPU-/SwiftShader-Arbeit jetzt in-process im Hauptprozess; so kommt das Bild auch bei kaputtem Treiber ohne separaten GPU-Prozess hoch
+
 ## 6.9.1 – 2026-09-24
 - Defender-Ausnahme robuster - Julia wartet den Admin-Vorgang ab und prueft, ob der Ausschluss wirklich gesetzt wurde; klare Meldung bei abgelehnter UAC-Nachfrage oder wenn der Windows-Manipulationsschutz die automatische Aenderung blockiert (mit Anleitung zum manuellen Ausschluss)
 

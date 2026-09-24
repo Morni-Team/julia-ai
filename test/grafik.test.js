@@ -28,14 +28,15 @@ test('letzte erkennt die unterste (verträglichste) Stufe', () => {
   assert.equal(g.letzte('swiftshader'), false);
 });
 
-test('gpu-aus schaltet den GPU-Prozess komplett ab (letzte Rettung, Issue #101/#107)', () => {
+test('gpu-aus: kein separater GPU-Prozess, aber Software-Rendering bleibt (Issue #107/#109)', () => {
   const f = g.flaggenFuer('gpu-aus');
   const namen = f.map(([n]) => n);
   assert.ok(namen.includes('disable-gpu'));
   assert.ok(namen.includes('disable-gpu-compositing'));
-  // Issue #107: ohne dies startet Chromium trotz --disable-gpu noch einen
-  // (SwiftShader-)GPU-Prozess, der auf kaputten Treibern crasht.
-  assert.ok(namen.includes('disable-software-rasterizer'));
+  // GPU-/SwiftShader-Arbeit im Browser-Prozess statt in einem crashenden GPU-Kind.
+  assert.ok(namen.includes('in-process-gpu'));
+  // NICHT disable-software-rasterizer – das nahm dem Renderer jeden Zeichen-Pfad (#109).
+  assert.ok(!namen.includes('disable-software-rasterizer'));
   assert.equal(g.hardwareAus('gpu-aus'), true);
 });
 
