@@ -1,5 +1,8 @@
 # Changelog
 
+## 7.0.2 – 2026-09-24
+- Startet nach Update gar nicht mehr (Renderer-Crash -2147483645) behoben - neue Notfall-Grafikstufe schaltet Sandbox und Renderer-Code-Integrity ab (Windows-Mitigation gegen injizierte Fremd-DLLs von Antivirus/Overlay/Tuning-Tools), bevor Julia aufgibt; danach klare Meldung, dass es am Treiber oder an Sicherheitssoftware liegt
+
 ## 7.0.1 – 2026-09-24
 - Schwarzes Fenster ohne Neuinstallation lösbar - der Notfall-Dialog bietet jetzt Grafik-zuruecksetzen-und-neu-starten sowie einen Grafiktreiber-Link; die Defender-Ausnahme meldet nicht mehr faelschlich UAC-abgelehnt, wenn der Manipulationsschutz die Aenderung blockiert
 

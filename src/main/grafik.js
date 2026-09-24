@@ -8,13 +8,22 @@
 //   gl       – ANGLE über OpenGL
 //   swiftshader – SwiftShader: rendert komplett in Software (ohne GPU)
 //   software – Hardware-Beschleunigung ganz aus (Software-Compositing)
-//   gpu-aus  – GPU-Prozess KOMPLETT abgeschaltet (--disable-gpu): letzte Rettung,
-//              wenn selbst im Software-Modus der GPU-Prozess abstürzt (degradierter
+//   gpu-aus  – GPU-Prozess KOMPLETT abgeschaltet (--disable-gpu): Rettung, wenn
+//              selbst im Software-Modus der GPU-Prozess abstürzt (degradierter
 //              Treiber). Dann gibt es keinen GPU-Prozess, der noch crashen könnte.
+//   notfall  – ALLERLETZTE Stufe (Issue #109): Der Renderer stürzt beim Start mit
+//              `-2147483645` (STATUS_BREAKPOINT) ab, obwohl schon gpu-aus aktiv ist.
+//              Diese Signatur kommt fast immer von einer INJIZIERTEN Fremd-DLL
+//              (Antivirus/Overlay/Tuning-Tool) oder Windows-Code-Integrity, NICHT
+//              von der Grafik. Deshalb hier zusätzlich `--no-sandbox` (lässt
+//              dazwischenfunkende Sicherheits-DLLs koexistieren) und
+//              `--disable-features=RendererCodeIntegrity` (Windows blockt sonst
+//              unsignierte injizierte DLLs im Renderer und killt ihn). Das ist die
+//              dokumentierte Windows-Mitigation für genau diesen Absturz.
 // Die Auto-Heilung probiert bei einem leeren Fenster diese Stufen nacheinander
 // durch und merkt sich die, mit der es klappt.
 
-const MODI = ['normal', 'd3d9', 'gl', 'swiftshader', 'software', 'gpu-aus'];
+const MODI = ['normal', 'd3d9', 'gl', 'swiftshader', 'software', 'gpu-aus', 'notfall'];
 
 function gueltig(modus) {
   return MODI.includes(modus);
@@ -35,13 +44,15 @@ function flaggenFuer(modus) {
     // Pfad und ließ ihn abstürzen. Zusammen mit disableHardwareAcceleration = rein
     // Software, ohne crashenden GPU-Prozess.
     case 'gpu-aus': return [['disable-gpu', ''], ['disable-gpu-compositing', ''], ['in-process-gpu', '']];
+    // notfall: alles von gpu-aus PLUS die Fremd-DLL-/Code-Integrity-Mitigationen.
+    case 'notfall': return [['disable-gpu', ''], ['disable-gpu-compositing', ''], ['in-process-gpu', ''], ['no-sandbox', ''], ['disable-gpu-sandbox', ''], ['disable-features', 'RendererCodeIntegrity']];
     default: return [];
   }
 }
 
 // Braucht dieser Modus, dass die Hardware-Beschleunigung ganz aus ist?
 function hardwareAus(modus) {
-  return modus === 'software' || modus === 'gpu-aus';
+  return modus === 'software' || modus === 'gpu-aus' || modus === 'notfall';
 }
 
 // Nächste Stufe der Leiter (bleibt bei der letzten stehen). Von unbekannt/normal
@@ -52,9 +63,20 @@ function naechster(modus) {
   return MODI[Math.min(i + 1, MODI.length - 1)];
 }
 
+// Rettungs-Kette für den Start-Absicherungs-Pfad (schwarzes Fenster beim Start):
+// bewusst NICHT alle Zwischenstufen durchprobieren (d3d9/gl/swiftshader helfen bei
+// einem kaputten Treiber selten), sondern direkt zum verlässlichen Software-Modus,
+// dann GPU-Prozess ganz aus, dann der Fremd-DLL-/Code-Integrity-Notfall. 'notfall'
+// ist das Ende (danach FATAL).
+function naechsteRettung(modus) {
+  if (modus === 'gpu-aus') return 'notfall';
+  if (modus === 'software') return 'gpu-aus';
+  return 'software';
+}
+
 // Ist das die letzte Stufe (kein weiterer Fallback mehr möglich)?
 function letzte(modus) {
   return MODI.indexOf(modus) >= MODI.length - 1;
 }
 
-module.exports = { MODI, gueltig, flaggenFuer, hardwareAus, naechster, letzte };
+module.exports = { MODI, gueltig, flaggenFuer, hardwareAus, naechster, naechsteRettung, letzte };

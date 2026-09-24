@@ -246,8 +246,8 @@ function gpuUeberwachen({ app, logbuch, datenOrdner, melden, neustart, fatal, sc
   const ausweichen = () => {
     if (gemeldet) return;
     gemeldet = true;
-    // Schon im Software-Modus? Dann noch eine Stufe tiefer: GPU-Prozess ganz aus.
-    const ziel = grafikModus(datenOrdner) === 'software' ? 'gpu-aus' : 'software';
+    // Eine Stufe tiefer in der Rettungs-Kette: software → gpu-aus → notfall.
+    const ziel = grafik.naechsteRettung(grafikModus(datenOrdner));
     grafikModusSetzen(datenOrdner, ziel);
     logbuch.schreiben('GPU', `Wiederholter GPU-Absturz – Grafik-Modus „${ziel}" wird ab dem nächsten Start genutzt.`);
     if (melden) melden();
@@ -266,14 +266,17 @@ function gpuUeberwachen({ app, logbuch, datenOrdner, melden, neustart, fatal, sc
     // GPU-Prozess (gpu-aus). Erst wenn auch das crasht (letzte Stufe), FATAL.
     if (!grafik.letzte(modus)) {
       neugestartet = true;
-      const ziel = modus === 'software' ? 'gpu-aus' : 'software';
+      const ziel = grafik.naechsteRettung(modus);
       grafikModusSetzen(datenOrdner, ziel);
       logbuch.schreiben('GPU', `${grund} beim Start – Grafik-Modus „${ziel}" ist ab jetzt aktiv, ich starte neu.`);
       if (neustart) neustart();
     } else {
       gemeldet = true;
       logbuch.schreiben('FATAL', `${grund} trotz Grafik-Modus „${modus}" – Start abgesichert abgebrochen.`);
-      if (fatal) fatal(`${grund}: Julia startet nicht sauber, auch nicht ohne GPU. Einzelheiten im Logbuch.`);
+      // 'notfall' war die letzte Stufe: auch mit --no-sandbox/RendererCodeIntegrity-aus
+      // crasht der Renderer → das ist kein Grafik-, sondern ein System-Problem
+      // (kaputter Grafiktreiber ODER eine injizierte Fremd-DLL, z. B. Antivirus/Overlay).
+      if (fatal) fatal(`${grund}: Julia startet nicht sauber, auch nicht ohne GPU und ohne Sandbox. Das deutet auf einen kaputten Grafiktreiber oder eine dazwischenfunkende Sicherheitssoftware (Antivirus/Overlay) hin, die sich in Julia einklinkt. Bitte den Grafiktreiber aktualisieren und Overlays/Tuning-Tools schließen. Einzelheiten im Logbuch.`);
     }
   };
 
