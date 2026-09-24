@@ -315,6 +315,35 @@ test('Minecraft: Julia wehrt sich gegen jeden Angreifer außer dem eigenen Spiel
   assert.equal(mc.darfWehren(null, 'Morni'), false);
 });
 
+test('Minecraft: Spielmodus-Wechsel wird erkannt und gemeldet (Issue #114)', () => {
+  assert.equal(mc.modusName('creative'), 'Kreativ');
+  assert.equal(mc.modusName('survival'), 'Überleben');
+  assert.equal(mc.modusName('spectator'), 'Zuschauer');
+
+  const m = new mc.Minecraft({});
+  const meldungen = [];
+  const gewechselt = [];
+  m.on('ereignis', (e) => meldungen.push(e));
+  m.on('modusgewechselt', (e) => gewechselt.push(e));
+  m.bot = { game: { gameMode: 'survival' } };
+
+  // Erste Erfassung: nur merken, KEINE Meldung.
+  m._spielmodusPruefen();
+  assert.equal(m.spielmodus, 'survival');
+  assert.equal(meldungen.length, 0);
+
+  // Kein Wechsel → nichts.
+  m._spielmodusPruefen();
+  assert.equal(meldungen.length, 0);
+
+  // Echter Wechsel → Meldung + Event.
+  m.bot.game.gameMode = 'creative';
+  m._spielmodusPruefen();
+  assert.equal(m.spielmodus, 'creative');
+  assert.ok(meldungen.some((e) => e.art === 'modus' && /Kreativ/.test(e.text)));
+  assert.deepEqual(gewechselt[0], { alt: 'survival', neu: 'creative' });
+});
+
 test('Minecraft: Wegpunkt-Befehle werden erkannt (Issue #114)', () => {
   assert.deepEqual(mc.befehlLesen('!merke zuhause', []), { aufgabe: 'merken', item: 'zuhause' });
   assert.deepEqual(mc.befehlLesen('!merk dir Basis', []), { aufgabe: 'merken', item: 'Basis' });

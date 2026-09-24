@@ -1,5 +1,8 @@
 # Changelog
 
+## 7.4.0 – 2026-09-24
+- Minecraft - Julia erkennt jetzt, wenn ihr Spielmodus geaendert wird (z. B. auf Kreativ oder Zuschauer), meldet es im Fenster und reagiert im sozialen BETA-Modus kurz im Spielchat
+
 ## 7.3.0 – 2026-09-24
 - Minecraft - Julia merkt sich jetzt Orte dauerhaft (!merke NAME, !wegpunkte, !geh NAME), spricht in der Ich-Form statt in der dritten Person, haelt sich im Spielchat kurz, nervt nicht mehr mit Befehlshinweisen und setzt sich beim Durchspielen eigene Zwischenziele
 

@@ -8,7 +8,7 @@ const {
   app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, dialog, Notification, safeStorage, screen, shell, session, nativeTheme, net, clipboard, nativeImage,
 } = require('electron');
 const sicherheit = require('./sicherheit');
-const { Minecraft, kontoSpeicher, kontoAnmelden, adresseTeilen, sollBenachrichtigen: mcSollBenachrichtigen, darfInChat: mcDarfInChat } = require('./minecraft');
+const { Minecraft, kontoSpeicher, kontoAnmelden, adresseTeilen, sollBenachrichtigen: mcSollBenachrichtigen, darfInChat: mcDarfInChat, modusName: mcModusName } = require('./minecraft');
 const { Sozial, antwortVerzoegerung: mcVerzoegerung, istRuhezeit: mcRuhezeit, budgetStatus: mcBudget, tokenSchaetzen: mcTokens } = require('./minecraft-sozial');
 const { Sync } = require('./sync');
 const { AppServer } = require('./appserver');
@@ -2375,6 +2375,13 @@ async function start() {
     if (jetzt - (mcAngriffWarnung || 0) < 8000) return; // höchstens alle 8 s
     mcAngriffWarnung = jetzt;
     try { minecraft.chat(t('mc.angegriffen_warnung', { spieler: spieler || 'du' })); } catch { /* getrennt */ }
+  });
+  // Spielmodus-Wechsel (Issue #114): im sozialen BETA-Modus reagiert Julia kurz
+  // verbal darauf, dass ihr Gamemode geändert wurde. Sichtbar ist es (über das
+  // Fenster) immer; nur die Chat-Reaktion ist ans BETA gebunden.
+  minecraft.on('modusgewechselt', ({ neu } = {}) => {
+    if (!config.get('minecraft.sozial')) return;
+    try { minecraft.chat(t('mc.modus_gewechselt', { modus: mcModusName(neu) })); } catch { /* getrennt */ }
   });
   minecraft.on('stimme', (d) => minecraftStimme(d.pcm));
   minecraft.on('stimmeStatus', () => anAlle('mc:geaendert'));

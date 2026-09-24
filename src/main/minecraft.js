@@ -445,6 +445,11 @@ function istFeind(e) {
   return !!e && e.type !== 'player' && e.isValid !== false && (e.type === 'hostile' || FEINDE.has(e.name));
 }
 
+// Spielmodus in Klartext (für die Wechsel-Meldung, #114).
+function modusName(m) {
+  return { survival: 'Überleben', creative: 'Kreativ', adventure: 'Abenteuer', spectator: 'Zuschauer' }[String(m || '')] || String(m || 'unbekannt');
+}
+
 // Darf Julia sich gegen diesen Angreifer wehren? (rein, testbar). Ja bei jedem
 // Angreifer MIT Namen – NUR den eigenen Spieler (Besitzer) greift sie nie an, damit
 // sie sich nicht gegen ihren eigenen Chef wendet (Nutzerwunsch: wehren, wenn sie von
@@ -872,6 +877,7 @@ class Minecraft extends EventEmitter {
     this.selbstschutz = null; // id des Feindes, gegen den sie sich gerade selbst wehrt
     this.angreifer = null; // { id, bis }: Spieler/Wesen, das Julia gerade angegriffen hat – solange wehrt sie sich
     this.wegpunkte = this._wegpunkteLaden(); // Name→{x,y,z}: dauerhaft gemerkte Orte (#114)
+    this.spielmodus = null; // zuletzt bekannter Spielmodus (survival/creative/…) – für die Wechsel-Erkennung (#114)
     this.jeder = false; // auf alle Spieler hören statt nur auf den Besitzer
     this.erlaubte = new Map(); // zusätzlich erlaubte Spieler: kleingeschrieben → Anzeigename
     this.fortschrittInChat = false; // ihre Status-/Fortschritts-Meldungen (z. B. „16× stick hergestellt") NICHT in den Spielchat, nur ins Fenster (Nutzerwunsch, per Schalter)
@@ -1022,6 +1028,8 @@ class Minecraft extends EventEmitter {
     // nehmen wir den nächsten Spieler in Schlagreichweite. Mobs regelt die
     // bestehende Monster-Verteidigung separat.
     bot.on('entityHurt', (e) => { try { if (e === bot.entity) this._angegriffen(); } catch (err) { this.letzterFehler = err && err.message; } });
+    // Spielmodus-Wechsel erkennen (#114): z. B. jemand setzt Julia auf Kreativ/Zuschauer.
+    bot.on('game', () => { try { this._spielmodusPruefen(); } catch (err) { this.letzterFehler = err && err.message; } });
     bot.on('death', () => this._gestorben());
     bot.on('entityDead', (e) => this._tot(e));
     bot.on('kicked', (g) => { this.grund = rauswurfText(g); });
@@ -1580,6 +1588,20 @@ class Minecraft extends EventEmitter {
       && e.position.distanceTo(p) < gefahrReichweite(e.name));
     if (!feinde.length) return null;
     return feinde.sort((x, y) => bedrohWert(y, p) - bedrohWert(x, p))[0];
+  }
+
+  // Spielmodus-Wechsel erkennen (#114): Ändert sich der Gamemode (z. B. jemand
+  // setzt Julia auf Kreativ oder Zuschauer), merkt sie es und meldet es im Fenster;
+  // im sozialen BETA-Modus reagiert sie zusätzlich verbal (über den Hauptprozess).
+  _spielmodusPruefen() {
+    const modus = this.bot && this.bot.game && this.bot.game.gameMode;
+    if (!modus) return;
+    if (this.spielmodus === null) { this.spielmodus = modus; return; } // erste Erfassung: keine Meldung
+    if (modus === this.spielmodus) return;
+    const alt = this.spielmodus;
+    this.spielmodus = modus;
+    this._melden('modus', `Mein Spielmodus wurde von „${modusName(alt)}" auf „${modusName(modus)}" geändert.`);
+    this.emit('modusgewechselt', { alt, neu: modus });
   }
 
   // Julia wurde verletzt: den nächsten Spieler in Schlagreichweite als Angreifer
@@ -2983,6 +3005,6 @@ module.exports = {
   Minecraft, WERKZEUGE, GROSSE_NETZWERKE, MC_WICHTIGE, sollBenachrichtigen, kickWiederverbinden, bedrohWert, gefahrReichweite, FERNKAEMPFER, eimerPlan, mlgNoetig, EINMAL_BLOECKE, schwimmHoch, essenPlan, rueckzugPlan, wehrPlan, heilWahl, ruestungCraftPlan,
   kontoSpeicher, kontoAnmelden,
   adresseTeilen, adressePruefen, zielFinden, besteWaffe, schlagPause, besteRuestung, werkzeugArt, besteWerkzeug, blockNamen,
-  istFeind, darfWehren, chatText, botName, anrede, befehlLesen, rauswurfText, frageLesen, plauschLesen, darfInChat, hoerModus, hoerName, chatTeile, richtungAus, bauPlan, GESCHUETZT_ABBAU,
+  istFeind, darfWehren, modusName, chatText, botName, anrede, befehlLesen, rauswurfText, frageLesen, plauschLesen, darfInChat, hoerModus, hoerName, chatTeile, richtungAus, bauPlan, GESCHUETZT_ABBAU,
   itemNamen, ortLesen, mengeLesen, endeText, HILFE, haengerStatus, haengerAktiv, haengerDauer, haengerErkannt,
 };
