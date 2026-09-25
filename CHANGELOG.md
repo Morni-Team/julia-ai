@@ -1,5 +1,8 @@
 # Changelog
 
+## 8.7.1 – 2026-09-25
+- Thumbnail Aus Beschreibung und andere Einmal-Aufrufe funktionieren jetzt auch im Claude-Abo-Modus (vorher: Konzept fehlgeschlagen - Einmal-Aufruf nicht verfuegbar); Bild-Analyse meldet im Abo klar, dass keine Bilder gehen
+
 ## 8.7.0 – 2026-09-25
 - Content-Studio im echten Mini-App-Design (Studio-Kopfzeile, Icon-Reiter) und Thumbnails jetzt auch aus einer Beschreibung erzeugbar - mit richtigem cinematischem Hintergrund (Farbverlauf, Strahlen, Spotlight hinter dem Skin, Vignette); die Wahl Gaming/Reaction ist jetzt klar sichtbar
 

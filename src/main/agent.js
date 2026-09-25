@@ -509,7 +509,7 @@ class Agent extends EventEmitter {
   async bildAntwort({ system, text, bilder = [], maxTokens = 1200 } = {}) {
     const a = anbieter.anbieterVon(this.config);
     const modell = this.config.get('modell');
-    if (a.art === 'claude-code') throw new Error('Ein Bild-Einmalaufruf ist im Claude-Code-Modus nicht verfügbar.');
+    if (a.art === 'claude-code') throw new Error('Im Claude-Code-Modus kann ich keine Bilder ansehen. Nimm für Thumbnails den Modus „Aus Beschreibung" – oder wähle in den Einstellungen einen Anbieter mit Bild-Unterstützung, dann sehe ich mir das Video wirklich an.');
     const roh = (Array.isArray(bilder) ? bilder : []).slice(0, 8)
       .map((b) => String(b || '').replace(/^data:image\/[a-z]+;base64,/, '')).filter(Boolean);
     if (!roh.length) throw new Error('Keine Bilder zum Ansehen.');
@@ -537,11 +537,37 @@ class Agent extends EventEmitter {
     return textAus(r.content) || '';
   }
 
+  // Einmal-Aufruf über das Claude-Abo (Claude-Code-Modus): startet claude.exe mit
+  // FRISCHER Sitzung und OHNE Werkzeuge (reines Nachdenken) – so funktionieren die
+  // Einmal-Aufrufe (z. B. Content-Thumbnail „Aus Beschreibung") auch hier, ohne den
+  // laufenden Chat zu stören. Bilder kann dieser Weg nicht mitschicken.
+  async _aboEinmal({ system, text }) {
+    const exe = this.claudeCodeExe();
+    const en = this.config.get('sprachcode') === 'en';
+    if (!exe) throw new Error(en ? 'Claude Code was not found on this PC. Install it or pick another provider.' : 'Claude Code wurde auf diesem PC nicht gefunden. Installiere es oder wähle einen anderen Anbieter.');
+    const abo = new ClaudeCode({
+      exe,
+      ordner: path.join(this.ctx.datenOrdner, 'claude-code', 'einmal'),
+      werkzeuge: () => [],
+      aufrufen: async () => ({ content: 'nicht verfügbar', is_error: true }),
+    });
+    try {
+      const r = await abo.senden({
+        text: String(text || ''), system: String(system || ''),
+        modell: this.config.get('modell'), aufwand: this.config.get('aufwand'),
+        signal: (this.abbruch && this.abbruch.signal) || undefined, beiText: () => {},
+      });
+      return r.text || '';
+    } finally {
+      try { abo.stoppen(); } catch { /* egal */ }
+    }
+  }
+
   // Gemeinsamer Kern für die Einmal-Aufrufe (nebenAntwort/einmalAntwort).
   async _einmal({ system, text, maxTokens }) {
     const a = anbieter.anbieterVon(this.config);
     const modell = this.config.get('modell');
-    if (a.art === 'claude-code') throw new Error('Ein Einmal-Aufruf ist im Claude-Code-Modus nicht verfügbar.');
+    if (a.art === 'claude-code') return this._aboEinmal({ system, text });
     const abbruch = new AbortController();
     if (a.art === 'anthropic') {
       const client = this._client();
