@@ -1173,6 +1173,54 @@ function ipcEinrichten() {
       return { transkript: r.text };
     } catch (e) { return { fehler: e.message }; }
   });
+  // Thumbnail-Vorschläge: aus einem gewählten Video mehrere 1280×720-Standbilder
+  // an gleichmäßig verteilten Stellen ziehen (per ffmpeg) und als data-URL zurück-
+  // geben, damit der Nutzer das beste Bild als Ausgangspunkt hat. Rein lokal.
+  ipc.handle('content:thumbnails', async (_e, opts) => {
+    try {
+      const anzahl = Math.max(1, Math.min(6, Number((opts || {}).anzahl) || 3));
+      const fenster = (chatFenster && !chatFenster.isDestroyed()) ? chatFenster : null;
+      const wahl = { properties: ['openFile'], filters: [{ name: 'Video', extensions: ['mp4', 'mov', 'mkv', 'webm', 'avi', 'm4v'] }] };
+      const w = fenster ? await dialog.showOpenDialog(fenster, wahl) : await dialog.showOpenDialog(wahl);
+      if (w.canceled || !w.filePaths || !w.filePaths[0]) return { abgebrochen: true };
+      const pfad = w.filePaths[0];
+      const ff = videoFfmpeg.aufgeloest(DATEN, (config.get('video') || {}).ffmpeg || '');
+      if (!ff) return { fehler: 'Für Thumbnails brauche ich ffmpeg. Bitte einmal ffmpeg laden (im Video-/Content-Bereich).' };
+      const { spawn: spawnP } = require('child_process');
+      const { dauerAusLog, thumbnailZeitpunkte, thumbnailBefehl } = require('./content/schneiden');
+      // Dauer ermitteln: ffmpeg -i liest die Datei und schreibt "Duration:" nach stderr.
+      const dauer = await new Promise((res) => {
+        let err = '';
+        const p = spawnP(ff, ['-hide_banner', '-i', pfad], { windowsHide: true });
+        p.stderr.on('data', (d) => { err += d.toString(); });
+        p.on('error', () => res(0));
+        p.on('close', () => res(dauerAusLog(err)));
+      });
+      const zeiten = thumbnailZeitpunkte(dauer, anzahl);
+      if (!zeiten.length) return { fehler: 'Konnte die Videolänge nicht lesen – ist die Datei in Ordnung?' };
+      const ordner = fs.mkdtempSync(path.join(os.tmpdir(), 'julia-thumbs-'));
+      const bilder = [];
+      for (let i = 0; i < zeiten.length; i++) {
+        const ziel = path.join(ordner, `thumb-${i + 1}.png`);
+        const cmd = thumbnailBefehl(pfad, { bei_s: zeiten[i], ziel });
+        // eslint-disable-next-line no-await-in-loop
+        const ok = await new Promise((res) => {
+          const p = spawnP(ff, cmd.args, { windowsHide: true });
+          p.on('error', () => res(false));
+          p.on('close', (c) => res(c === 0));
+        });
+        if (ok && fs.existsSync(ziel)) {
+          try {
+            const b64 = fs.readFileSync(ziel).toString('base64');
+            bilder.push({ bei_s: zeiten[i], datenUrl: `data:image/png;base64,${b64}` });
+          } catch { /* einzelnes Bild überspringen */ }
+        }
+      }
+      try { fs.rmSync(ordner, { recursive: true, force: true }); } catch { /* egal */ }
+      if (!bilder.length) return { fehler: 'Es ließ sich kein Standbild erzeugen.' };
+      return { bilder };
+    } catch (e) { return { fehler: e.message }; }
+  });
   // "Allem zustimmen" (und "auch nach fremden Inhalten") lassen sich nur hier
   // einschalten – nach einem Ja im Windows-Dialog. Julia selbst kann es nicht
   // (einstellung_setzen: ROT).

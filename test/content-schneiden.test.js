@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { stilleAnalyseBefehl, stillenAusLog, dauerAusLog, behaltSegmente, rohschnittBefehl, shortsAuswahl, shortsBefehl, thumbnailBefehl } = require('../src/main/content/schneiden');
+const { stilleAnalyseBefehl, stillenAusLog, dauerAusLog, behaltSegmente, rohschnittBefehl, shortsAuswahl, shortsBefehl, thumbnailBefehl, thumbnailZeitpunkte } = require('../src/main/content/schneiden');
 
 const LOG = `
   Duration: 00:02:30.50, start: 0.000000, bitrate: 1200 kb/s
@@ -64,4 +64,11 @@ test('thumbnailBefehl: 1280x720-Standbild an einem Zeitpunkt', () => {
   assert.ok(r.args.includes('-frames:v'));
   assert.ok(r.args.some((a) => /scale=1280:720/.test(a)));
   assert.ok(r.args.includes('thumb.png'));
+});
+
+test('thumbnailZeitpunkte: gleichmäßig verteilt, Ränder gemieden', () => {
+  assert.deepEqual(thumbnailZeitpunkte(120, 3), [30, 60, 90]); // 25/50/75 %
+  assert.deepEqual(thumbnailZeitpunkte(100, 1), [50]); // Mitte
+  assert.equal(thumbnailZeitpunkte(0, 3).length, 0); // unbekannte Dauer → leer
+  assert.equal(thumbnailZeitpunkte(60, 4).length, 4);
 });

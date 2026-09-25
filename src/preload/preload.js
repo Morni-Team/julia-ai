@@ -83,6 +83,7 @@ contextBridge.exposeInMainWorld('julia', {
   contentOrdnerWaehlen: () => ipcRenderer.invoke('content:ordner-waehlen'),
   contentVideoWaehlen: () => ipcRenderer.invoke('content:video-waehlen'),
   contentVideoTranskribieren: (pfad) => ipcRenderer.invoke('content:video-transkribieren', String(pfad || '')),
+  contentThumbnails: (opts) => ipcRenderer.invoke('content:thumbnails', opts || {}),
   modelleLaden: () => ipcRenderer.invoke('anbieter:modelle'),
   werkzeuge: () => ipcRenderer.invoke('werkzeuge:liste'),
   werkzeugKategorien: () => ipcRenderer.invoke('werkzeuge:kategorien'),

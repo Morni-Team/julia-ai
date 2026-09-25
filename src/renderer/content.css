@@ -29,3 +29,7 @@
 .ct-auf { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
 
 .ct-bericht { padding: 12px 14px; border-radius: 12px; background: var(--flaeche-2); border: 1px solid var(--linie); white-space: pre-wrap; line-height: 1.55; max-height: 420px; overflow-y: auto; color: var(--text); }
+
+/* Thumbnail-Vorschläge */
+.ct-thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-top: 10px; }
+.ct-thumb { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 10px; border: 1px solid var(--linie-stark); background: var(--grund-2); }

@@ -1,5 +1,8 @@
 # Changelog
 
+## 8.5.0 – 2026-09-25
+- Content-Bereich reparieren und erweitern - der Knopf Kanal schaltet jetzt sichtbar um (Video-Upload weg, Textfeld bittet um Kanal-Infos), und ein neuer Thumbnail-Bereich zieht mehrere Standbilder aus einem Video als Ausgangspunkt fuers Thumbnail
+
 ## 8.4.1 – 2026-09-25
 - Auto-Update laesst Julia nicht mehr in einem halben Zustand zurueck, wenn der Installer nicht startet - der fehlgeschlagene Start wird abgefangen, Julia bleibt offen und schreibt die genaue Ursache ins Log
 

@@ -150,23 +150,32 @@
     // --- Analyse (Video-Transkript / Kanal-Infos) ---
     let analyseArt = 'video';
     const artSegment = el('contentAnalyseArt');
+    // Sichtbar umschalten: Bei „Kanal" verschwindet der Video-Upload und das
+    // Textfeld bittet um Kanal-Infos; bei „Video" ist der Upload wieder da.
+    function artAnwenden(art) {
+      analyseArt = art;
+      if (artSegment) artSegment.querySelectorAll('button').forEach((x) => x.classList.toggle('aktiv', x.dataset.wert === art));
+      const zeile = el('caVideoZeile');
+      if (zeile) zeile.hidden = (art === 'kanal');
+      const lab = el('caTextLabel');
+      if (lab) lab.setAttribute('data-t', art === 'kanal' ? 'content.analyse_kanalinfos' : 'content.analyse_transkript');
+      const feld = el('caText');
+      if (feld) feld.placeholder = (art === 'kanal')
+        ? 'Kanal-Infos: z. B. Kanalname, Themen, Aufrufe, letzte Titel …'
+        : 'Transkript deines Videos hier einfügen (oder oben ein Video hochladen).';
+      if (window.juliaTexteNach) window.juliaTexteNach();
+    }
     if (artSegment) artSegment.querySelectorAll('button').forEach((b) => {
-      b.onclick = () => {
-        analyseArt = b.dataset.wert;
-        artSegment.querySelectorAll('button').forEach((x) => x.classList.toggle('aktiv', x === b));
-        const lab = el('caTextLabel');
-        if (lab) lab.setAttribute('data-t', analyseArt === 'kanal' ? 'content.analyse_kanalinfos' : 'content.analyse_transkript');
-        if (window.juliaTexteNach) window.juliaTexteNach();
-      };
+      b.onclick = () => artAnwenden(b.dataset.wert);
     });
+    artAnwenden('video');
     if (el('caVideo')) el('caVideo').onclick = async () => {
       const status = el('caVideoStatus');
       const r = await j.contentVideoWaehlen();
       if (!r || r.abgebrochen) return;
       if (r.fehler) { if (status) status.textContent = r.fehler; return; }
       // auf „Video"-Modus stellen
-      analyseArt = 'video';
-      if (artSegment) artSegment.querySelectorAll('button').forEach((x) => x.classList.toggle('aktiv', x.dataset.wert === 'video'));
+      artAnwenden('video');
       if (status) status.textContent = 'Transkribiere Video … (kann dauern)';
       const t = await j.contentVideoTranskribieren(r.pfad);
       if (t && t.transkript) {
@@ -195,6 +204,26 @@
       } finally {
         if (laeuft) laeuft.hidden = true;
       }
+    };
+    // --- Thumbnails: Standbilder aus einem Video ziehen ---
+    if (el('ctThumbVideo')) el('ctThumbVideo').onclick = async () => {
+      const status = el('ctThumbStatus');
+      const gitter = el('ctThumbs');
+      if (status) status.textContent = 'Ziehe Standbilder … (kann kurz dauern)';
+      if (gitter) gitter.innerHTML = '';
+      let r;
+      try { r = await j.contentThumbnails({ anzahl: 4 }); } catch (e) { r = { fehler: e && e.message }; }
+      if (!r || r.abgebrochen) { if (status) status.textContent = ''; return; }
+      if (r.fehler) { if (status) status.textContent = r.fehler; return; }
+      if (status) status.textContent = `${r.bilder.length} Vorschläge – Rechtsklick → Bild speichern unter …`;
+      if (gitter) r.bilder.forEach((b) => {
+        const img = document.createElement('img');
+        img.className = 'ct-thumb';
+        img.src = b.datenUrl;
+        img.alt = `Standbild bei ${Math.round(b.bei_s)} s`;
+        img.title = `bei ${Math.round(b.bei_s)} s`;
+        gitter.appendChild(img);
+      });
     };
   }
 

@@ -89,4 +89,16 @@ function thumbnailBefehl(videoPfad, { bei_s = 0, ziel, breite = 1280, hoehe = 72
   return { programm: 'ffmpeg', args: ['-y', '-ss', String(r3(bei_s)), '-i', videoPfad, '-frames:v', '1', '-vf', vf, ziel] };
 }
 
-module.exports = { stilleAnalyseBefehl, stillenAusLog, dauerAusLog, behaltSegmente, rohschnittBefehl, shortsAuswahl, shortsBefehl, thumbnailBefehl };
+// Gleichmäßig verteilte Zeitpunkte für Thumbnail-Vorschläge (Standbilder aus dem
+// Video). Bei 3 Vorschlägen z. B. 25 %, 50 %, 75 % der Länge – die Ränder werden
+// gemieden (Intro/Abspann sind selten gute Thumbnails). Reine, testbare Rechnung.
+function thumbnailZeitpunkte(gesamtdauer, anzahl = 3) {
+  const dauer = Number(gesamtdauer) || 0;
+  const n = Math.max(1, Math.floor(anzahl) || 1);
+  if (dauer <= 0) return [];
+  const punkte = [];
+  for (let i = 1; i <= n; i++) punkte.push(r3((dauer * i) / (n + 1)));
+  return punkte;
+}
+
+module.exports = { stilleAnalyseBefehl, stillenAusLog, dauerAusLog, behaltSegmente, rohschnittBefehl, shortsAuswahl, shortsBefehl, thumbnailBefehl, thumbnailZeitpunkte };
