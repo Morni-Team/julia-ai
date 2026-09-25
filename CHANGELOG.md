@@ -1,5 +1,8 @@
 # Changelog
 
+## 8.4.1 – 2026-09-25
+- Auto-Update laesst Julia nicht mehr in einem halben Zustand zurueck, wenn der Installer nicht startet - der fehlgeschlagene Start wird abgefangen, Julia bleibt offen und schreibt die genaue Ursache ins Log
+
 ## 8.4.0 – 2026-09-25
 - Die Karte "Dein YouTube-Kanal" im Content-Tab ist jetzt einklappbar und nur zum Einrichten da (standardmaessig zugeklappt) statt dauerhaft angezeigt
 

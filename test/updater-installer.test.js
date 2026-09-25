@@ -11,7 +11,7 @@ const { InstallerUpdater, latestYmlLesen, updateSchritt } = require('../src/main
 const DL = 'https://github.com/Morni-Team/julia-ai/releases/download';
 const DLL = 'https://github.com/Morni-Team/julia-ai/releases/latest/download';
 
-function aufbau({ exe = Buffer.from('MZ – Installer'), summe, urlExe } = {}) {
+function aufbau({ exe = Buffer.from('MZ – Installer'), summe, urlExe, startenMock, protokoll } = {}) {
   const ordner = fs.mkdtempSync(path.join(os.tmpdir(), 'julia-upd-'));
   fs.writeFileSync(path.join(ordner, 'package.json'), JSON.stringify({ version: '0.9.3' }));
   const sha = summe || crypto.createHash('sha512').update(exe).digest('base64');
@@ -54,7 +54,8 @@ function aufbau({ exe = Buffer.from('MZ – Installer'), summe, urlExe } = {}) {
     beiFertig: () => {},
     beenden: () => { beendet = true; },
     holen,
-    starten: (datei, args) => { gestartet.push({ datei, args }); return { unref() {} }; },
+    protokollieren: protokoll,
+    starten: startenMock || ((datei, args) => { gestartet.push({ datei, args }); return { unref() {} }; }),
   });
   return { u, ordner, gestartet, geholt, istBeendet: () => beendet, releases, antworten };
 }
@@ -77,6 +78,29 @@ test('Installer wird nur mit passender SHA-512-Summe gestartet', async () => {
   assert.equal(fs.readFileSync(gestartet[0].datei, 'utf8'), 'MZ – Installer');
   assert.equal(JSON.parse(fs.readFileSync(path.join(ordner, 'update-status.json'), 'utf8')).phase, 'installer');
   assert.equal(istBeendet(), true);
+});
+
+test('Scheitert der Installer-Start, beendet sich Julia NICHT und die Ursache steht im Log (Issue #119)', async () => {
+  const logs = [];
+  const { u, istBeendet } = aufbau({
+    protokoll: (bereich, text, daten) => logs.push({ bereich, text, daten }),
+    startenMock: () => { const e = new Error('Zugriff verweigert'); e.code = 'EPERM'; throw e; },
+  });
+  await u.pruefen();
+  await u._einspielen('v1.0.0'); // wirft NICHT, obwohl der Start scheitert
+  assert.equal(istBeendet(), false, 'bei fehlgeschlagenem Start bleibt Julia offen (kein halbes Update)');
+  const treffer = logs.find((l) => /fehlgeschlagen/i.test(l.text));
+  assert.ok(treffer, 'die Start-Ursache wird geloggt');
+  assert.equal(treffer.daten.code, 'EPERM', 'der konkrete Fehlercode steht im Log');
+});
+
+test('Rollback meldet klar, wenn sich der Installer nicht starten lässt', () => {
+  const { u, ordner } = aufbau({ startenMock: () => { throw new Error('kaputt'); } });
+  const sicherung = path.join(ordner, 'update-backup');
+  fs.mkdirSync(sicherung, { recursive: true });
+  fs.writeFileSync(path.join(sicherung, 'Julia-AI-Setup-0.9.0.exe'), 'MZ');
+  const r = u.zurueckRollen();
+  assert.ok(r.fehler && /starten/.test(r.fehler), 'klarer Fehler statt falschem ok');
 });
 
 test('Beim Einspielen gilt die neueste Version, nicht ein alter Prüfstand', async () => {

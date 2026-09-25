@@ -217,9 +217,27 @@ class InstallerUpdater extends Updater {
   }
 
   _installerStarten(datei) {
-    const kind = this.starten(datei, ['/S', '--updated', '--force-run'], { detached: true, stdio: 'ignore', windowsHide: true });
-    kind.unref();
+    // WAS IST WENN der Installer-Start scheitert (Datei gesperrt/fehlt, Elevation
+    // nötig)? Bisher wurde blind `beenden()` gerufen – Julia beendete sich also
+    // AUCH, wenn der Installer gar nicht anlief, und ließ den Nutzer mit halbem
+    // Update und einem Log zurück, das bei „gestartet" endet (Issue #119). Jetzt:
+    // Start-Fehler abfangen, klar loggen und Julia NICHT beenden.
+    let kind;
+    try {
+      kind = this.starten(datei, ['/S', '--updated', '--force-run'], { detached: true, stdio: 'ignore', windowsHide: true });
+    } catch (e) {
+      this._log('Installer-Start sofort fehlgeschlagen – Julia bleibt offen', { datei, code: e && e.code, fehler: e && e.message });
+      return false;
+    }
+    // Ein asynchroner Start-Fehler kommt als 'error'-Ereignis – auch das ins Log,
+    // damit die Ursache sichtbar ist, statt dass das Log stumm bei „gestartet" endet.
+    if (kind && typeof kind.on === 'function') {
+      kind.on('error', (e) => this._log('Installer meldete einen Start-Fehler', { datei, code: e && e.code, fehler: e && e.message }));
+    }
+    if (kind && typeof kind.unref === 'function') kind.unref();
+    this._log('Installer gestartet – Julia beendet sich für das Update', { datei });
     this.beenden();
+    return true;
   }
 
   // Ordner/Datei des letzten bekannt-guten Installers (Rollback-Punkt).
@@ -247,8 +265,7 @@ class InstallerUpdater extends Updater {
   zurueckRollen() {
     const b = this._backupInstaller();
     if (!b || !fs.existsSync(b)) return { fehler: 'Kein Backup einer vorherigen Version vorhanden.' };
-    this._installerStarten(b);
-    return { ok: true };
+    return this._installerStarten(b) ? { ok: true } : { fehler: 'Der Installer ließ sich nicht starten.' };
   }
 
   // Nach dem Installer: Läuft jetzt die neue Version? Prüfen und – wenn nicht –
