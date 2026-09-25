@@ -1,5 +1,8 @@
 # Changelog
 
+## 9.0.0 – 2026-09-25
+- Thumbnail-Skin wirkt lebendiger (isometrische 3D-Pose, leichte Neigung, Boden-Schatten, groesser) und der KI-Hintergrund kommt jetzt vom hochwertigeren Flux-Modell
+
 ## 8.9.0 – 2026-09-25
 - Thumbnail-Skin erscheint endlich wieder (toter Render-Dienst durch funktionierenden 3D-Renderer NMSR ersetzt) und statt flachem Farbverlauf gibt es jetzt echte KI-Hintergruende aus der Beschreibung (freie Bild-KI, kein Schluessel) - Skin mit Kontur/Schatten/Glow und fetter Text kommen als Ebene darueber
 
