@@ -11,20 +11,18 @@
   let profile = [];
   let aktivId = null;
   let gewaehlt = null; // id des gerade im Formular bearbeiteten Profils ('' = neu)
+  let gewaehltOrdner = ''; // per Dialog gewählter Arbeits-/Speicherordner
 
   function formLesen() {
-    const csv = (s) => String(s || '').split(',').map((x) => x.trim()).filter(Boolean);
     const zeilen = (s) => String(s || '').split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
     return {
       id: gewaehlt || '',
       kanalname: el('cfKanalname').value,
+      kanal_link: el('cfKanalLink').value,
+      ordner: gewaehltOrdner,
       zielgruppe: el('cfZielgruppe').value,
       tonalitaet: el('cfTonalitaet').value,
       sprache: el('cfSprache').value,
-      marke: {
-        logo: el('cfLogo').value, farben: csv(el('cfFarben').value), schriften: csv(el('cfSchriften').value),
-        intro: el('cfIntro').value, outro: el('cfOutro').value, sfx_ordner: el('cfSfx').value, musik_ordner: el('cfMusik').value,
-      },
       regeln: zeilen(el('cfRegeln').value),
       stilprofile: [{
         name: el('csName').value || 'Standard',
@@ -35,27 +33,29 @@
     };
   }
 
+  function ordnerAnzeigen() {
+    const a = el('cfOrdnerAnzeige');
+    if (!a) return;
+    if (gewaehltOrdner) { a.textContent = gewaehltOrdner; a.removeAttribute('data-t'); }
+    else { a.setAttribute('data-t', 'content.ordner_keiner'); if (window.juliaTexteNach) window.juliaTexteNach(); }
+  }
+
   function formFuellen(p) {
     p = p || {};
-    const m = p.marke || {};
     gewaehlt = p.id || '';
+    gewaehltOrdner = p.ordner || '';
     el('cfKanalname').value = p.kanalname || '';
+    el('cfKanalLink').value = p.kanal_link || '';
     el('cfZielgruppe').value = p.zielgruppe || '';
     el('cfTonalitaet').value = p.tonalitaet || '';
     el('cfSprache').value = p.sprache === 'en' ? 'en' : 'de';
-    el('cfLogo').value = m.logo || '';
-    el('cfFarben').value = (m.farben || []).join(', ');
-    el('cfSchriften').value = (m.schriften || []).join(', ');
-    el('cfIntro').value = m.intro || '';
-    el('cfOutro').value = m.outro || '';
-    el('cfSfx').value = m.sfx_ordner || '';
-    el('cfMusik').value = m.musik_ordner || '';
     el('cfRegeln').value = (p.regeln || []).join('\n');
     const s = (p.stilprofile && p.stilprofile[0]) || {};
     el('csName').value = s.name || 'Standard';
     el('csSchnitte').value = s.schnitte_pro_min || 14;
     el('csHook').value = s.hook_sekunden || 8;
     el('csBroll').value = Math.round((s.broll_anteil != null ? s.broll_anteil : 0.3) * 100);
+    ordnerAnzeigen();
   }
 
   function listeFuellen() {
@@ -110,6 +110,11 @@
     if (el('contentProfilNeu')) el('contentProfilNeu').onclick = async () => {
       formFuellen(await j.contentProfilVorlage('Neuer Kanal'));
       gewaehlt = ''; // erzwingt neue id aus dem Namen beim Speichern
+    };
+    if (el('cfOrdnerWaehlen')) el('cfOrdnerWaehlen').onclick = async () => {
+      const r = await j.contentOrdnerWaehlen();
+      if (r && r.ordner) { gewaehltOrdner = r.ordner; ordnerAnzeigen(); }
+      else if (r && r.fehler) alert(r.fehler);
     };
     if (el('contentProfilSpeichern')) el('contentProfilSpeichern').onclick = async () => {
       const r = await j.contentProfilSpeichern(formLesen());

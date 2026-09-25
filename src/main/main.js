@@ -1132,6 +1132,16 @@ function ipcEinrichten() {
       return { antwort };
     } catch (e) { return { fehler: e.message }; }
   });
+  // Ordner per nativem Dialog wählen (statt Pfad tippen) – für den Content-Arbeitsordner.
+  ipc.handle('content:ordner-waehlen', async () => {
+    try {
+      const fenster = (chatFenster && !chatFenster.isDestroyed()) ? chatFenster : null;
+      const opts = { properties: ['openDirectory', 'createDirectory'] };
+      const r = fenster ? await dialog.showOpenDialog(fenster, opts) : await dialog.showOpenDialog(opts);
+      if (r.canceled || !r.filePaths || !r.filePaths[0]) return { abgebrochen: true };
+      return { ordner: r.filePaths[0] };
+    } catch (e) { return { fehler: e.message }; }
+  });
   // "Allem zustimmen" (und "auch nach fremden Inhalten") lassen sich nur hier
   // einschalten – nach einem Ja im Windows-Dialog. Julia selbst kann es nicht
   // (einstellung_setzen: ROT).

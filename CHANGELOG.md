@@ -1,5 +1,8 @@
 # Changelog
 
+## 8.1.0 – 2026-09-25
+- Content-Modul aufgeraeumt und vereinfacht - zuerst nur der YouTube-Kanal-Link (optional, geht auch ohne), Arbeitsordner bequem per Auswahl-Dialog statt Pfad tippen, Logo/Soundeffekte/Farben macht Julia selbst und speichert sie im Ordner; Analyse und Feinschliff in aufklappbaren Bereichen
+
 ## 8.0.1 – 2026-09-25
 - Weckwort Hey Julia wird zuverlaessiger erkannt - Erkennungs-Schwelle von 0.8 auf 0.7 gesenkt (0.8 verschluckte das Weckwort oft); Hinweis bleibt: Weckwort ist standardmaessig aus und braucht die deutsche Windows-Spracherkennung
 

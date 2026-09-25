@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { standardProfil, profilBereinigen, stilBereinigen, ProfilSpeicher, HAEUFIGKEIT } = require('../src/main/content/profile');
+const { standardProfil, profilBereinigen, stilBereinigen, linkBereinigen, ProfilSpeicher, HAEUFIGKEIT } = require('../src/main/content/profile');
 
 function ordner() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'julia-content-'));
@@ -37,6 +37,23 @@ test('profilBereinigen: wirft unbekannte Schlüssel raus, härtet Strings', () =
   assert.deepEqual(p.marke.farben, ['#fff']); // leere weg
   assert.deepEqual(p.regeln, ['nie Stille']);
   assert.ok(p.stilprofile.length >= 1); // fehlende Stile → ein Standard
+});
+
+test('linkBereinigen: nur echte YouTube-Links, sonst leer (Kanal-Link ist optional)', () => {
+  assert.equal(linkBereinigen('https://www.youtube.com/@kanal'), 'https://www.youtube.com/@kanal');
+  assert.equal(linkBereinigen('https://youtu.be/abc123'), 'https://youtu.be/abc123');
+  assert.equal(linkBereinigen('http://youtube.com/c/x'), 'http://youtube.com/c/x');
+  assert.equal(linkBereinigen('https://boese.example/phish'), '');
+  assert.equal(linkBereinigen(''), '');
+  assert.equal(linkBereinigen('kein link'), '');
+});
+
+test('profilBereinigen: Kanal-Link (optional) und Arbeitsordner werden übernommen', () => {
+  const p = profilBereinigen({ kanalname: 'K', kanal_link: 'https://www.youtube.com/@k', ordner: 'D:/Videos/K' });
+  assert.equal(p.kanal_link, 'https://www.youtube.com/@k');
+  assert.equal(p.ordner, 'D:/Videos/K');
+  // ungültiger Link → leer (blockiert nichts, Kanal ist optional)
+  assert.equal(profilBereinigen({ kanalname: 'K', kanal_link: 'nope' }).kanal_link, '');
 });
 
 test('ProfilSpeicher: anlegen, aktiv, laden, löschen', () => {

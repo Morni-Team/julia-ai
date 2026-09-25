@@ -80,6 +80,7 @@ contextBridge.exposeInMainWorld('julia', {
   contentProfilImport: (json) => ipcRenderer.invoke('content:profile-import', String(json || '')),
   contentProfilExport: (id) => ipcRenderer.invoke('content:profile-export', String(id || '')),
   contentAnalysieren: (eingabe) => ipcRenderer.invoke('content:analysieren', eingabe),
+  contentOrdnerWaehlen: () => ipcRenderer.invoke('content:ordner-waehlen'),
   modelleLaden: () => ipcRenderer.invoke('anbieter:modelle'),
   werkzeuge: () => ipcRenderer.invoke('werkzeuge:liste'),
   werkzeugKategorien: () => ipcRenderer.invoke('werkzeuge:kategorien'),

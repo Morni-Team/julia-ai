@@ -60,13 +60,22 @@ function standardProfil(name = 'Mein Kanal') {
   return {
     id: kebab(name),
     kanalname: text(name, 80) || 'Mein Kanal',
+    kanal_link: '', // YouTube-Kanal-Link (das Erste, was der Nutzer einträgt)
+    ordner: '', // EIN Arbeits-/Speicherordner (per Auswahl-Dialog) – hier legt die KI alles ab
     zielgruppe: '',
     tonalitaet: '',
     sprache: 'de',
+    // Marke/Assets macht die KI selbst und legt sie im Ordner ab; hier nur intern gehalten.
     marke: { logo: '', farben: [], schriften: [], intro: '', outro: '', sfx_ordner: '', musik_ordner: '' },
     regeln: [],
     stilprofile: [standardStil('Standard')],
   };
+}
+
+// Erlaubt nur echte YouTube-Kanal-/Video-Links (sonst leer). Kein Netzzugriff.
+function linkBereinigen(v) {
+  const s = text(v, 300);
+  return /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//i.test(s) ? s : '';
 }
 
 // Bereinigt/validiert ein (evtl. importiertes) Profil auf ein sicheres, festes
@@ -77,6 +86,8 @@ function profilBereinigen(roh = {}) {
   return {
     id: kebab(roh.id || roh.kanalname || 'profil'),
     kanalname: text(roh.kanalname, 80) || 'Mein Kanal',
+    kanal_link: linkBereinigen(roh.kanal_link),
+    ordner: text(roh.ordner, 500),
     zielgruppe: text(roh.zielgruppe, 200),
     tonalitaet: text(roh.tonalitaet, 200),
     sprache: /^(de|en)$/.test(String(roh.sprache)) ? String(roh.sprache) : 'de',
@@ -190,4 +201,4 @@ class ProfilSpeicher {
   }
 }
 
-module.exports = { standardStil, stilBereinigen, standardProfil, profilBereinigen, ProfilSpeicher, HAEUFIGKEIT };
+module.exports = { standardStil, stilBereinigen, standardProfil, profilBereinigen, linkBereinigen, ProfilSpeicher, HAEUFIGKEIT };

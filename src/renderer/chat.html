@@ -445,67 +445,74 @@
         </div>
 
         <div id="contentAn" hidden>
-          <div class="content-block">
-            <div class="content-block-kopf">
-              <h3 data-t="content.profile"></h3>
-              <div class="content-profil-knoepfe">
-                <select id="contentProfilWahl"></select>
-                <button class="zweit" id="contentProfilNeu" data-t="content.neu"></button>
-                <button class="zweit" id="contentProfilAktiv" data-t="content.als_aktiv"></button>
-                <button class="zweit" id="contentProfilLoeschen" data-t="content.loeschen"></button>
-                <button class="zweit" id="contentProfilImport" data-t="content.import"></button>
-                <button class="zweit" id="contentProfilExport" data-t="content.export"></button>
-              </div>
-            </div>
-            <div class="content-formular">
-              <label><span data-t="content.kanalname"></span><input id="cfKanalname" type="text"></label>
-              <label><span data-t="content.zielgruppe"></span><input id="cfZielgruppe" type="text"></label>
-              <label><span data-t="content.tonalitaet"></span><input id="cfTonalitaet" type="text"></label>
-              <label><span data-t="content.sprache"></span><select id="cfSprache"><option value="de">Deutsch</option><option value="en">English</option></select></label>
-              <label><span data-t="content.logo"></span><input id="cfLogo" type="text" placeholder="C:\…\logo.png"></label>
-              <label><span data-t="content.farben"></span><input id="cfFarben" type="text" placeholder="#FFDD00, #111"></label>
-              <label><span data-t="content.schriften"></span><input id="cfSchriften" type="text" placeholder="Inter, Montserrat"></label>
-              <label><span data-t="content.intro"></span><input id="cfIntro" type="text"></label>
-              <label><span data-t="content.outro"></span><input id="cfOutro" type="text"></label>
-              <label><span data-t="content.sfx_ordner"></span><input id="cfSfx" type="text"></label>
-              <label><span data-t="content.musik_ordner"></span><input id="cfMusik" type="text"></label>
-              <label class="content-breit"><span data-t="content.regeln"></span><textarea id="cfRegeln" rows="3" placeholder="nie länger als 3 s Stille&#10;Untertitel immer gelb"></textarea></label>
-            </div>
-            <div class="content-block-kopf">
-              <h3 data-t="content.stilprofil"></h3>
-            </div>
-            <div class="content-formular">
-              <label><span data-t="content.stil_name"></span><input id="csName" type="text"></label>
-              <label><span data-t="content.stil_schnitte"></span><input id="csSchnitte" type="number" min="1" max="60"></label>
-              <label><span data-t="content.stil_hook"></span><input id="csHook" type="number" min="0" max="30"></label>
-              <label><span data-t="content.stil_broll"></span><input id="csBroll" type="number" min="0" max="100" step="5"></label>
-            </div>
-            <div class="content-speichern">
-              <button class="haupt" id="contentProfilSpeichern" data-t="content.speichern"></button>
-              <span class="content-gespeichert" id="contentGespeichert" hidden data-t="content.gespeichert"></span>
-            </div>
+          <!-- Profil-Auswahl (kompakte Leiste) -->
+          <div class="content-profilleiste">
+            <select id="contentProfilWahl" title="Profil"></select>
+            <button class="zweit" id="contentProfilNeu" data-t="content.neu"></button>
+            <button class="zweit" id="contentProfilAktiv" data-t="content.als_aktiv"></button>
+            <button class="zweit" id="contentProfilLoeschen" data-t="content.loeschen"></button>
+            <button class="zweit" id="contentProfilImport" data-t="content.import"></button>
+            <button class="zweit" id="contentProfilExport" data-t="content.export"></button>
           </div>
 
-          <div class="content-block">
-            <div class="content-block-kopf">
-              <h3 data-t="content.analyse"></h3>
+          <!-- Start: nur der YouTube-Kanal -->
+          <div class="content-karte">
+            <h3 class="content-karte-titel" data-t="content.dein_kanal"></h3>
+            <label class="content-feld"><span data-t="content.kanal_link"></span>
+              <input id="cfKanalLink" type="url" placeholder="https://www.youtube.com/@deinkanal"></label>
+            <div class="content-reihe">
+              <label class="content-feld"><span data-t="content.kanalname"></span><input id="cfKanalname" type="text"></label>
+              <label class="content-feld content-schmal"><span data-t="content.sprache"></span>
+                <select id="cfSprache"><option value="de">Deutsch</option><option value="en">English</option></select></label>
+            </div>
+            <label class="content-feld"><span data-t="content.ordner"></span>
+              <span class="content-ordnerwahl">
+                <button class="zweit" id="cfOrdnerWaehlen" data-t="content.ordner_waehlen"></button>
+                <span class="content-ordnerpfad" id="cfOrdnerAnzeige" data-t="content.ordner_keiner"></span>
+              </span></label>
+            <p class="content-klein" data-t="content.assets_hinweis"></p>
+          </div>
+
+          <!-- Feinschliff (aufklappbar) -->
+          <details class="content-details">
+            <summary data-t="content.feinschliff"></summary>
+            <div class="content-karte">
+              <label class="content-feld"><span data-t="content.regeln"></span>
+                <textarea id="cfRegeln" rows="3" placeholder="nie länger als 3 s Stille&#10;Untertitel immer gelb"></textarea></label>
+              <div class="content-reihe">
+                <label class="content-feld"><span data-t="content.stil_name"></span><input id="csName" type="text"></label>
+                <label class="content-feld content-schmal"><span data-t="content.stil_schnitte"></span><input id="csSchnitte" type="number" min="1" max="60"></label>
+                <label class="content-feld content-schmal"><span data-t="content.stil_hook"></span><input id="csHook" type="number" min="0" max="30"></label>
+                <label class="content-feld content-schmal"><span data-t="content.stil_broll"></span><input id="csBroll" type="number" min="0" max="100" step="5"></label>
+              </div>
+              <input id="cfZielgruppe" type="hidden"><input id="cfTonalitaet" type="hidden">
+            </div>
+          </details>
+
+          <div class="content-speichern">
+            <button class="haupt" id="contentProfilSpeichern" data-t="content.speichern"></button>
+            <span class="content-gespeichert" id="contentGespeichert" hidden data-t="content.gespeichert"></span>
+          </div>
+
+          <!-- Analyse (aufklappbar, „unten") -->
+          <details class="content-details content-analyse-details">
+            <summary data-t="content.analyse"></summary>
+            <div class="content-karte">
               <div class="segment" id="contentAnalyseArt">
                 <button data-wert="video" class="aktiv" data-t="content.analyse_video"></button>
                 <button data-wert="kanal" data-t="content.analyse_kanal"></button>
               </div>
+              <p class="content-klein" data-t="content.analyse_hinweis"></p>
+              <label class="content-feld"><span data-t="content.analyse_titel"></span><input id="caTitel" type="text"></label>
+              <label class="content-feld"><span id="caTextLabel" data-t="content.analyse_transkript"></span><textarea id="caText" rows="6"></textarea></label>
+              <label class="content-feld"><span data-t="content.analyse_notizen"></span><input id="caNotizen" type="text"></label>
+              <div class="content-speichern">
+                <button class="haupt" id="contentAnalysieren" data-t="content.analysieren"></button>
+                <span class="content-gespeichert" id="caLaeuft" hidden data-t="content.analyse_laeuft"></span>
+              </div>
+              <div class="content-bericht" id="caBericht" hidden></div>
             </div>
-            <p class="mc-klein" data-t="content.analyse_hinweis"></p>
-            <div class="content-formular">
-              <label class="content-breit"><span data-t="content.analyse_titel"></span><input id="caTitel" type="text"></label>
-              <label class="content-breit"><span id="caTextLabel" data-t="content.analyse_transkript"></span><textarea id="caText" rows="6"></textarea></label>
-              <label class="content-breit"><span data-t="content.analyse_notizen"></span><input id="caNotizen" type="text"></label>
-            </div>
-            <div class="content-speichern">
-              <button class="haupt" id="contentAnalysieren" data-t="content.analysieren"></button>
-              <span class="content-gespeichert" id="caLaeuft" hidden data-t="content.analyse_laeuft"></span>
-            </div>
-            <div class="content-bericht" id="caBericht" hidden></div>
-          </div>
+          </details>
         </div>
       </section>
 

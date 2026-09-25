@@ -1,17 +1,40 @@
-/* Content-Creation-Modul – erste Scheibe (Aktivierung + Creator-Profile). */
+/* Content-Creation-Modul – aufgeräumtes, karten­basiertes Layout. */
 .ansicht.content { padding: 20px; overflow-y: auto; }
 .content-kopf { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .content-aus { margin: 16px 0; opacity: 0.85; }
-.content-block { margin-top: 16px; }
-.content-block-kopf { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 14px 0 8px; flex-wrap: wrap; }
-.content-profil-knoepfe { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.content-profil-knoepfe select { min-width: 160px; }
-.content-formular { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; }
-.content-formular label { display: flex; flex-direction: column; gap: 4px; font-size: 0.9em; }
-.content-formular label.content-breit { grid-column: 1 / -1; }
-.content-formular input, .content-formular select, .content-formular textarea { width: 100%; box-sizing: border-box; }
-.content-formular textarea { resize: vertical; }
-.content-speichern { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+
+/* Profil-Leiste */
+.content-profilleiste { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 14px 0; }
+.content-profilleiste select { min-width: 160px; }
+
+/* Karten */
+.content-karte { background: var(--flaeche-2, rgba(127,127,127,0.06)); border: 1px solid var(--rand, rgba(127,127,127,0.18)); border-radius: 14px; padding: 16px 18px; margin: 12px 0; }
+.content-karte-titel { margin: 0 0 12px; font-size: 1.05em; }
+.content-feld { display: flex; flex-direction: column; gap: 5px; font-size: 0.92em; margin: 10px 0; }
+.content-feld > span { opacity: 0.85; }
+.content-feld input, .content-feld select, .content-feld textarea { width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px; }
+.content-feld textarea { resize: vertical; }
+.content-reihe { display: flex; gap: 14px; flex-wrap: wrap; }
+.content-reihe .content-feld { flex: 1 1 200px; margin: 10px 0; }
+.content-reihe .content-schmal { flex: 0 1 140px; }
+#cfKanalLink { font-size: 1.05em; }
+
+/* Ordner-Auswahl (kein Pfad tippen) */
+.content-ordnerwahl { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.content-ordnerpfad { font-size: 0.88em; opacity: 0.75; word-break: break-all; }
+
+.content-klein { font-size: 0.85em; opacity: 0.7; margin: 8px 0 0; }
+
+/* Aufklappbare Abschnitte (Feinschliff / Analyse) */
+.content-details { margin: 12px 0; border: 1px solid var(--rand, rgba(127,127,127,0.18)); border-radius: 14px; overflow: hidden; }
+.content-details > summary { cursor: pointer; padding: 14px 18px; font-weight: 600; list-style: none; user-select: none; }
+.content-details > summary::-webkit-details-marker { display: none; }
+.content-details > summary::before { content: "▸ "; opacity: 0.6; }
+.content-details[open] > summary::before { content: "▾ "; }
+.content-details .content-karte { margin: 0; border: 0; border-top: 1px solid var(--rand, rgba(127,127,127,0.18)); border-radius: 0; }
+
+.content-speichern { display: flex; align-items: center; gap: 12px; margin: 14px 0; }
 .content-gespeichert { color: var(--gruen, #2e7d32); font-size: 0.9em; }
-.content-bericht { margin-top: 12px; padding: 12px 14px; border-radius: 10px; background: var(--flaeche-2, rgba(127,127,127,0.08)); white-space: pre-wrap; line-height: 1.5; max-height: 420px; overflow-y: auto; }
-@media (max-width: 560px) { .content-formular { grid-template-columns: 1fr; } }
+.content-bericht { margin-top: 12px; padding: 12px 14px; border-radius: 10px; background: var(--flaeche-3, rgba(127,127,127,0.10)); white-space: pre-wrap; line-height: 1.5; max-height: 420px; overflow-y: auto; }
+
+@media (max-width: 560px) { .content-reihe .content-feld, .content-reihe .content-schmal { flex-basis: 100%; } }
