@@ -80,7 +80,14 @@ Reaction ist der wichtigste Typ für diesen Kanal – deshalb genau:
 - **Unten mittig:** großes **Spiel-/Themen-Logo** (weiß, dicker Rand). **Oben rechts:** kleiner Episoden-Marker (z. B. „2/2").
 - Beide Skins gleicher Grade/Glow → Serien-Set-Look.
 
-**Emotions-Ersatz für Skins** (da Skins nicht mimisch reagieren): passende **Pose + Overlay-Emoji + Textfarbe** je Stimmung – z. B. Schock→😱 + weite Pose, Hype→🔥 + Sprung/Action, Liebe→❤️, Fokus→ruhige Pose. Der Nutzer muss **kein** Gesichtsfoto liefern; nur seinen **Minecraft-Namen**.
+**Close-up-Duo ohne Text (Zarbex-Variante, aus echten Beispielen):**
+- Zwei Motive **groß im Close-up** (je ~40–50 % Breite), **extreme gegensätzliche Stimmung** (links Hype/Lachen 🔥😂, rechts Skepsis/Ekel/Schock 😱🤨).
+- **Durchgehender Farb-Grade** über das ganze Bild (Zarbex: lila/blau) → alles wirkt wie aus einem Guss; Hintergrund leicht unscharf + graded.
+- **Prop-Overlays** auf den Köpfen/Figuren als Gag (z. B. 👑 Krone, Hut, Heiligenschein) – ein starkes, thematisches Element.
+- **Oft GAR KEIN Text** – die Emotion/der Prop trägt. Wenn Text, dann 1–2 Wörter.
+- Dezente Kontur/Trennung vom Hintergrund (nicht immer die dicke weiße Sticker-Linie – bei Close-up reicht Grade + leichter Rand + Rim-Light).
+
+**Emotions-Ersatz für Skins** (Skins mimen nicht): passende **Pose + großes Overlay-Emoji + optional Prop + Textfarbe** je Stimmung – Schock→😱 + weite Pose, Hype→🔥 + Sprung/Action, Liebe→❤️, Skepsis→🤨, Sieg→👑. Bei „Skin statt Mensch" ist der **Bust-Render nah/groß** das Close-up-Äquivalent. Der Nutzer muss **kein** Gesichtsfoto liefern; nur seinen **Minecraft-Namen**.
 
 **Shorts-Untertitel-Stil (Zarbex, separat – nur für Hochformat-Shorts):**
 - Vertikales Video, 16:9 mit **unscharf gefülltem** Hintergrund derselben Szene.
@@ -91,7 +98,7 @@ Reaction ist der wichtigste Typ für diesen Kanal – deshalb genau:
 ## 7. Was Creator unterscheidet (Stil bewahren, nicht kopieren)
 - **BastiGHG:** wiedererkennbarer „Minecraft-Kopf auf realem Körper", kühl-blaue Marke + Neon-Akzent, viel Objekt-Fokus, sehr wenig Text, saubere UI-Elemente (Score-Pill, Rarität-Boxen).
 - **reved:** reale Gesichts-Cutouts (oft **zwei**, mit gegensätzlicher Emotion), warmer Look, Gameplay-Fenster in der Mitte, großes Spiel-Logo unten, Episoden-Marker oben rechts; **wiederverwendbares Serien-Template** (gleicher Aufbau über eine Reihe).
-- **Zarbex:** aktuell stark **Shorts** – Untertitel-Stil (ein Wort gelb) + Neon-Logo oben rechts; sein Reaction-Look lebt von echter Mimik am Mikro. Für 16:9-Reaction gilt reveds Schema.
+- **Zarbex:** Reaction als **Close-up-Duo** – zwei große Gesichter mit extrem gegensätzlicher Emotion, durchgehender **lila/blauer Farb-Grade**, **Prop-Gags** (Krone o. Ä.), **meist ohne Text**. (Daneben viele Shorts im Untertitel-Stil: ein Wort gelb + Neon-Logo oben rechts.) → Bei uns: zwei Skin-Busts nah/groß statt der Gesichter.
 - **Papaplatte:** cinematische Realfotos, Emotion/Action, oft ganz ohne Text.
 → Für **diesen** Kanal: eigener Look aus Kanal-Farben + (falls gesetzt) Minecraft-Skin + eigener Marken-Akzent. Keine fremden Logos/Gesichter.
 
