@@ -1,5 +1,8 @@
 # Changelog
 
+## 8.4.0 – 2026-09-25
+- Die Karte "Dein YouTube-Kanal" im Content-Tab ist jetzt einklappbar und nur zum Einrichten da (standardmaessig zugeklappt) statt dauerhaft angezeigt
+
 ## 8.3.0 – 2026-09-25
 - Content-Schnitt-Engine als getestete Grundlage - aus einem Video Stille erkennen und Rohschnitt (Jump-Cut) bauen, daraus 9:16-Clips fuer TikTok/YouTube Shorts schneiden und Thumbnail-Standbilder ziehen (alles FFmpeg); Content-Profil merkt sich Minecraft-Name und Thumbnail-Thema
 

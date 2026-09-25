@@ -453,27 +453,29 @@
               <button class="knopf klein" id="contentProfilExport" data-t="content.export"></button>
             </div>
 
-            <!-- Karte: dein Kanal -->
-            <div class="rt-karte">
-              <div class="rt-karte-kopf">
+            <!-- Karte: dein Kanal (optional, nur zum Einrichten – standardmäßig eingeklappt) -->
+            <details class="rt-karte ct-karte-auf">
+              <summary class="rt-karte-kopf ct-summary">
                 <div class="rt-symbol">📺</div>
                 <div><h3 data-t="content.dein_kanal"></h3><p data-t="content.dein_kanal_unter"></p></div>
-              </div>
-              <div class="rt-feld"><label for="cfKanalLink" data-t="content.kanal_link"></label>
-                <input id="cfKanalLink" class="ct-gross" type="url" placeholder="https://www.youtube.com/@deinkanal"></div>
-              <div class="ct-reihe">
-                <div class="rt-feld ct-wachs"><label for="cfKanalname" data-t="content.kanalname"></label><input id="cfKanalname" type="text"></div>
-                <div class="rt-feld"><label for="cfSprache" data-t="content.sprache"></label>
-                  <select id="cfSprache"><option value="de">Deutsch</option><option value="en">English</option></select></div>
-              </div>
-              <div class="rt-feld"><span class="rt-label" data-t="content.ordner"></span>
-                <div class="ct-leiste">
-                  <button class="knopf klein" id="cfOrdnerWaehlen" data-t="content.ordner_waehlen"></button>
-                  <span class="ct-pfad" id="cfOrdnerAnzeige" data-t="content.ordner_keiner"></span>
+              </summary>
+              <div class="ct-auf">
+                <div class="rt-feld"><label for="cfKanalLink" data-t="content.kanal_link"></label>
+                  <input id="cfKanalLink" class="ct-gross" type="url" placeholder="https://www.youtube.com/@deinkanal"></div>
+                <div class="ct-reihe">
+                  <div class="rt-feld ct-wachs"><label for="cfKanalname" data-t="content.kanalname"></label><input id="cfKanalname" type="text"></div>
+                  <div class="rt-feld"><label for="cfSprache" data-t="content.sprache"></label>
+                    <select id="cfSprache"><option value="de">Deutsch</option><option value="en">English</option></select></div>
                 </div>
+                <div class="rt-feld"><span class="rt-label" data-t="content.ordner"></span>
+                  <div class="ct-leiste">
+                    <button class="knopf klein" id="cfOrdnerWaehlen" data-t="content.ordner_waehlen"></button>
+                    <span class="ct-pfad" id="cfOrdnerAnzeige" data-t="content.ordner_keiner"></span>
+                  </div>
+                </div>
+                <p class="ct-klein" data-t="content.assets_hinweis"></p>
               </div>
-              <p class="ct-klein" data-t="content.assets_hinweis"></p>
-            </div>
+            </details>
 
             <!-- Karte: Feinschliff (aufklappbar) -->
             <details class="rt-karte ct-karte-auf">
