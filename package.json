@@ -1,7 +1,7 @@
 {
   "name": "julia-ai",
   "productName": "Julia",
-  "version": "9.0.0",
+  "version": "9.1.0",
   "description": "Julia – persönlicher Assistent für den Windows-PC, mit Sprache, Bildschirmblick und Ampel-Freigaben.",
   "main": "src/main/main.js",
   "author": "MoinMornhart",

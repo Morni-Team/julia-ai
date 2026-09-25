@@ -1322,6 +1322,56 @@ function ipcEinrichten() {
     } catch (e) { return { fehler: e.message }; }
   });
 
+  // 3D-Thumbnail-Render (Blender). Erster Lauf laedt Blender einmalig (~383 MB) in
+  // den Datenordner, danach offline nutzbar. Skin(s) werden ueber den/die Namen geholt.
+  let _blender3d = null;
+  function blenderInstanz() {
+    if (!_blender3d) {
+      const { Blender } = require('./content/blender');
+      _blender3d = new Blender({ ordner: DATEN, skriptQuelle: path.join(__dirname, 'content', 'blender'), holen: (u, o) => net.fetch(u, o) });
+    }
+    return _blender3d;
+  }
+  ipc.handle('content:blender-status', () => { try { return { da: blenderInstanz().istDa() }; } catch (e) { return { fehler: e.message }; } });
+  ipc.handle('content:thumbnail-3d', async (_e, opts) => {
+    try {
+      const o = opts || {};
+      const namen = Array.isArray(o.namen) ? o.namen : [];
+      const b = blenderInstanz();
+      const fenster = (chatFenster && !chatFenster.isDestroyed()) ? chatFenster : null;
+      const r = await b.render({
+        namen, poses: o.poses || ['bereit'], items: o.items || ['sword'], scene: o.scene || 'gras', anordnung: o.anordnung || 'reihe', samples: o.samples,
+      }, (p) => { try { if (fenster) fenster.webContents.send('content:blender-fortschritt', p); } catch { /* egal */ } });
+      const buf = fs.readFileSync(r.pfad);
+      try { fs.unlinkSync(r.pfad); } catch { /* egal */ }
+      return { datenUrl: `data:image/png;base64,${buf.toString('base64')}` };
+    } catch (e) { return { fehler: e.message }; }
+  });
+
+  // „Julia entscheidet": aus Thema (+ optionalem Chat-Änderungswunsch) Pose/Item/
+  // Anordnung planen und rendern. Nutzt den aktiven Kanal + evtl. weitere Namen.
+  ipc.handle('content:thumbnail-3d-auto', async (_e, opts) => {
+    try {
+      const o = opts || {};
+      const { renderPlanPrompt, renderPlanLesen, kategorieFuerKanal } = require('./content/thumbnails');
+      const profil = content.profile.aktiv() || {};
+      const mcName = profil.mc_name || '';
+      const extra = (o.extraNames || []).filter(Boolean);
+      const namen = [mcName, ...extra].filter(Boolean);
+      if (!namen.length) return { fehler: 'Kein Minecraft-Name gesetzt – trage ihn im Reiter „Kanal" ein.' };
+      const kat = kategorieFuerKanal(profil, o.wahl);
+      const { system, auftrag } = renderPlanPrompt({ topic: o.topic || '', mcName, extraNames: extra, aenderung: o.aenderung || '', kategorie: kat.kategorie, sprache: config.get('sprachcode') });
+      let plan = { poses: ['bereit'], items: ['sword'], anordnung: namen.length >= 2 ? 'kampf' : 'reihe', headline: '', farben: [] };
+      try { plan = renderPlanLesen(await agent.einmalAntwort({ system, text: auftrag, maxTokens: 300 }), namen.length); } catch { /* Fallback-Plan */ }
+      const b = blenderInstanz();
+      const fenster = (chatFenster && !chatFenster.isDestroyed()) ? chatFenster : null;
+      const r = await b.render({ namen, poses: plan.poses, items: plan.items, anordnung: plan.anordnung, scene: o.scene || 'gras', samples: o.samples },
+        (p) => { try { if (fenster) fenster.webContents.send('content:blender-fortschritt', p); } catch { /* egal */ } });
+      const buf = fs.readFileSync(r.pfad); try { fs.unlinkSync(r.pfad); } catch { /* egal */ }
+      return { datenUrl: `data:image/png;base64,${buf.toString('base64')}`, headline: plan.headline, farben: plan.farben, plan: { poses: plan.poses, items: plan.items, anordnung: plan.anordnung } };
+    } catch (e) { return { fehler: e.message }; }
+  });
+
   // Reiter 1: Schnittaufträge (CRUD).
   ipc.handle('content:auftrag-list', () => { try { return content.auftragListe(); } catch (e) { return { fehler: e.message }; } });
   ipc.handle('content:auftrag-add', (_e, a) => { try { return { auftrag: content.auftragHinzufuegen(a) }; } catch (e) { return { fehler: e.message }; } });

@@ -491,6 +491,32 @@
 
             <!-- Reiter 3: Thumbnails -->
             <div class="ct-panel" data-panel="thumbnails" hidden>
+              <!-- Karte: 3D-Render (Blender) – Julia baut ein echtes 3D-Minecraft-Thumbnail -->
+              <div class="rt-karte">
+                <div class="rt-karte-kopf"><div class="rt-symbol">🧊</div><div><h3 data-t="content.d3_titel"></h3><p data-t="content.d3_unter"></p></div></div>
+                <p class="ct-klein" data-t="content.d3_hinweis"></p>
+                <div class="rt-feld"><label for="ct3dTopic" data-t="content.d3_topic"></label>
+                  <textarea id="ct3dTopic" rows="2" placeholder="z. B. Ich baue eine riesige Diamant-Base / Er greift mich an im PvP"></textarea></div>
+                <div class="rt-feld"><label for="ct3dExtra" data-t="content.d3_extra"></label>
+                  <input id="ct3dExtra" type="text" placeholder="weitere Minecraft-Namen, mit Komma (optional)"></div>
+                <div class="ct-leiste">
+                  <button class="knopf primaer" id="ct3dBtn" data-t="content.d3_erstellen"></button>
+                  <span class="ct-pfad" id="ct3dStatus"></span>
+                </div>
+                <img id="ct3dImg" class="ct-3d-bild" alt="" hidden>
+                <div class="ct-leiste" id="ct3dAktionen" hidden>
+                  <button class="knopf" id="ct3dSpeichern" data-t="content.thumbnail_speichern"></button>
+                  <span class="ct-ok" id="ct3dGespeichert" hidden data-t="content.gespeichert"></span>
+                </div>
+                <!-- Chatbox: Änderungswünsche am Thumbnail -->
+                <div class="rt-feld" id="ct3dChatZeile" hidden><label for="ct3dChat" data-t="content.d3_chat"></label>
+                  <div class="ct-leiste">
+                    <input id="ct3dChat" type="text" class="ct-wachs" placeholder="z. B. Schwert größer / anderer Hintergrund / er soll angreifen">
+                    <button class="knopf" id="ct3dChatBtn" data-t="content.d3_aendern"></button>
+                  </div>
+                </div>
+              </div>
+
               <div class="rt-karte">
                 <div class="rt-karte-kopf"><div class="rt-symbol">🖼️</div><div><h3 data-t="content.thumbnail"></h3><p data-t="content.thumbnail_unter"></p></div></div>
                 <p class="ct-klein" data-t="content.thumbnail_hinweis"></p>

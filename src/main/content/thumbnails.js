@@ -149,4 +149,48 @@ function konzeptLesen(text) {
   return { headline, farben, pose, hintergrund: feld('HINTERGRUND') || feld('BACKGROUND') };
 }
 
-module.exports = { POSEN, CROPS, KATEGORIEN, SKIN_BASIS, mcNameRein, skinRenderUrl, kategorieFuerKanal, thumbnailKonzeptPrompt, beschreibungKonzeptPrompt, konzeptLesen, hintergrundPrompt, THUMB_REGELN };
+// ---- 3D-Render-Plan (Blender): Julia waehlt Pose/Item/Anordnung aus dem Thema ----
+const POSEN3D = ['bereit', 'walk', 'attack', 'angst', 'idle'];
+const ITEMS3D = ['sword', 'pickaxe', 'none'];
+const ANORDNUNGEN = ['reihe', 'kampf'];
+
+// Prompt: aus Thema (+ optionalem Aenderungswunsch aus der Chatbox) einen Plan bauen.
+function renderPlanPrompt({ topic = '', mcName = '', extraNames = [], aenderung = '', kategorie = 'gaming', sprache = 'de' } = {}) {
+  const de = sprache !== 'en';
+  const n = 1 + (extraNames || []).length;
+  const system = [
+    'You plan a 3D Minecraft YouTube thumbnail render. Decide a fitting pose, item and arrangement from the topic.',
+    `There are ${n} character(s). Category: ${kategorie}.`,
+    `Allowed POSE values: ${POSEN3D.join(', ')}. Allowed ITEM values: ${ITEMS3D.join(', ')} (use none for empty hands). Allowed ARRANGEMENT: ${ANORDNUNGEN.join(', ')} (kampf = two facing each other, one attacking).`,
+    'Answer ONLY in these exact labeled lines, nothing else:',
+    'POSE1: <one pose>',
+    'ITEM1: <one item>',
+    ...(n >= 2 ? ['POSE2: <one pose>', 'ITEM2: <one item>'] : []),
+    'ARRANGEMENT: <reihe|kampf>',
+    'HEADLINE: <3-5 clickworthy words, UPPERCASE>',
+    'FARBEN: <2-3 hex colors, comma-separated>',
+  ].join('\n');
+  const teile = [`${de ? 'Thema' : 'Topic'}: ${String(topic || '').slice(0, 400)}`];
+  if (mcName) teile.push(`${de ? 'Hauptfigur' : 'Main character'}: ${mcName}`);
+  if (extraNames && extraNames.length) teile.push(`${de ? 'Weitere Spieler' : 'Other players'}: ${extraNames.join(', ')}`);
+  if (aenderung) teile.push(`${de ? 'Aenderungswunsch' : 'Change request'}: ${String(aenderung).slice(0, 300)}`);
+  return { system, auftrag: teile.join('\n') };
+}
+
+// Liest den Plan (robust) in Render-Parameter.
+function renderPlanLesen(text, anzahl = 1) {
+  const s = String(text || '');
+  const feld = (name) => { const m = new RegExp(`(?:^|\\n)\\s*${name}\\s*[:\\-]\\s*(.+)`, 'i').exec(s); return m ? m[1].trim() : ''; };
+  const pose = (v) => (POSEN3D.includes(String(v).toLowerCase()) ? String(v).toLowerCase() : 'bereit');
+  const item = (v) => (ITEMS3D.includes(String(v).toLowerCase()) ? String(v).toLowerCase() : 'sword');
+  const poses = [pose(feld('POSE1'))];
+  const items = [item(feld('ITEM1'))];
+  if (anzahl >= 2) { poses.push(pose(feld('POSE2') || 'angst')); items.push(item(feld('ITEM2') || 'none')); }
+  let anordnung = feld('ARRANGEMENT').toLowerCase();
+  if (!ANORDNUNGEN.includes(anordnung)) anordnung = anzahl >= 2 ? 'kampf' : 'reihe';
+  const headline = (feld('HEADLINE') || '').replace(/^["'*]+|["'*]+$/g, '').slice(0, 40);
+  const farben = (feld('FARBEN').match(/#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3}/g) || []).slice(0, 3);
+  return { poses, items, anordnung, headline, farben };
+}
+
+module.exports = { POSEN, CROPS, KATEGORIEN, SKIN_BASIS, mcNameRein, skinRenderUrl, kategorieFuerKanal, thumbnailKonzeptPrompt, beschreibungKonzeptPrompt, konzeptLesen, hintergrundPrompt, renderPlanPrompt, renderPlanLesen, POSEN3D, ITEMS3D, ANORDNUNGEN, THUMB_REGELN };

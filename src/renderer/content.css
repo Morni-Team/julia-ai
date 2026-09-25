@@ -96,6 +96,7 @@
 
 /* Thumbnail-Compositor */
 .ct-canvas { width: 100%; max-width: 680px; aspect-ratio: 16 / 9; height: auto; border-radius: 12px; border: 1px solid var(--linie-stark); background: #000; box-shadow: var(--glow-klein); display: block; }
+.ct-3d-bild { width: 100%; max-width: 680px; aspect-ratio: 16 / 9; object-fit: cover; height: auto; border-radius: 12px; border: 1px solid var(--linie-stark); background: var(--grund-2); box-shadow: var(--glow-klein); display: block; margin-top: 8px; }
 .ct-select:disabled, .segment button:disabled { opacity: .5; cursor: not-allowed; }
 
 /* Auf schmalen Fenstern: Tabs umbrechen lassen, Text der Kanalwahl nicht zu breit */

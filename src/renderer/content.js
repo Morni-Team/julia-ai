@@ -498,11 +498,44 @@
     };
   }
 
+  // ---- 3D-Render (Blender): Julia baut ein 3D-Thumbnail, Chatbox für Änderungen ----
+  function d3Verdrahten() {
+    let letztesBild = null;
+    const setStatus = (t) => { if (el('ct3dStatus')) el('ct3dStatus').textContent = t; };
+    async function erstellen(aenderung) {
+      const topic = el('ct3dTopic') ? el('ct3dTopic').value.trim() : '';
+      const extra = el('ct3dExtra') ? el('ct3dExtra').value.split(',').map((s) => s.trim()).filter(Boolean) : [];
+      setStatus('Julia rendert dein 3D-Thumbnail … (erster Lauf lädt Blender ~383 MB, kann dauern)');
+      if (el('ct3dBtn')) el('ct3dBtn').disabled = true;
+      let r;
+      try { r = await j.contentThumbnail3dAuto({ topic, extraNames: extra, aenderung: aenderung || '', wahl: thumbKat }); } catch (e) { r = { fehler: e && e.message }; }
+      if (el('ct3dBtn')) el('ct3dBtn').disabled = false;
+      if (!r || r.fehler) { setStatus((r && r.fehler) || 'Fehlgeschlagen.'); return; }
+      letztesBild = r.datenUrl;
+      const img = el('ct3dImg'); if (img) { img.src = r.datenUrl; img.hidden = false; }
+      if (el('ct3dAktionen')) el('ct3dAktionen').hidden = false;
+      if (el('ct3dChatZeile')) el('ct3dChatZeile').hidden = false;
+      setStatus('Fertig.' + (r.headline ? ` Text-Vorschlag: „${r.headline}"` : ''));
+    }
+    if (el('ct3dBtn')) el('ct3dBtn').onclick = () => erstellen('');
+    if (el('ct3dChatBtn')) el('ct3dChatBtn').onclick = () => { const c = el('ct3dChat'); const v = c ? c.value.trim() : ''; if (!v) return; erstellen(v); if (c) c.value = ''; };
+    if (el('ct3dSpeichern')) el('ct3dSpeichern').onclick = () => {
+      if (!letztesBild) return;
+      try {
+        const a = document.createElement('a'); a.href = letztesBild; a.download = `thumbnail-3d-${Date.now()}.png`;
+        document.body.appendChild(a); a.click(); a.remove();
+        const ok = el('ct3dGespeichert'); if (ok) { ok.hidden = false; setTimeout(() => { ok.hidden = true; }, 2500); }
+      } catch (e) { alert('Speichern nicht möglich: ' + (e && e.message)); }
+    };
+    if (j.onBlenderFortschritt) { try { j.onBlenderFortschritt((p) => { if (p < 1) setStatus(`Lade Blender … ${Math.round(p * 100)}%`); }); } catch { /* egal */ } }
+  }
+
   function verdrahten() {
     tabsVerdrahten();
     auftraegeVerdrahten();
     planVerdrahten();
     thumbVerdrahten();
+    d3Verdrahten();
     kanalVerdrahten();
   }
 

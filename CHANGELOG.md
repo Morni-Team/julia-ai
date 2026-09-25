@@ -1,5 +1,8 @@
 # Changelog
 
+## 9.1.0 – 2026-09-25
+- Content-Studio baut echte 3D-Minecraft-Thumbnails aus deinem Skin per Blender - Julia waehlt Pose, Item und Anordnung passend zum Thema, mehrere Spieler und Kampf-Szenen moeglich, Aenderungswuensche per Chatbox; Blender wird beim ersten Mal einmalig geladen, danach offline
+
 ## 9.0.0 – 2026-09-25
 - Thumbnail-Skin wirkt lebendiger (isometrische 3D-Pose, leichte Neigung, Boden-Schatten, groesser) und der KI-Hintergrund kommt jetzt vom hochwertigeren Flux-Modell
 
