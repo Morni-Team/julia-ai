@@ -159,6 +159,23 @@
         if (window.juliaTexteNach) window.juliaTexteNach();
       };
     });
+    if (el('caVideo')) el('caVideo').onclick = async () => {
+      const status = el('caVideoStatus');
+      const r = await j.contentVideoWaehlen();
+      if (!r || r.abgebrochen) return;
+      if (r.fehler) { if (status) status.textContent = r.fehler; return; }
+      // auf „Video"-Modus stellen
+      analyseArt = 'video';
+      if (artSegment) artSegment.querySelectorAll('button').forEach((x) => x.classList.toggle('aktiv', x.dataset.wert === 'video'));
+      if (status) status.textContent = 'Transkribiere Video … (kann dauern)';
+      const t = await j.contentVideoTranskribieren(r.pfad);
+      if (t && t.transkript) {
+        if (el('caText')) el('caText').value = t.transkript;
+        if (status) status.textContent = 'Transkript eingefügt ✓ – jetzt „Analysieren".';
+      } else if (status) {
+        status.textContent = (t && t.fehler) ? t.fehler : 'Transkription fehlgeschlagen.';
+      }
+    };
     if (el('contentAnalysieren')) el('contentAnalysieren').onclick = async () => {
       const txt = el('caText').value.trim();
       if (!txt) { alert('Bitte erst das Transkript bzw. die Kanal-Infos einfügen.'); return; }

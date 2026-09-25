@@ -1,40 +1,31 @@
-/* Content-Creation-Modul – aufgeräumtes, karten­basiertes Layout. */
-.ansicht.content { padding: 20px; overflow-y: auto; }
-.content-kopf { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.content-aus { margin: 16px 0; opacity: 0.85; }
+/* Content-Creation-Modul – nutzt das App-Design (Tokens/Klassen aus start.css:
+   .rt-innen/.rt-kopf/.rt-karte/.rt-feld/.knopf). Hier nur die wenigen Ergänzungen. */
 
-/* Profil-Leiste */
-.content-profilleiste { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 14px 0; }
-.content-profilleiste select { min-width: 160px; }
+.ct-inhalt { display: flex; flex-direction: column; gap: 14px; }
+.ct-leiste { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ct-select { font: inherit; color: var(--text); background: var(--grund-2); border: 1px solid var(--linie-stark); border-radius: 10px; padding: 8px 11px; min-width: 170px; }
 
-/* Karten */
-.content-karte { background: var(--flaeche-2, rgba(127,127,127,0.06)); border: 1px solid var(--rand, rgba(127,127,127,0.18)); border-radius: 14px; padding: 16px 18px; margin: 12px 0; }
-.content-karte-titel { margin: 0 0 12px; font-size: 1.05em; }
-.content-feld { display: flex; flex-direction: column; gap: 5px; font-size: 0.92em; margin: 10px 0; }
-.content-feld > span { opacity: 0.85; }
-.content-feld input, .content-feld select, .content-feld textarea { width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px; }
-.content-feld textarea { resize: vertical; }
-.content-reihe { display: flex; gap: 14px; flex-wrap: wrap; }
-.content-reihe .content-feld { flex: 1 1 200px; margin: 10px 0; }
-.content-reihe .content-schmal { flex: 0 1 140px; }
-#cfKanalLink { font-size: 1.05em; }
+/* Felder in Reihen (nutzt .rt-feld aus start.css) */
+.ct-reihe { display: flex; flex-wrap: wrap; gap: 12px 18px; }
+.ct-reihe .rt-feld { flex: 0 1 150px; }
+.ct-reihe .ct-wachs { flex: 1 1 240px; }
+.ct-inhalt .rt-feld input, .ct-inhalt .rt-feld select, .ct-inhalt .rt-feld textarea {
+  font: inherit; color: var(--text); background: var(--grund-2);
+  border: 1px solid var(--linie-stark); border-radius: 10px; padding: 9px 12px; outline: none; width: 100%; box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.ct-inhalt .rt-feld input:focus, .ct-inhalt .rt-feld select:focus, .ct-inhalt .rt-feld textarea:focus { border-color: var(--akzent-rand); box-shadow: var(--glow); }
+.ct-inhalt .rt-feld textarea { resize: vertical; line-height: 1.5; }
+.ct-gross { font-size: 15px; }
+.ct-pfad { font-size: 12px; color: var(--text-3); word-break: break-all; }
+.ct-klein { font-size: 12px; color: var(--text-3); margin: 2px 0 0; }
+.ct-ok { color: var(--gruen); font-size: 13px; }
 
-/* Ordner-Auswahl (kein Pfad tippen) */
-.content-ordnerwahl { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.content-ordnerpfad { font-size: 0.88em; opacity: 0.75; word-break: break-all; }
+/* Aufklappbare Karten */
+.ct-karte-auf > .ct-summary { cursor: pointer; list-style: none; }
+.ct-karte-auf > .ct-summary::-webkit-details-marker { display: none; }
+.ct-karte-auf > .ct-summary::after { content: "▸"; margin-left: auto; color: var(--text-3); transition: transform 0.15s; }
+.ct-karte-auf[open] > .ct-summary::after { transform: rotate(90deg); }
+.ct-auf { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
 
-.content-klein { font-size: 0.85em; opacity: 0.7; margin: 8px 0 0; }
-
-/* Aufklappbare Abschnitte (Feinschliff / Analyse) */
-.content-details { margin: 12px 0; border: 1px solid var(--rand, rgba(127,127,127,0.18)); border-radius: 14px; overflow: hidden; }
-.content-details > summary { cursor: pointer; padding: 14px 18px; font-weight: 600; list-style: none; user-select: none; }
-.content-details > summary::-webkit-details-marker { display: none; }
-.content-details > summary::before { content: "▸ "; opacity: 0.6; }
-.content-details[open] > summary::before { content: "▾ "; }
-.content-details .content-karte { margin: 0; border: 0; border-top: 1px solid var(--rand, rgba(127,127,127,0.18)); border-radius: 0; }
-
-.content-speichern { display: flex; align-items: center; gap: 12px; margin: 14px 0; }
-.content-gespeichert { color: var(--gruen, #2e7d32); font-size: 0.9em; }
-.content-bericht { margin-top: 12px; padding: 12px 14px; border-radius: 10px; background: var(--flaeche-3, rgba(127,127,127,0.10)); white-space: pre-wrap; line-height: 1.5; max-height: 420px; overflow-y: auto; }
-
-@media (max-width: 560px) { .content-reihe .content-feld, .content-reihe .content-schmal { flex-basis: 100%; } }
+.ct-bericht { padding: 12px 14px; border-radius: 12px; background: var(--flaeche-2); border: 1px solid var(--linie); white-space: pre-wrap; line-height: 1.55; max-height: 420px; overflow-y: auto; color: var(--text); }

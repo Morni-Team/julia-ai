@@ -54,6 +54,14 @@ Gebaut (erste vertikale Scheibe):
       Thumbnail/Verbesserungen) über einen Einmal-Aufwand ohne Werkzeuge, nur Text.
       [src/main/content/analyse-video.js](../src/main/content/analyse-video.js),
       IPC `content:analysieren`, UI im Content-Tab.
+- [x] **UI im App-Design** (Nutzerwunsch „ordentlicher, gleiche Farben"): Content-Tab
+      nutzt jetzt die echten App-Klassen/Tokens (`rt-innen`/`rt-karte`/`knopf`,
+      orange Akzent), Kanal-Link zuerst (optional), Ordner per Auswahl-Dialog,
+      Assets macht die KI selbst; Feinschliff/Analyse als aufklappbare Karten.
+- [x] **Video-Upload** (Nutzerwunsch): Video wählen → lokal per ffmpeg zu 16-kHz-WAV
+      extrahiert und mit Whisper transkribiert → fließt in die Analyse. IPC
+      `content:video-waehlen`/`content:video-transkribieren` (nutzt sprache.js/Whisper
+      + video-ffmpeg). Braucht das geladene Whisper-Modell + ffmpeg (Bedarf-Download).
 
 Als Nächstes (aufbauend):
 

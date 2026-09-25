@@ -78,6 +78,13 @@ test('haengerAktiv: will gar nicht vorankommen → nie prüfen', () => {
   assert.equal(haengerAktiv({ wegsuche: false, selbst: false, onGround: true, imWasser: true }), false);
 });
 
+test('haengerAktiv: passiv im Wasser eingekeilt mit laufender Aufgabe → doch prüfen (Nutzerfall „hängt fest")', () => {
+  // Kein Lauf-Wunsch, kein Pathfinder, aber im Wasser UND eine Aufgabe läuft → auftauchen.
+  assert.equal(haengerAktiv({ wegsuche: false, selbst: false, onGround: false, imWasser: true, aufgabe: true }), true);
+  // An Land passiv (kein Lauf-Wunsch) bleibt es beim Nichtstun, auch mit Aufgabe.
+  assert.equal(haengerAktiv({ wegsuche: false, selbst: false, onGround: true, imWasser: false, aufgabe: true }), false);
+});
+
 test('haengerDauer: im Wasser länger als an Land', () => {
   assert.ok(haengerDauer(true) > haengerDauer(false));
 });

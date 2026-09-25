@@ -1142,6 +1142,37 @@ function ipcEinrichten() {
       return { ordner: r.filePaths[0] };
     } catch (e) { return { fehler: e.message }; }
   });
+  // Video-Datei wählen (zum Analysieren/Kennenlernen des Schnittstils).
+  ipc.handle('content:video-waehlen', async () => {
+    try {
+      const fenster = (chatFenster && !chatFenster.isDestroyed()) ? chatFenster : null;
+      const opts = { properties: ['openFile'], filters: [{ name: 'Video', extensions: ['mp4', 'mov', 'mkv', 'webm', 'avi', 'm4v'] }] };
+      const r = fenster ? await dialog.showOpenDialog(fenster, opts) : await dialog.showOpenDialog(opts);
+      if (r.canceled || !r.filePaths || !r.filePaths[0]) return { abgebrochen: true };
+      return { pfad: r.filePaths[0] };
+    } catch (e) { return { fehler: e.message }; }
+  });
+  // Video lokal transkribieren: Audio per ffmpeg zu 16-kHz-Mono-WAV extrahieren,
+  // dann mit Whisper aufschreiben. Rein lokal; nur der Text wird weiterverwendet.
+  ipc.handle('content:video-transkribieren', async (_e, pfad) => {
+    try {
+      if (!pfad) return { fehler: 'Kein Video gewählt.' };
+      const whisperFn = spracherkennung();
+      if (!whisperFn) return { fehler: 'Für die Video-Transkription brauche ich Whisper. Bitte in den Einstellungen unter „Sprache" die Whisper-Erkennung wählen und laden.' };
+      const ff = videoFfmpeg.aufgeloest(DATEN, (config.get('video') || {}).ffmpeg || '');
+      if (!ff) return { fehler: 'Für die Video-Transkription brauche ich ffmpeg. Bitte einmal ffmpeg laden (im Video-/Content-Bereich).' };
+      const wav = path.join(os.tmpdir(), `julia-video-${Date.now()}.wav`);
+      const { spawn: spawnP } = require('child_process');
+      await new Promise((res, rej) => {
+        const p = spawnP(ff, ['-y', '-i', pfad, '-vn', '-ar', '16000', '-ac', '1', '-f', 'wav', wav], { windowsHide: true });
+        p.on('error', rej);
+        p.on('close', (c) => (c === 0 ? res() : rej(new Error(`ffmpeg-Audio-Extraktion fehlgeschlagen (Code ${c}).`))));
+      });
+      const r = await sprache._whisperText(wav, whisperFn); // löscht die WAV selbst
+      if (!r || r.text == null) return { fehler: (r && r.fehler) ? r.fehler : 'Im Video wurde keine Sprache erkannt.' };
+      return { transkript: r.text };
+    } catch (e) { return { fehler: e.message }; }
+  });
   // "Allem zustimmen" (und "auch nach fremden Inhalten") lassen sich nur hier
   // einschalten – nach einem Ja im Windows-Dialog. Julia selbst kann es nicht
   // (einstellung_setzen: ROT).

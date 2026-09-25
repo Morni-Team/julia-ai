@@ -294,7 +294,11 @@ function besteWerkzeug(items, art) {
 // Soll die Hänger-Prüfung überhaupt laufen? Nur wenn sie vorankommen will
 // (Wegsuche oder selbst vorwärts) und entweder am Boden steht oder im Wasser
 // ist (Issue #28: im Wasser ist onGround immer false).
-function haengerAktiv({ wegsuche, selbst, onGround, imWasser }) {
+function haengerAktiv({ wegsuche, selbst, onGround, imWasser, aufgabe }) {
+  // Passiv im Wasser eingekeilt (kein Lauf-Wunsch, Pathfinder steht), aber eine
+  // Aufgabe läuft → auch dann eingreifen: sie bleibt sonst ewig im Wasserloch
+  // stecken (Nutzerfall „Julia hängt fest"). Auftauchen ist immer sicher.
+  if (imWasser && aufgabe) return true;
   if (!wegsuche && !selbst) return false;
   return !!(onGround || imWasser);
 }
@@ -2107,7 +2111,7 @@ class Minecraft extends EventEmitter {
     // festhängen. Im Wasser bedeutet „springen" = hochschwimmen (immer sicher,
     // sie steigt nur; kein Block wird abgebaut).
     const imWasser = !!bot.entity.isInWater;
-    if (!haengerAktiv({ wegsuche, selbst, onGround: bot.entity.onGround, imWasser })) { this._haenger = null; return; }
+    if (!haengerAktiv({ wegsuche, selbst, onGround: bot.entity.onGround, imWasser, aufgabe: !!this.auftrag })) { this._haenger = null; return; }
     const s = haengerStatus(this._haenger, bot.entity.position, this.ticks);
     if (s.neu) this._haenger = s.neu;
     if (s.springen && bot.setControlState) {
@@ -2120,7 +2124,7 @@ class Minecraft extends EventEmitter {
     // (Livelock, Issue #8). Bei aktiver Wegfindung nicht eingreifen – der Pathfinder
     // steuert selbst und weicht aus.
     if (s.aufgeben && bot.setControlState) {
-      if (!wegsuche) {
+      if (selbst && !wegsuche) {
         // Selbst-Laufen: Vorwärts-Drücken stoppen, sonst springt sie endlos gegen
         // das Hindernis (Livelock, Issue #8); der nächste Schritt sucht neu.
         try {
@@ -2128,9 +2132,10 @@ class Minecraft extends EventEmitter {
           bot.setControlState('sprint', false);
         } catch { /* getrennt */ }
       } else {
-        // Wegfindung klemmt (z. B. am Baumstamm) trotz Sprüngen. Den Pathfinder
-        // den Weg NEU berechnen lassen (dynamisch, ohne die laufende Aufgabe
-        // abzubrechen), damit er außenrum plant statt ewig anzustoßen.
+        // Wegfindung klemmt (z. B. am Baumstamm) ODER sie steckt passiv im Wasser
+        // mit vorhandenem Ziel fest: den Pathfinder den Weg NEU berechnen lassen
+        // (dynamisch, ohne die Aufgabe abzubrechen), damit er außenrum plant statt
+        // ewig anzustoßen bzw. sich aus dem Wasserloch neu herausplant.
         try {
           const ziel = bot.pathfinder && bot.pathfinder.goal;
           if (ziel && bot.pathfinder.setGoal) bot.pathfinder.setGoal(ziel, true);

@@ -1,5 +1,8 @@
 # Changelog
 
+## 8.2.0 – 2026-09-25
+- Content-Modul im echten Julia-Design (gleiche Farben/Karten/Buttons) statt zusammengewuerfelt, Kanal-Link optional, Ordner per Auswahl-Dialog, Assets macht Julia selbst; neu: Video hochladen und lokal per Whisper transkribieren lassen fuer die Analyse. Ausserdem Minecraft: haengt nicht mehr passiv im Wasser fest (taucht auf und sucht neuen Weg)
+
 ## 8.1.0 – 2026-09-25
 - Content-Modul aufgeraeumt und vereinfacht - zuerst nur der YouTube-Kanal-Link (optional, geht auch ohne), Arbeitsordner bequem per Auswahl-Dialog statt Pfad tippen, Logo/Soundeffekte/Farben macht Julia selbst und speichert sie im Ordner; Analyse und Feinschliff in aufklappbaren Bereichen
 
