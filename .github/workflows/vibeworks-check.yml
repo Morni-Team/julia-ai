@@ -89,6 +89,9 @@ jobs:
           if git ls-files '.github/workflows/*.yml' '.github/workflows/*.yaml' | grep -q .; then
             docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12 -format '{{json .}}' > .vw-actionlint.json || true
           fi
+          # Dateien, die per <script src> oder <link href> in HTML hängen: Der
+          # Analysator sieht nur JS-Importe und hält sie sonst für ungenutzt (#203).
+          git grep -hoE '(src|href)="[^"]+"' -- '*.html' '*.htm' 2>/dev/null | sed -E 's/.*="([^"]+)".*/\1/' | sed -E 's#\?.*##' | sed -E 's#.*/##' | sort -u > .vw-html-refs.txt || true
           # JavaScript/TypeScript: ungenutzter Code, ungenutzte Abhängigkeiten, Zyklen (fallow, kostenlos).
           # Feste Version und – falls vorhanden – dieselbe Baseline wie das Projekt selbst,
           # damit Repo-Check und eigene Prüfung nicht auseinanderlaufen.
@@ -213,6 +216,15 @@ jobs:
               for x in actionlint:
                   add("actionlint", x.get("filepath"), x.get("line"), x.get("kind"), "WARNING", x.get("message"))
 
+          # In HTML eingebundene Dateien gelten nicht als ungenutzt (#203)
+          try:
+              with open(".vw-html-refs.txt", encoding="utf-8", errors="replace") as f:
+                  html_refs = {line.strip() for line in f if line.strip()}
+          except Exception:
+              html_refs = set()
+          def in_html(path):
+              return bool(path) and path.split("/")[-1] in html_refs
+
           fallow = load(".vw-fallow.json")
           if fallow is not None:
               out["tools"]["fallow"] = True
@@ -222,8 +234,14 @@ jobs:
                   files = x.get("files") or []
                   add("fallow", files[0] if files else "", x.get("line"), "circular", "WARNING", "Import cycle: " + " -> ".join(files[:6]))
               for x in (fallow.get("unused_files") or [])[:15]:
+                  if in_html(x.get("path")):
+                      out["suppressed"] = out.get("suppressed", 0) + 1
+                      continue
                   add("fallow", x.get("path"), None, "unused-file", "INFO", "File is not imported anywhere")
               for x in (fallow.get("unused_exports") or [])[:15]:
+                  if in_html(x.get("path")):
+                      out["suppressed"] = out.get("suppressed", 0) + 1
+                      continue
                   add("fallow", x.get("path"), x.get("line"), "unused-export", "INFO", f"Export {x.get('export_name')} is not used")
 
           out["findings"] = extra + out["findings"][: 400 - len(extra)]
