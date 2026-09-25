@@ -1,5 +1,8 @@
 # Changelog
 
+## 8.8.0 – 2026-09-25
+- Thumbnails auf Profi-Niveau - der Minecraft-Skin kommt als cinematische 3D-Pose rein und wird mit weisser Kontur, weichem Schlagschatten und Akzent-Glow freigestellt (poppt raus statt flach), dazu kraeftigerer Hintergrund (Spotlight, Bokeh, Vignette) und groesserer fetter Text mit Rand und Schatten
+
 ## 8.7.1 – 2026-09-25
 - Thumbnail Aus Beschreibung und andere Einmal-Aufrufe funktionieren jetzt auch im Claude-Abo-Modus (vorher: Konzept fehlgeschlagen - Einmal-Aufruf nicht verfuegbar); Bild-Analyse meldet im Abo klar, dass keine Bilder gehen
 

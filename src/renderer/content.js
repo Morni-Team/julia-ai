@@ -242,7 +242,7 @@
     genFarben = (r.farben && r.farben.length) ? r.farben : [];
     gewaehltesBild = null; // kein Videoframe → Farbverlauf-Hintergrund
     skinBild = null;
-    if (r.skinUrl) { try { const sk = await j.contentSkin({}); if (sk && sk.datenUrl) skinBild = await bildLaden(sk.datenUrl); } catch { /* ohne Skin weiter */ } }
+    if (r.skinUrl) { try { const sk = await j.contentSkin({ pose: r.pose, crop: r.crop }); if (sk && sk.datenUrl) skinBild = await bildLaden(sk.datenUrl); } catch { /* ohne Skin weiter */ } }
     if (el('ctThumbText')) el('ctThumbText').value = (r.headline || el('ctThumbText').value || '').toUpperCase();
     if (genFarben[1] && el('ctThumbFarbe')) el('ctThumbFarbe').value = genFarben[1];
     if (konzept && r.konzept) { konzept.hidden = false; konzept.textContent = r.konzept; }
@@ -277,9 +277,9 @@
         img.onclick = async () => {
           gitter.querySelectorAll('img').forEach((x) => x.classList.toggle('gewaehlt', x === img));
           try { gewaehltesBild = await bildLaden(b.datenUrl); } catch { gewaehltesBild = null; }
-          // Skin (falls Kanal einen MC-Namen hat) im Hintergrund holen
+          // Skin (falls Kanal einen MC-Namen hat) in der cinematischen Pose holen
           if (r.skinUrl && !skinBild) {
-            try { const sk = await j.contentSkin({ }); if (sk && sk.datenUrl) skinBild = await bildLaden(sk.datenUrl); } catch { /* ohne Skin weiter */ }
+            try { const sk = await j.contentSkin({ pose: r.pose, crop: r.crop }); if (sk && sk.datenUrl) skinBild = await bildLaden(sk.datenUrl); } catch { /* ohne Skin weiter */ }
           }
           if (el('ctThumbBauen')) el('ctThumbBauen').hidden = false;
           // Textvorschlag aus dem Konzept ziehen (Zeile mit TEXT:)
@@ -306,87 +306,124 @@
     };
   }
 
-  // Zeichnet das Thumbnail: Standbild als Hintergrund, optional Skin-Figur, dann
-  // fetter Text mit dickem Rand (Thumbnail-Best-Practices: großer, lesbarer Text).
+  // Färbt einen (transparenten) Skin-Render einfarbig ein → Silhouette auf einer
+  // Offscreen-Leinwand. Damit bauen wir Kontur, Schlagschatten und Glow (der Skin
+  // „poppt" so vom Hintergrund, statt flach draufgeklatscht zu wirken).
+  function silhouette(img, w, h, farbe) {
+    const t = document.createElement('canvas'); t.width = Math.max(1, Math.ceil(w)); t.height = Math.max(1, Math.ceil(h));
+    const g = t.getContext('2d');
+    g.drawImage(img, 0, 0, w, h);
+    g.globalCompositeOperation = 'source-in';
+    g.fillStyle = farbe; g.fillRect(0, 0, w, h);
+    return t;
+  }
+
+  // Zeichnet das Thumbnail auf Profi-Niveau: kräftiger Hintergrund (Spotlight +
+  // Bokeh + Vignette), die Skin-Figur mit weichem Schlagschatten, Akzent-Glow und
+  // weißer Sticker-Kontur (damit sie sich klar abhebt), dann großer, fetter Text
+  // mit dickem Rand und Schatten. Best Practices: ein Motiv, hoher Kontrast, lesbar.
   function thumbnailZeichnen() {
     const c = el('ctThumbCanvas'); if (!c) return;
     if (!gewaehltesBild && !(genFarben.length || thumbModus === 'beschreibung')) return;
     const ctx = c.getContext('2d'); const W = c.width; const H = c.height;
-    ctx.clearRect(0, 0, W, H);
-    // Position vorab: die Figur steht gegenüber dem Text – dort liegt der Fokus.
+    ctx.clearRect(0, 0, W, H); ctx.filter = 'none'; ctx.globalAlpha = 1;
     const pos = el('ctThumbTextpos') ? el('ctThumbTextpos').value : 'links';
     const skinAn = el('ctThumbSkinAn') ? el('ctThumbSkinAn').checked : true;
-    const figurX = pos === 'links' ? W * 0.72 : (pos === 'mitte' ? W * 0.5 : W * 0.28);
+    const figurX = pos === 'links' ? W * 0.70 : (pos === 'mitte' ? W * 0.5 : W * 0.30);
     const akzent = genFarben[1] || genFarben[0] || '#ff8a1e';
 
+    // --- Hintergrund ---
     if (gewaehltesBild) {
-      // Hintergrund aus Videoframe (cover)
       const iw = gewaehltesBild.width; const ih = gewaehltesBild.height;
       const skala = Math.max(W / iw, H / ih);
       const dw = iw * skala; const dh = ih * skala;
       ctx.drawImage(gewaehltesBild, (W - dw) / 2, (H - dh) / 2, dw, dh);
     } else {
-      // Generierter Hintergrund: Farbverlauf + Strahlen-Burst hinter der Figur.
-      const f1 = genFarben[0] || '#20305a'; const f2 = genFarben[2] || '#0a0e18';
+      const f1 = genFarben[0] || '#233a6b'; const f2 = genFarben[2] || '#0a0e18';
       const g = ctx.createLinearGradient(0, 0, W, H);
       g.addColorStop(0, f1); g.addColorStop(1, f2);
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-      const cx = figurX; const cy = H * 0.58;
-      ctx.save(); ctx.globalAlpha = 0.10; ctx.fillStyle = akzent;
-      for (let i = 0; i < 16; i++) {
-        const a0 = (i / 16) * Math.PI * 2; const a1 = a0 + Math.PI / 16;
-        ctx.beginPath(); ctx.moveTo(cx, cy);
-        ctx.lineTo(cx + Math.cos(a0) * W * 1.4, cy + Math.sin(a0) * W * 1.4);
-        ctx.lineTo(cx + Math.cos(a1) * W * 1.4, cy + Math.sin(a1) * W * 1.4);
-        ctx.closePath(); ctx.fill();
-      }
+      // weiche große Bokeh-Kreise für Tiefe
+      ctx.save();
+      const bokeh = [[W * 0.2, H * 0.3, 120], [W * 0.85, H * 0.7, 170], [W * 0.6, H * 0.2, 90], [W * 0.4, H * 0.85, 140]];
+      bokeh.forEach(([bx, by, br], i) => {
+        ctx.globalAlpha = 0.12; ctx.fillStyle = i % 2 ? akzent : '#ffffff';
+        ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2); ctx.fill();
+      });
       ctx.restore();
     }
-    // Spotlight-Glow hinter der Figur (auch über einem Videoframe – lässt den Skin knallen)
+    // Spotlight hinter der Figur
     if (skinAn && skinBild) {
-      const gl = ctx.createRadialGradient(figurX, H * 0.55, 20, figurX, H * 0.55, H * 0.72);
-      gl.addColorStop(0, hexRgba(akzent, 0.5)); gl.addColorStop(1, hexRgba(akzent, 0));
+      const gl = ctx.createRadialGradient(figurX, H * 0.5, 20, figurX, H * 0.5, H * 0.8);
+      gl.addColorStop(0, hexRgba(akzent, 0.6)); gl.addColorStop(0.5, hexRgba(akzent, 0.18)); gl.addColorStop(1, hexRgba(akzent, 0));
       ctx.fillStyle = gl; ctx.fillRect(0, 0, W, H);
     }
-    // Vignette (Ränder abdunkeln → Blick zur Mitte)
+    // Vignette
     const vg = ctx.createRadialGradient(W / 2, H / 2, H * 0.25, W / 2, H / 2, W * 0.72);
-    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.45)');
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.5)');
     ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
-    // Abdunklung auf der Textseite für Kontrast
+    // Textseite abdunkeln
     const grad = ctx.createLinearGradient(0, 0, W, 0);
-    if (pos === 'rechts') { grad.addColorStop(0, 'rgba(0,0,0,0)'); grad.addColorStop(1, 'rgba(0,0,0,0.6)'); }
-    else if (pos === 'mitte') { grad.addColorStop(0, 'rgba(0,0,0,0.15)'); grad.addColorStop(0.5, 'rgba(0,0,0,0.5)'); grad.addColorStop(1, 'rgba(0,0,0,0.15)'); }
-    else { grad.addColorStop(0, 'rgba(0,0,0,0.6)'); grad.addColorStop(1, 'rgba(0,0,0,0)'); }
+    if (pos === 'rechts') { grad.addColorStop(0, 'rgba(0,0,0,0)'); grad.addColorStop(1, 'rgba(0,0,0,0.62)'); }
+    else if (pos === 'mitte') { grad.addColorStop(0, 'rgba(0,0,0,0.18)'); grad.addColorStop(0.5, 'rgba(0,0,0,0.55)'); grad.addColorStop(1, 'rgba(0,0,0,0.18)'); }
+    else { grad.addColorStop(0, 'rgba(0,0,0,0.62)'); grad.addColorStop(1, 'rgba(0,0,0,0)'); }
     ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
-    // Skin-Figur (gegenüber dem Text)
-    if (skinAn && skinBild) {
-      const sh = H * 0.94; const sw = skinBild.width * (sh / skinBild.height);
-      const sx = pos === 'links' ? W - sw - 20 : (pos === 'mitte' ? (W - sw) / 2 : 20);
-      ctx.drawImage(skinBild, sx, H - sh, sw, sh);
+
+    // --- Skin-Figur mit Schatten, Glow und Kontur ---
+    if (skinAn && skinBild && skinBild.width) {
+      const sh = H * 0.98; const sw = skinBild.width * (sh / skinBild.height);
+      const sx = pos === 'links' ? W - sw - 10 : (pos === 'mitte' ? (W - sw) / 2 : 10);
+      const sy = H - sh;
+      // 1) weicher Schlagschatten
+      try {
+        ctx.save(); ctx.filter = 'blur(16px)'; ctx.globalAlpha = 0.55;
+        ctx.drawImage(silhouette(skinBild, sw, sh, '#000'), sx + 18, sy + 14, sw, sh);
+        ctx.restore();
+      } catch { /* filter evtl. nicht verfügbar – ohne Schatten weiter */ }
+      // 2) Akzent-Glow (weich) direkt hinter der Figur
+      try {
+        ctx.save(); ctx.filter = 'blur(22px)'; ctx.globalAlpha = 0.7;
+        ctx.drawImage(silhouette(skinBild, sw, sh, akzent), sx, sy, sw, sh);
+        ctx.restore();
+      } catch { /* egal */ }
+      // 3) weiße Sticker-Kontur (mehrfach versetzt für gleichmäßigen Rand)
+      const weiss = silhouette(skinBild, sw, sh, '#ffffff');
+      const ol = Math.max(5, sw * 0.028);
+      ctx.save(); ctx.globalAlpha = 1;
+      for (let a = 0; a < 20; a++) { const ang = (a / 20) * Math.PI * 2; ctx.drawImage(weiss, sx + Math.cos(ang) * ol, sy + Math.sin(ang) * ol, sw, sh); }
+      ctx.restore();
+      // 4) der echte Skin obendrauf
+      ctx.drawImage(skinBild, sx, sy, sw, sh);
     }
-    // Text
+
+    // --- Text: groß, fett, dicker Rand + Schatten ---
     const text = (el('ctThumbText') ? el('ctThumbText').value : '').toUpperCase().trim();
     if (text) {
       const farbe = el('ctThumbFarbe') ? el('ctThumbFarbe').value : '#ffdd00';
       const worte = text.split(/\s+/);
       const zeilen = []; let z = '';
-      worte.forEach((w) => { if ((z + ' ' + w).trim().length > 12) { if (z) zeilen.push(z); z = w; } else z = (z + ' ' + w).trim(); });
+      worte.forEach((w) => { if ((z + ' ' + w).trim().length > 11) { if (z) zeilen.push(z); z = w; } else z = (z + ' ' + w).trim(); });
       if (z) zeilen.push(z);
-      const groesse = Math.min(150, Math.floor(560 / Math.max(...zeilen.map((l) => l.length), 4) * 1.7));
-      ctx.font = `900 ${groesse}px Arial, sans-serif`;
+      const laengste = Math.max(...zeilen.map((l) => l.length), 4);
+      const textBreite = pos === 'mitte' ? W * 0.9 : W * 0.56;
+      const groesse = Math.max(46, Math.min(170, Math.floor((textBreite / laengste) * 1.85)));
+      ctx.font = `900 ${groesse}px "Arial Black", Arial, sans-serif`;
       ctx.textBaseline = 'middle';
       ctx.textAlign = pos === 'rechts' ? 'right' : (pos === 'mitte' ? 'center' : 'left');
-      const x = pos === 'rechts' ? W - 60 : (pos === 'mitte' ? W / 2 : 60);
-      const gesamt = zeilen.length * groesse * 1.05;
-      let y = H / 2 - gesamt / 2 + groesse / 2;
+      const x = pos === 'rechts' ? W - 56 : (pos === 'mitte' ? W / 2 : 56);
+      const zh = groesse * 1.02;
+      let y = H / 2 - (zeilen.length * zh) / 2 + zh / 2;
       ctx.lineJoin = 'round';
       zeilen.forEach((l) => {
-        ctx.lineWidth = groesse * 0.18; ctx.strokeStyle = '#000';
-        ctx.strokeText(l, x, y);
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = groesse * 0.12; ctx.shadowOffsetX = 2; ctx.shadowOffsetY = groesse * 0.06;
+        ctx.lineWidth = groesse * 0.22; ctx.strokeStyle = '#000'; ctx.strokeText(l, x, y);
+        ctx.restore();
         ctx.fillStyle = farbe; ctx.fillText(l, x, y);
-        y += groesse * 1.05;
+        y += zh;
       });
     }
+    ctx.filter = 'none';
   }
 
   // ---- Reiter 4: Kanal (Profil-CRUD) ----

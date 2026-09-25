@@ -1248,7 +1248,7 @@ function ipcEinrichten() {
       try {
         konzept = await agent.bildAntwort({ system, text: nummeriert, bilder: frames.bilder.map((b) => b.datenUrl), maxTokens: 900 });
       } catch (e) { konzept = `Die Bild-Analyse ist fehlgeschlagen: ${e.message}. (Braucht ein Modell mit Bild-Unterstützung.)`; }
-      return { bilder: frames.bilder, konzept, kategorie: kat.kategorie, label: kat.label, festgelegt: kat.festgelegt, skinUrl: skinRenderUrl(mcName, { pose: kat.pose, crop: kat.crop }), mcName };
+      return { bilder: frames.bilder, konzept, kategorie: kat.kategorie, label: kat.label, festgelegt: kat.festgelegt, pose: kat.pose, crop: kat.crop, skinUrl: skinRenderUrl(mcName, { pose: kat.pose, crop: kat.crop }), mcName };
     } catch (e) { return { fehler: e.message }; }
   });
 
@@ -1269,7 +1269,7 @@ function ipcEinrichten() {
       try { roh = await agent.einmalAntwort({ system, text: auftrag, maxTokens: 400 }); } catch (e) { return { fehler: `Konzept fehlgeschlagen: ${e.message}` }; }
       const k = konzeptLesen(roh);
       const pose = k.pose || kat.pose;
-      return { konzept: roh, kategorie: kat.kategorie, label: kat.label, festgelegt: kat.festgelegt, headline: k.headline, farben: k.farben, hintergrund: k.hintergrund, skinUrl: skinRenderUrl(mcName, { pose, crop: kat.crop }), mcName };
+      return { konzept: roh, kategorie: kat.kategorie, label: kat.label, festgelegt: kat.festgelegt, headline: k.headline, farben: k.farben, hintergrund: k.hintergrund, pose, crop: kat.crop, skinUrl: skinRenderUrl(mcName, { pose, crop: kat.crop }), mcName };
     } catch (e) { return { fehler: e.message }; }
   });
 
