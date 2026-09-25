@@ -36,7 +36,18 @@ function lauf(befehl, args) {
   const r = spawnSync(befehl, args, { cwd: repo, encoding: 'utf8', shell: befehl === 'npm', windowsHide: true, timeout: 15 * 60 * 1000 });
   if (r.stdout) log(r.stdout.trim().slice(-2000));
   if (r.stderr) log(r.stderr.trim().slice(-2000));
-  if (r.status !== 0) throw new Error(`${befehl} ${args[0]} ist fehlgeschlagen (Code ${r.status}).`);
+  // Aussagekräftig loggen, WAS genau schiefging (Issue #119: „keine Info im Log").
+  // spawnSync legt bei Prozess-/Dateiproblemen den Fehler in r.error (errno/syscall/
+  // path, z. B. EBUSY/EPERM/ENOENT + betroffene Datei) – das ist der entscheidende
+  // Hinweis bei „Datei gesperrt". Ohne diese Zeile stand er nirgends.
+  if (r.error) {
+    const e = r.error;
+    log(`FEHLER ${befehl} ${args[0]}: ${e.code || ''} ${e.syscall || ''} ${e.path || ''} – ${e.message}`.trim());
+  }
+  if (r.status !== 0) {
+    const zusatz = r.error ? ` (${r.error.code || r.error.message})` : '';
+    throw new Error(`${befehl} ${args[0]} ist fehlgeschlagen (Code ${r.status})${zusatz}.`);
+  }
 }
 
 // Wie `lauf`, aber wiederholt bei einem Fehlschlag ein paar Mal mit wachsender

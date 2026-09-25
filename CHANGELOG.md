@@ -1,5 +1,8 @@
 # Changelog
 
+## 7.9.1 – 2026-09-25
+- Update-Wächter loggt bei einem Fehlschlag jetzt die genaue Ursache (errno/syscall/Pfad, z. B. EBUSY/EPERM samt gesperrter Datei) statt nur den Exit-Code - so ist ein hartnaeckiger Update-Fehler diagnostizierbar; dazu eine Anleitung zur Fehlerbehebung
+
 ## 7.9.0 – 2026-09-24
 - Content-Modul - Schnittplan-Motor und FFmpeg-Rohschnitt als getesteter Unterbau: Julia baut aus Transkript plus Creator-/Stilprofil einen strukturierten Schnittplan (nur Text an die KI) und kann daraus als Adobe-Fallback per FFmpeg einen echten Rohschnitt zusammensetzen
 
