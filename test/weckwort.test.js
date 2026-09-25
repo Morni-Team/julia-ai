@@ -17,7 +17,7 @@ test('Aktivierungswort: kaputte Namen fallen auf Julia zurück, Sonderzeichen fl
 });
 
 test('Aktivierungswort ist standardmäßig aus, Schwelle geprüft', () => {
-  assert.deepEqual(STANDARD.weckwort, { an: false, schwelle: 0.8, phrasen: [] });
+  assert.deepEqual(STANDARD.weckwort, { an: false, schwelle: 0.7, phrasen: [] });
   assert.equal(pruefen('weckwort.an', true), true);
   assert.equal(pruefen('weckwort.schwelle', '0.9'), 0.9);
   assert.throws(() => pruefen('weckwort.schwelle', 0.2), /zwischen 0.5 und 0.95/);

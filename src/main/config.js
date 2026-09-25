@@ -55,7 +55,8 @@ const STANDARD = {
   },
   weckwort: {
     an: false, // Mikrofon bleibt offen – deshalb nur, wenn ausdrücklich eingeschaltet
-    schwelle: 0.8,
+    schwelle: 0.7, // Erkennungs-Schwelle für „Hey Julia": 0.8 war zu streng (Weckwort wurde verschluckt), 0.7 hört zuverlässiger
+
     phrasen: [], // eigene Aktivierungswörter; leer = "Hey/Hallo/Okay" + Name
   },
   design: {

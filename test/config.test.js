@@ -22,6 +22,15 @@ test('Blase ist standardmäßig aus, mit den vorgegebenen Werten', () => {
   assert.equal(STANDARD.update.kanal, 'stabil');
 });
 
+test('Weckwort: Standard aus, Erkennungs-Schwelle 0.7 (empfindlicher), Grenzen greifen', () => {
+  assert.equal(STANDARD.weckwort.an, false);
+  assert.equal(STANDARD.weckwort.schwelle, 0.7); // 0.8 war zu streng → „Hey Julia" wurde verschluckt
+  // gültiger Wert geht durch, außerhalb 0.5..0.95 wird mit klarer Meldung abgelehnt
+  assert.equal(pruefen('weckwort.schwelle', 0.7), 0.7);
+  assert.throws(() => pruefen('weckwort.schwelle', 0.2), /zwischen 0\.5 und 0\.95/);
+  assert.throws(() => pruefen('weckwort.schwelle', 2), /zwischen 0\.5 und 0\.95/);
+});
+
 test('Design: dunkel mit Orange als Standard, Werte werden geprüft', () => {
   assert.deepEqual(STANDARD.design, { modus: 'dunkel', akzent: '#FF7A1A', glow: true, jarvis: false });
   assert.equal(pruefen('design.modus', 'hell'), 'hell');

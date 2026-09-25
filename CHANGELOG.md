@@ -1,5 +1,8 @@
 # Changelog
 
+## 8.0.1 – 2026-09-25
+- Weckwort Hey Julia wird zuverlaessiger erkannt - Erkennungs-Schwelle von 0.8 auf 0.7 gesenkt (0.8 verschluckte das Weckwort oft); Hinweis bleibt: Weckwort ist standardmaessig aus und braucht die deutsche Windows-Spracherkennung
+
 ## 8.0.0 – 2026-09-25
 - Content-Modul einfacher - Julia analysiert jetzt ein Video (per Transkript) oder einen Kanal (per eingefuegten Infos) und gibt Creator-Feedback wie ein YouTube-Coach: Hook, Tempo/Retention, Struktur, drei Titel- und drei Thumbnail-Ideen und die wichtigsten Verbesserungen - rein textbasiert
 
