@@ -86,6 +86,7 @@ contextBridge.exposeInMainWorld('julia', {
   contentThumbnails: (opts) => ipcRenderer.invoke('content:thumbnails', opts || {}),
   contentThumbnailAnalysieren: (opts) => ipcRenderer.invoke('content:thumbnail-analysieren', opts || {}),
   contentThumbnailKonzept: (opts) => ipcRenderer.invoke('content:thumbnail-konzept', opts || {}),
+  contentKiHintergrund: (opts) => ipcRenderer.invoke('content:ki-hintergrund', opts || {}),
   contentSkin: (opts) => ipcRenderer.invoke('content:skin', opts || {}),
   contentAuftragListe: () => ipcRenderer.invoke('content:auftrag-list'),
   contentAuftragAdd: (a) => ipcRenderer.invoke('content:auftrag-add', a || {}),

@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { skinRenderUrl, kategorieFuerKanal, thumbnailKonzeptPrompt, beschreibungKonzeptPrompt, konzeptLesen, mcNameRein, POSEN, KATEGORIEN } = require('../src/main/content/thumbnails');
+const { skinRenderUrl, kategorieFuerKanal, thumbnailKonzeptPrompt, beschreibungKonzeptPrompt, konzeptLesen, hintergrundPrompt, mcNameRein, POSEN, KATEGORIEN } = require('../src/main/content/thumbnails');
 
 test('mcNameRein: nur gültige Minecraft-Namen', () => {
   assert.equal(mcNameRein('Moin_Julia'), 'Moin_Julia');
@@ -11,14 +11,12 @@ test('mcNameRein: nur gültige Minecraft-Namen', () => {
   assert.equal(mcNameRein(''), '');
 });
 
-test('skinRenderUrl: baut die Starlight-URL, prüft Pose/Crop, leer ohne Name', () => {
-  assert.equal(skinRenderUrl('Notch', { pose: 'ultimate', crop: 'full' }),
-    'https://starlightskins.lunareclipse.studio/render/ultimate/Notch/full');
-  // unbekannte Pose/Crop → sichere Vorgaben
-  assert.equal(skinRenderUrl('Notch', { pose: 'quatsch', crop: 'quatsch' }),
-    'https://starlightskins.lunareclipse.studio/render/default/Notch/full');
+test('skinRenderUrl: baut die NMSR-URL, prüft die Pose, leer ohne Name', () => {
+  assert.equal(skinRenderUrl('Notch', { pose: 'fullbodyiso' }), 'https://nmsr.nickac.dev/fullbodyiso/Notch');
+  // unbekannte Pose → sichere Vorgabe fullbody
+  assert.equal(skinRenderUrl('Notch', { pose: 'quatsch' }), 'https://nmsr.nickac.dev/fullbody/Notch');
   assert.equal(skinRenderUrl(''), '', 'ohne Namen keine URL (kein Raten)');
-  assert.ok(POSEN.includes('ultimate') && POSEN.includes('pointing'));
+  assert.ok(POSEN.includes('fullbody') && POSEN.includes('bust'));
 });
 
 test('kategorieFuerKanal: feste Kanal-Kategorie schlägt die Auswahl, sonst Auswahl', () => {
@@ -53,12 +51,20 @@ test('beschreibungKonzeptPrompt: fordert festes Label-Format an', () => {
   assert.match(p.auftrag, /Villa/);
 });
 
-test('konzeptLesen: zieht Headline, Farben und Pose aus dem Modelltext', () => {
-  const t = 'TEXT: "RIESIGE VILLA"\nFARBEN: #ff2d2d, #ffd400\nHINTERGRUND: sonnige Minecraft-Landschaft\nSKIN-POSE: ultimate';
+test('konzeptLesen: zieht Headline, Farben und (gültige) Pose aus dem Modelltext', () => {
+  const t = 'TEXT: "RIESIGE VILLA"\nFARBEN: #ff2d2d, #ffd400\nHINTERGRUND: sonnige Minecraft-Landschaft\nSKIN-POSE: bust';
   const k = konzeptLesen(t);
   assert.equal(k.headline, 'RIESIGE VILLA');
   assert.deepEqual(k.farben, ['#ff2d2d', '#ffd400']);
-  assert.equal(k.pose, 'ultimate');
-  // unbekannte Pose fällt weg
-  assert.equal(konzeptLesen('SKIN-POSE: quatschpose').pose, '');
+  assert.equal(k.pose, 'bust');
+  assert.equal(k.hintergrund, 'sonnige Minecraft-Landschaft');
+  // Pose außerhalb der NMSR-Modi fällt weg (dann gilt die Kategorie-Pose)
+  assert.equal(konzeptLesen('SKIN-POSE: ultimate').pose, '');
+});
+
+test('hintergrundPrompt: baut einen Bild-Prompt ohne Text/Figur', () => {
+  const p = hintergrundPrompt({ beschreibung: 'riesige Villa', hintergrund: 'sonnige Landschaft', label: 'Minecraft-Gaming' });
+  assert.match(p, /Villa/);
+  assert.match(p, /Minecraft/);
+  assert.match(p, /NO text|no words/i);
 });

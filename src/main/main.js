@@ -1260,7 +1260,7 @@ function ipcEinrichten() {
       const o = opts || {};
       const beschreibung = String(o.beschreibung || '').trim();
       if (!beschreibung) return { fehler: 'Bitte beschreibe kurz, was aufs Thumbnail soll.' };
-      const { kategorieFuerKanal, beschreibungKonzeptPrompt, konzeptLesen, skinRenderUrl } = require('./content/thumbnails');
+      const { kategorieFuerKanal, beschreibungKonzeptPrompt, konzeptLesen, skinRenderUrl, hintergrundPrompt } = require('./content/thumbnails');
       const profil = content.profile.aktiv() || {};
       const kat = kategorieFuerKanal(profil, o.wahl);
       const mcName = profil.mc_name || '';
@@ -1269,7 +1269,39 @@ function ipcEinrichten() {
       try { roh = await agent.einmalAntwort({ system, text: auftrag, maxTokens: 400 }); } catch (e) { return { fehler: `Konzept fehlgeschlagen: ${e.message}` }; }
       const k = konzeptLesen(roh);
       const pose = k.pose || kat.pose;
-      return { konzept: roh, kategorie: kat.kategorie, label: kat.label, festgelegt: kat.festgelegt, headline: k.headline, farben: k.farben, hintergrund: k.hintergrund, pose, crop: kat.crop, skinUrl: skinRenderUrl(mcName, { pose, crop: kat.crop }), mcName };
+      const bildPrompt = hintergrundPrompt({ beschreibung, hintergrund: k.hintergrund, label: kat.label });
+      return { konzept: roh, kategorie: kat.kategorie, label: kat.label, festgelegt: kat.festgelegt, headline: k.headline, farben: k.farben, hintergrund: k.hintergrund, bildPrompt, pose, crop: kat.crop, skinUrl: skinRenderUrl(mcName, { pose, crop: kat.crop }), mcName };
+    } catch (e) { return { fehler: e.message }; }
+  });
+
+  // KI-Hintergrund für ein Thumbnail über Pollinations (freie Text-zu-Bild-API,
+  // kein Schlüssel) holen und als data-URL zurückgeben. Erzeugt ein ECHTES Bild aus
+  // der Beschreibung – der Renderer legt Skin + Text darüber. Rein der Prompt geht
+  // raus (keine persönlichen Daten). Standardgröße 1280×720.
+  ipc.handle('content:ki-hintergrund', async (_e, opts) => {
+    try {
+      const prompt = String((opts || {}).prompt || '').trim().slice(0, 800);
+      if (!prompt) return { fehler: 'Kein Bild-Prompt.' };
+      const seed = Math.floor(Math.random() * 1e6);
+      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1280&height=720&nologo=true&seed=${seed}`;
+      let letzter = '';
+      for (let versuch = 0; versuch < 2; versuch++) {
+        try {
+          const c = new AbortController();
+          const t = setTimeout(() => c.abort(), 120000); // KI-Bild darf lange dauern (Nutzerwunsch: Qualität vor Tempo)
+          // eslint-disable-next-line no-await-in-loop
+          const r = await net.fetch(url, { signal: c.signal });
+          clearTimeout(t);
+          if (!r.ok) { letzter = `Bild-Dienst antwortete mit ${r.status}.`; continue; }
+          // eslint-disable-next-line no-await-in-loop
+          const buf = Buffer.from(await r.arrayBuffer());
+          const typ = String(r.headers.get('content-type') || '').toLowerCase();
+          if (!/image\//.test(typ) || !(buf.length > 500 && buf.length < 20 * 1024 * 1024)) { letzter = 'Kein gültiges Bild erhalten.'; continue; }
+          const mime = typ.includes('png') ? 'image/png' : 'image/jpeg';
+          return { datenUrl: `data:${mime};base64,${buf.toString('base64')}` };
+        } catch (e) { letzter = e.message; }
+      }
+      return { fehler: `KI-Hintergrund fehlgeschlagen: ${letzter}` };
     } catch (e) { return { fehler: e.message }; }
   });
 

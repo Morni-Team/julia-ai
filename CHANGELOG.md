@@ -1,5 +1,8 @@
 # Changelog
 
+## 8.9.0 – 2026-09-25
+- Thumbnail-Skin erscheint endlich wieder (toter Render-Dienst durch funktionierenden 3D-Renderer NMSR ersetzt) und statt flachem Farbverlauf gibt es jetzt echte KI-Hintergruende aus der Beschreibung (freie Bild-KI, kein Schluessel) - Skin mit Kontur/Schatten/Glow und fetter Text kommen als Ebene darueber
+
 ## 8.8.0 – 2026-09-25
 - Thumbnails auf Profi-Niveau - der Minecraft-Skin kommt als cinematische 3D-Pose rein und wird mit weisser Kontur, weichem Schlagschatten und Akzent-Glow freigestellt (poppt raus statt flach), dazu kraeftigerer Hintergrund (Spotlight, Bokeh, Vignette) und groesserer fetter Text mit Rand und Schatten
 

@@ -24,7 +24,8 @@
   let skinBild = null;       // Image-Objekt des Skins (falls geholt)
   let thumbKat = 'gaming';
   let thumbModus = 'video';  // 'video' | 'beschreibung'
-  let genFarben = [];        // Farben aus dem KI-Konzept (Hintergrund im Beschreibungs-Modus)
+  let genFarben = [];        // Farben aus dem KI-Konzept (Fallback-Hintergrund)
+  let hintergrundBild = null; // KI-generierter Hintergrund (Image) im Beschreibungs-Modus
 
   // ---- Profil-Formular (Reiter „Kanal") ----
   function formLesen() {
@@ -240,15 +241,24 @@
     let r; try { r = await j.contentThumbnailKonzept({ beschreibung, wahl: thumbKat, titel: el('ctThumbTitel').value }); } catch (e) { r = { fehler: e && e.message }; }
     if (!r || r.fehler) { if (status) status.textContent = (r && r.fehler) || 'Konzept fehlgeschlagen.'; return; }
     genFarben = (r.farben && r.farben.length) ? r.farben : [];
-    gewaehltesBild = null; // kein Videoframe → Farbverlauf-Hintergrund
-    skinBild = null;
-    if (r.skinUrl) { try { const sk = await j.contentSkin({ pose: r.pose, crop: r.crop }); if (sk && sk.datenUrl) skinBild = await bildLaden(sk.datenUrl); } catch { /* ohne Skin weiter */ } }
+    gewaehltesBild = null; // kein Videoframe
+    skinBild = null; hintergrundBild = null;
     if (el('ctThumbText')) el('ctThumbText').value = (r.headline || el('ctThumbText').value || '').toUpperCase();
     if (genFarben[1] && el('ctThumbFarbe')) el('ctThumbFarbe').value = genFarben[1];
     if (konzept && r.konzept) { konzept.hidden = false; konzept.textContent = r.konzept; }
     if (el('ctThumbBauen')) el('ctThumbBauen').hidden = false;
-    if (status) status.textContent = 'Konzept fertig – unten dein Thumbnail (anpassbar & speicherbar).';
+    // 1) Skin in der cinematischen Pose holen
+    if (r.skinUrl) { try { const sk = await j.contentSkin({ pose: r.pose, crop: r.crop }); if (sk && sk.datenUrl) skinBild = await bildLaden(sk.datenUrl); } catch { /* ohne Skin weiter */ } }
     thumbnailZeichnen();
+    // 2) echten KI-Hintergrund erzeugen (darf dauern – Qualität vor Tempo)
+    if (r.bildPrompt) {
+      if (status) status.textContent = 'Erzeuge einen echten KI-Hintergrund … das kann 1–2 Minuten dauern.';
+      try {
+        const bg = await j.contentKiHintergrund({ prompt: r.bildPrompt });
+        if (bg && bg.datenUrl) { hintergrundBild = await bildLaden(bg.datenUrl); thumbnailZeichnen(); }
+        if (status) status.textContent = (bg && bg.fehler) ? `Konzept fertig (Hintergrund ohne KI-Bild: ${bg.fehler})` : 'Fertig – dein Thumbnail unten (anpassbar & speicherbar).';
+      } catch (e) { if (status) status.textContent = `Konzept fertig (KI-Bild fehlgeschlagen: ${e && e.message})`; }
+    } else if (status) status.textContent = 'Konzept fertig – dein Thumbnail unten (anpassbar & speicherbar).';
   }
 
   function thumbVerdrahten() {
@@ -264,7 +274,7 @@
       if (status) status.textContent = 'Sehe mir das Video an … (Frames ziehen + analysieren, kann dauern)';
       if (gitter) gitter.innerHTML = ''; if (konzept) konzept.hidden = true;
       if (el('ctThumbBauen')) el('ctThumbBauen').hidden = true;
-      frames = []; gewaehltesBild = null; skinBild = null;
+      frames = []; gewaehltesBild = null; skinBild = null; hintergrundBild = null;
       let r; try { r = await j.contentThumbnailAnalysieren({ wahl: thumbKat, titel: el('ctThumbTitel').value }); } catch (e) { r = { fehler: e && e.message }; }
       if (!r || r.abgebrochen) { if (status) status.textContent = ''; return; }
       if (r.fehler) { if (status) status.textContent = r.fehler; return; }
@@ -324,7 +334,8 @@
   // mit dickem Rand und Schatten. Best Practices: ein Motiv, hoher Kontrast, lesbar.
   function thumbnailZeichnen() {
     const c = el('ctThumbCanvas'); if (!c) return;
-    if (!gewaehltesBild && !(genFarben.length || thumbModus === 'beschreibung')) return;
+    const bg = gewaehltesBild || hintergrundBild;
+    if (!bg && !(genFarben.length || thumbModus === 'beschreibung')) return;
     const ctx = c.getContext('2d'); const W = c.width; const H = c.height;
     ctx.clearRect(0, 0, W, H); ctx.filter = 'none'; ctx.globalAlpha = 1;
     const pos = el('ctThumbTextpos') ? el('ctThumbTextpos').value : 'links';
@@ -332,12 +343,12 @@
     const figurX = pos === 'links' ? W * 0.70 : (pos === 'mitte' ? W * 0.5 : W * 0.30);
     const akzent = genFarben[1] || genFarben[0] || '#ff8a1e';
 
-    // --- Hintergrund ---
-    if (gewaehltesBild) {
-      const iw = gewaehltesBild.width; const ih = gewaehltesBild.height;
+    // --- Hintergrund: Videoframe ODER KI-Bild (beide „cover"), sonst Verlauf ---
+    if (bg) {
+      const iw = bg.width; const ih = bg.height;
       const skala = Math.max(W / iw, H / ih);
       const dw = iw * skala; const dh = ih * skala;
-      ctx.drawImage(gewaehltesBild, (W - dw) / 2, (H - dh) / 2, dw, dh);
+      ctx.drawImage(bg, (W - dw) / 2, (H - dh) / 2, dw, dh);
     } else {
       const f1 = genFarben[0] || '#233a6b'; const f2 = genFarben[2] || '#0a0e18';
       const g = ctx.createLinearGradient(0, 0, W, H);

@@ -7,21 +7,19 @@
 // HIER ist die REINE Logik: Skin-URL bauen, Kategorie je Kanal bestimmen und den
 // Vision-Analyse-Prompt formulieren. Netz/FFmpeg/Compositing sind IO (main/renderer).
 
-// Bekannte Render-Posen der Starlight-Skins-API (frei, cinematisch). Quelle:
-// starlightskins.lunareclipse.studio – Endpunkt /render/{pose}/{name}/{crop}.
-const POSEN = [
-  'default', 'marching', 'walking', 'crouching', 'crossed', 'criss_cross', 'cheering',
-  'relaxing', 'trudging', 'cowering', 'pointing', 'lunging', 'dungeons', 'facepalm',
-  'sleeping', 'dead', 'archer', 'mojavatar', 'ultimate', 'isometric', 'head',
-];
-const CROPS = ['full', 'bust', 'face'];
-const SKIN_BASIS = 'https://starlightskins.lunareclipse.studio/render';
+// Render-Modi des NMSR-Dienstes (nmsr.nickac.dev) – ein FREIER, echter 3D-Skin-
+// Renderer, der den Spielernamen direkt annimmt. Endpunkt: /{modus}/{name}.
+// (Die früher genutzte Starlight-URL antwortet inzwischen mit 404/500 – deshalb
+// erschien der Skin gar nicht mehr.)
+const POSEN = ['fullbody', 'fullbodyiso', 'frontfull', 'bust', 'frontbust', 'face', 'head', 'profile'];
+const CROPS = ['full', 'bust', 'face']; // beibehalten für Abwärtskompatibilität
+const SKIN_BASIS = 'https://nmsr.nickac.dev';
 
-// Kategorien und die dazu passenden, wirkungsvollen Standard-Posen fürs Thumbnail.
+// Kategorien und die dazu passende, wirkungsvolle Skin-Pose fürs Thumbnail.
 const KATEGORIEN = {
-  'minecraft-gaming': { label: 'Minecraft-Gaming', pose: 'ultimate', crop: 'full' },
-  gaming: { label: 'Gaming', pose: 'marching', crop: 'full' },
-  reaction: { label: 'Reaction', pose: 'pointing', crop: 'bust' },
+  'minecraft-gaming': { label: 'Minecraft-Gaming', pose: 'fullbodyiso', crop: 'full' },
+  gaming: { label: 'Gaming', pose: 'fullbody', crop: 'full' },
+  reaction: { label: 'Reaction', pose: 'bust', crop: 'bust' },
 };
 
 // Ein gültiger Minecraft-Name (3–16 Zeichen, Buchstaben/Ziffern/_). Sonst leer.
@@ -30,14 +28,21 @@ function mcNameRein(v) {
   return /^[A-Za-z0-9_]{1,16}$/.test(s) ? s : '';
 }
 
-// Baut die Skin-Render-URL aus dem Spielernamen. Ohne gültigen Namen: leer (kein
-// Zugriff, kein Raten). Pose/Crop werden gegen die bekannten Werte geprüft.
-function skinRenderUrl(mcName, { pose = 'default', crop = 'full' } = {}) {
+// Baut die Skin-Render-URL (NMSR) aus dem Spielernamen. Ohne gültigen Namen: leer.
+// `pose` ist ein NMSR-Modus; unbekannte Werte fallen sicher auf 'fullbody' zurück.
+function skinRenderUrl(mcName, { pose = 'fullbody' } = {}) {
   const name = mcNameRein(mcName);
   if (!name) return '';
-  const p = POSEN.includes(String(pose)) ? String(pose) : 'default';
-  const c = CROPS.includes(String(crop)) ? String(crop) : 'full';
-  return `${SKIN_BASIS}/${p}/${encodeURIComponent(name)}/${c}`;
+  const p = POSEN.includes(String(pose)) ? String(pose) : 'fullbody';
+  return `${SKIN_BASIS}/${p}/${encodeURIComponent(name)}`;
+}
+
+// Baut einen starken englischen Bild-Prompt für den KI-Hintergrund (Pollinations).
+// Bewusst OHNE Text/Figur (die kommen als Ebene drüber) und mit Thumbnail-Look.
+function hintergrundPrompt({ beschreibung = '', hintergrund = '', label = 'Gaming' } = {}) {
+  const kern = [hintergrund, beschreibung].map((s) => String(s || '').trim()).filter(Boolean).join(', ').slice(0, 300);
+  const stil = /minecraft/i.test(label) ? 'Minecraft world, blocky voxel style' : (/reaction/i.test(label) ? 'bold graphic reaction background' : 'epic gaming scene');
+  return `YouTube thumbnail background, ${stil}, ${kern || 'dramatic dynamic scene'}, cinematic dramatic lighting, high contrast, vivid saturated colors, depth, bokeh, empty space on one side, NO text, no words, no letters, no watermark, no person in the center`;
 }
 
 // Welche Kategorie gilt für diesen Kanal? Hat das Profil eine FESTE Kategorie
@@ -144,4 +149,4 @@ function konzeptLesen(text) {
   return { headline, farben, pose, hintergrund: feld('HINTERGRUND') || feld('BACKGROUND') };
 }
 
-module.exports = { POSEN, CROPS, KATEGORIEN, SKIN_BASIS, mcNameRein, skinRenderUrl, kategorieFuerKanal, thumbnailKonzeptPrompt, beschreibungKonzeptPrompt, konzeptLesen, THUMB_REGELN };
+module.exports = { POSEN, CROPS, KATEGORIEN, SKIN_BASIS, mcNameRein, skinRenderUrl, kategorieFuerKanal, thumbnailKonzeptPrompt, beschreibungKonzeptPrompt, konzeptLesen, hintergrundPrompt, THUMB_REGELN };
