@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('path');
-const { skinName, skinUrl, renderArgs, exePfad, BLENDER_URL } = require('../src/main/content/blender');
+const { skinName, skinUrl, serverHost, serverLogoUrl, renderArgs, exePfad, BLENDER_URL } = require('../src/main/content/blender');
 
 test('skinName: nur gueltige Minecraft-Namen', () => {
   assert.equal(skinName('MoinMornhart'), 'MoinMornhart');
@@ -15,6 +15,19 @@ test('skinName: nur gueltige Minecraft-Namen', () => {
 test('skinUrl: rohe Textur ueber den Namen, leer ohne Namen', () => {
   assert.equal(skinUrl('Notch'), 'https://minotar.net/skin/Notch');
   assert.equal(skinUrl('!!'), '');
+});
+
+test('serverHost: nur gueltige Server-Hosts (mit Punkt, optional Port)', () => {
+  assert.equal(serverHost('hugosmp.net'), 'hugosmp.net');
+  assert.equal(serverHost('Play.HugoSMP.net:25565'), 'play.hugosmp.net:25565');
+  assert.equal(serverHost('localhost'), '');   // kein Punkt
+  assert.equal(serverHost('a b.net'), '');      // Leerzeichen
+  assert.equal(serverHost(''), '');
+});
+
+test('serverLogoUrl: echte Icon-URL ueber die Status-API, leer ohne Host', () => {
+  assert.equal(serverLogoUrl('hugosmp.net'), 'https://api.mcsrvstat.us/icon/hugosmp.net');
+  assert.equal(serverLogoUrl('quatsch'), '');
 });
 
 test('renderArgs: baut die Blender-CLI-Argumente korrekt', () => {

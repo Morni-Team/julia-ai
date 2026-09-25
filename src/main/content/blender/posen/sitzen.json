@@ -1,0 +1,32 @@
+{
+  "name": "sitzen",
+  "beschreibung": "Sitzen (abgesenkt, Beine vor)",
+  "knochen": {
+    "upper_arm.R": [
+      -14,
+      0,
+      0
+    ],
+    "upper_arm.L": [
+      14,
+      0,
+      0
+    ],
+    "upper_leg.R": [
+      -88,
+      0,
+      0
+    ],
+    "upper_leg.L": [
+      -88,
+      0,
+      0
+    ]
+  },
+  "getestet": true,
+  "root_offset": [
+    0,
+    0,
+    -11
+  ]
+}

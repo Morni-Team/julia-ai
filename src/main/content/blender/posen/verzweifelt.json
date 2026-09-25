@@ -1,0 +1,38 @@
+{
+  "name": "verzweifelt",
+  "beschreibung": "Hand am Kinn, andere am Arm, verzweifelt",
+  "knochen": {
+    "upper_arm.R": [
+      -142,
+      0,
+      20
+    ],
+    "upper_arm.L": [
+      -72,
+      0,
+      -38
+    ],
+    "upper_leg.R": [
+      4,
+      0,
+      0
+    ],
+    "upper_leg.L": [
+      -4,
+      0,
+      0
+    ],
+    "spine": [
+      6,
+      0,
+      0
+    ],
+    "head": [
+      10,
+      0,
+      0
+    ]
+  },
+  "getestet": true,
+  "gesicht": "weinen"
+}

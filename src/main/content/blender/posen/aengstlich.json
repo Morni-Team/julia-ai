@@ -1,0 +1,32 @@
+{
+  "name": "aengstlich",
+  "beschreibung": "Abwehrend, zurueckgelehnt",
+  "knochen": {
+    "upper_arm.R": [
+      -118,
+      0,
+      10
+    ],
+    "upper_arm.L": [
+      -118,
+      0,
+      -10
+    ],
+    "upper_leg.R": [
+      -10,
+      0,
+      0
+    ],
+    "upper_leg.L": [
+      16,
+      0,
+      0
+    ],
+    "spine": [
+      -15,
+      0,
+      0
+    ]
+  },
+  "getestet": true
+}

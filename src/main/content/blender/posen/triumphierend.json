@@ -1,0 +1,38 @@
+{
+  "name": "triumphierend",
+  "beschreibung": "Faust nach oben, Sieg",
+  "knochen": {
+    "upper_arm.R": [
+      -182,
+      0,
+      -14
+    ],
+    "upper_arm.L": [
+      8,
+      0,
+      0
+    ],
+    "upper_leg.R": [
+      6,
+      0,
+      0
+    ],
+    "upper_leg.L": [
+      -8,
+      0,
+      0
+    ],
+    "spine": [
+      -5,
+      0,
+      0
+    ],
+    "head": [
+      -6,
+      0,
+      0
+    ]
+  },
+  "getestet": true,
+  "gesicht": "lachen"
+}

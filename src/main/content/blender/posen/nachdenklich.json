@@ -1,0 +1,32 @@
+{
+  "name": "nachdenklich",
+  "beschreibung": "Hand zum Kinn, Kopf leicht geneigt",
+  "knochen": {
+    "upper_arm.R": [
+      -142,
+      0,
+      22
+    ],
+    "upper_arm.L": [
+      8,
+      0,
+      0
+    ],
+    "upper_leg.R": [
+      2,
+      0,
+      0
+    ],
+    "upper_leg.L": [
+      -2,
+      0,
+      0
+    ],
+    "head": [
+      8,
+      0,
+      0
+    ]
+  },
+  "getestet": true
+}

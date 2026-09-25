@@ -1,0 +1,27 @@
+{
+  "name": "zeigen",
+  "beschreibung": "Zeigt nach vorne",
+  "knochen": {
+    "upper_arm.R": [
+      -95,
+      0,
+      0
+    ],
+    "upper_arm.L": [
+      6,
+      0,
+      0
+    ],
+    "upper_leg.R": [
+      2,
+      0,
+      0
+    ],
+    "upper_leg.L": [
+      -2,
+      0,
+      0
+    ]
+  },
+  "getestet": true
+}

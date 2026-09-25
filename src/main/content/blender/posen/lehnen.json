@@ -1,0 +1,28 @@
+{
+  "name": "lehnen",
+  "beschreibung": "Angelehnt (Schulter), Arme locker",
+  "knochen": {
+    "upper_arm.R": [
+      -7,
+      0,
+      0
+    ],
+    "upper_arm.L": [
+      7,
+      0,
+      0
+    ],
+    "upper_leg.R": [
+      3,
+      0,
+      0
+    ],
+    "upper_leg.L": [
+      -3,
+      0,
+      0
+    ]
+  },
+  "getestet": true,
+  "notizen": "Korrektur Philip 2026-09-26: Arm NICHT quer vor den Koerper drehen (sieht aus wie Wuergen). Zum Anlehnen die Figur per 'seitneigung' (negativ ~ -11) zum Schild kippen, Schulter beruehrt es; Arme locker."
+}

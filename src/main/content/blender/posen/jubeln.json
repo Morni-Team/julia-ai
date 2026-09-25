@@ -1,0 +1,27 @@
+{
+  "name": "jubeln",
+  "beschreibung": "Beide Arme hoch, Jubel",
+  "knochen": {
+    "upper_arm.R": [
+      -168,
+      0,
+      0
+    ],
+    "upper_arm.L": [
+      -168,
+      0,
+      0
+    ],
+    "upper_leg.R": [
+      4,
+      0,
+      0
+    ],
+    "upper_leg.L": [
+      -4,
+      0,
+      0
+    ]
+  },
+  "getestet": true
+}

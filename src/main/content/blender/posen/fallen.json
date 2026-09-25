@@ -1,0 +1,38 @@
+{
+  "name": "fallen",
+  "beschreibung": "Faellt nach vorne",
+  "knochen": {
+    "upper_arm.R": [
+      -112,
+      0,
+      18
+    ],
+    "upper_arm.L": [
+      -112,
+      0,
+      -18
+    ],
+    "upper_leg.R": [
+      -30,
+      0,
+      0
+    ],
+    "upper_leg.L": [
+      22,
+      0,
+      0
+    ],
+    "spine": [
+      30,
+      0,
+      0
+    ],
+    "head": [
+      -8,
+      0,
+      0
+    ]
+  },
+  "getestet": true,
+  "gesicht": "schock"
+}

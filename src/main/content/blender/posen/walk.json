@@ -1,0 +1,27 @@
+{
+  "name": "walk",
+  "beschreibung": "walk",
+  "knochen": {
+    "upper_arm.R": [
+      -35,
+      0,
+      0
+    ],
+    "upper_arm.L": [
+      35,
+      0,
+      0
+    ],
+    "upper_leg.R": [
+      30,
+      0,
+      0
+    ],
+    "upper_leg.L": [
+      -30,
+      0,
+      0
+    ]
+  },
+  "getestet": true
+}

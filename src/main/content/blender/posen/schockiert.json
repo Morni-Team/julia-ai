@@ -1,0 +1,37 @@
+{
+  "name": "schockiert",
+  "beschreibung": "Haende hoch, zurueckgelehnt",
+  "knochen": {
+    "upper_arm.R": [
+      -142,
+      0,
+      24
+    ],
+    "upper_arm.L": [
+      -142,
+      0,
+      -24
+    ],
+    "upper_leg.R": [
+      -8,
+      0,
+      0
+    ],
+    "upper_leg.L": [
+      14,
+      0,
+      0
+    ],
+    "spine": [
+      -12,
+      0,
+      0
+    ],
+    "head": [
+      -8,
+      0,
+      0
+    ]
+  },
+  "getestet": true
+}

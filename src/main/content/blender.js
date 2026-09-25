@@ -29,6 +29,19 @@ function skinUrl(name) {
   return n ? `https://minotar.net/skin/${encodeURIComponent(n)}` : '';
 }
 
+// Gueltiger Server-Host (Domain, optional :Port). Sonst leer. Nur zum Bauen einer
+// festen, bekannten Icon-URL - nie fuer Shell/Dateipfade genutzt.
+function serverHost(v) {
+  const s = String(v == null ? '' : v).trim().toLowerCase();
+  return /^[a-z0-9.-]{3,64}(:[0-9]{1,5})?$/.test(s) && s.includes('.') ? s : '';
+}
+
+// Echtes Server-Icon (64x64 PNG) ueber die Server-Status-API (kein Schluessel).
+function serverLogoUrl(host) {
+  const h = serverHost(host);
+  return h ? `https://api.mcsrvstat.us/icon/${encodeURIComponent(h)}` : '';
+}
+
 // Blender-Argumente fuer einen headless-Render-Lauf.
 function renderArgs({ skript, skins = [], poses = [], items = [], itemdir, out, scene = 'gras', anordnung = 'reihe', samples = 28 }) {
   const a = ['-b', '-P', skript, '--'];
@@ -72,7 +85,62 @@ class Blender {
     for (const datei of ['mc_render.py', 'sword.png', 'pickaxe.png']) {
       try { fs.copyFileSync(path.join(this.skriptQuelle, datei), path.join(ziel, datei)); } catch { /* evtl. schon da */ }
     }
+    // Posen-Bibliothek (JSON) mitkopieren, damit posendir= funktioniert.
+    try {
+      const q = path.join(this.skriptQuelle, 'posen');
+      const z = path.join(ziel, 'posen');
+      fs.mkdirSync(z, { recursive: true });
+      for (const f of fs.readdirSync(q)) {
+        if (f.endsWith('.json')) fs.copyFileSync(path.join(q, f), path.join(z, f));
+      }
+    } catch { /* Posen optional */ }
     return ziel;
+  }
+
+  // Laedt das echte Server-Icon (64x64 PNG) und legt es ab. Gibt Pfad.
+  async logoHolen(host) {
+    const url = serverLogoUrl(host);
+    if (!url) throw new Error(`Ungueltiger Server-Host: ${host}`);
+    const r = await this.holen(url, { headers: { 'User-Agent': 'Julia-AI' } });
+    if (!r || !r.ok) throw new Error(`Server-Logo "${host}" nicht ladbar (${r && r.status}).`);
+    const buf = Buffer.from(await r.arrayBuffer());
+    if (!(buf.length > 100 && buf.length < 4 * 1024 * 1024)) throw new Error('Unerwartete Logo-Groesse.');
+    const dir = path.join(this.ordner, 'content', 'logos');
+    fs.mkdirSync(dir, { recursive: true });
+    const datei = path.join(dir, `${serverHost(host).replace(/[:.]/g, '_')}.png`);
+    fs.writeFileSync(datei, buf);
+    return datei;
+  }
+
+  // Rendert eine FREIE Szene (spec-Objekt, siehe mc_render.py/szenen/*.json).
+  // Loest figur.name -> Skin-PNG und prop.server -> Logo-PNG auf. Gibt { pfad }.
+  async renderSpec(spec, opts = {}, fortschritt = () => {}) {
+    const exe = await this.sicherstellen(fortschritt);
+    const lauf = this._laufOrdner();
+    const s = JSON.parse(JSON.stringify(spec || {}));
+    for (const f of (s.figuren || [])) {
+      if (f && f.name) { f.skin = await this.skinHolen(f.name); delete f.name; } // eslint-disable-line no-await-in-loop
+    }
+    for (const p of (s.props || [])) {
+      if (p && (p.typ === 'logobild' || p.typ === 'serverlogo') && p.server) {
+        try { p.bild = await this.logoHolen(p.server); } catch { /* Logo optional */ } // eslint-disable-line no-await-in-loop
+        delete p.server;
+      }
+    }
+    const specPfad = path.join(lauf, `spec-${Date.now()}.json`);
+    fs.writeFileSync(specPfad, JSON.stringify(s));
+    const out = path.join(os.tmpdir(), `julia-3d-${Date.now()}.png`);
+    const args = ['-b', '-P', path.join(lauf, 'mc_render.py'), '--',
+      `spec=${specPfad}`, `posendir=${path.join(lauf, 'posen')}`, `itemdir=${lauf}`,
+      `samples=${Math.max(8, Math.min(96, Number(opts.samples) || 40))}`, `out=${out}`];
+    await new Promise((res, rej) => {
+      let err = '';
+      const p = this.starten(exe, args, { windowsHide: true });
+      if (p.stderr) p.stderr.on('data', (d) => { err = (err + d).slice(-3000); });
+      p.on('error', rej);
+      p.on('close', (c) => ((c === 0 && fs.existsSync(out)) ? res() : rej(new Error(`Render fehlgeschlagen (Code ${c}). ${err.slice(-300)}`))));
+    });
+    return { pfad: out };
   }
 
   // Laedt Blender (portable) und entpackt es in den Datenordner. `fortschritt(p)` 0..1.
@@ -148,4 +216,4 @@ class Blender {
   }
 }
 
-module.exports = { Blender, skinName, skinUrl, renderArgs, exePfad, BLENDER_URL, BLENDER_GROESSE, EXE_REL };
+module.exports = { Blender, skinName, skinUrl, serverHost, serverLogoUrl, renderArgs, exePfad, BLENDER_URL, BLENDER_GROESSE, EXE_REL };

@@ -1,0 +1,37 @@
+{
+  "name": "wuetend",
+  "beschreibung": "Nach vorn gelehnt, aggressiv",
+  "knochen": {
+    "upper_arm.R": [
+      -22,
+      0,
+      0
+    ],
+    "upper_arm.L": [
+      -22,
+      0,
+      0
+    ],
+    "upper_leg.R": [
+      16,
+      0,
+      0
+    ],
+    "upper_leg.L": [
+      -14,
+      0,
+      0
+    ],
+    "spine": [
+      13,
+      0,
+      0
+    ],
+    "head": [
+      6,
+      0,
+      0
+    ]
+  },
+  "getestet": true
+}

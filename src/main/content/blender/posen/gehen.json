@@ -1,0 +1,27 @@
+{
+  "name": "gehen",
+  "beschreibung": "Gehen (Armschwung, Schritt)",
+  "knochen": {
+    "upper_arm.R": [
+      -30,
+      0,
+      0
+    ],
+    "upper_arm.L": [
+      30,
+      0,
+      0
+    ],
+    "upper_leg.R": [
+      28,
+      0,
+      0
+    ],
+    "upper_leg.L": [
+      -28,
+      0,
+      0
+    ]
+  },
+  "getestet": true
+}

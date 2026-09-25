@@ -1,0 +1,38 @@
+{
+  "name": "lachend",
+  "beschreibung": "Lacht, Hand am Bauch, Kopf zurueck",
+  "knochen": {
+    "upper_arm.R": [
+      -48,
+      0,
+      14
+    ],
+    "upper_arm.L": [
+      10,
+      0,
+      0
+    ],
+    "upper_leg.R": [
+      4,
+      0,
+      0
+    ],
+    "upper_leg.L": [
+      -4,
+      0,
+      0
+    ],
+    "spine": [
+      -8,
+      0,
+      0
+    ],
+    "head": [
+      -22,
+      0,
+      0
+    ]
+  },
+  "getestet": true,
+  "gesicht": "lachen"
+}
