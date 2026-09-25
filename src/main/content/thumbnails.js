@@ -108,4 +108,40 @@ function thumbnailKonzeptPrompt({ kategorie = 'gaming', label = 'Gaming', mcName
   return { system, auftrag };
 }
 
-module.exports = { POSEN, CROPS, KATEGORIEN, SKIN_BASIS, mcNameRein, skinRenderUrl, kategorieFuerKanal, thumbnailKonzeptPrompt, THUMB_REGELN };
+// Prompt für „Thumbnail AUS EINER BESCHREIBUNG" (ohne Video): ein reines Text-
+// Modell macht aus der Beschreibung ein konkretes, umsetzbares Konzept, das der
+// Canvas-Compositor direkt zeichnen kann (Headline, Farben, Hintergrund, Skin-Pose).
+function beschreibungKonzeptPrompt({ beschreibung = '', label = 'Gaming', mcName = '', sprache = 'de' } = {}) {
+  const de = sprache !== 'en';
+  const system = [
+    'You are a top-tier YouTube thumbnail director. Turn the user\'s description into ONE concrete, buildable thumbnail concept.',
+    `Category: ${label}. ${de ? 'Antworte auf Deutsch.' : 'Answer in English.'}`,
+    'Great-thumbnail rules:',
+    ...THUMB_REGELN.map((r) => `- ${r}`),
+    'Answer ONLY in these exact labeled lines, nothing else:',
+    'TEXT: <3-5 clickworthy words, UPPERCASE>',
+    'FARBEN: <2-3 hex colors, comma-separated, e.g. #ff2d2d, #ffd400>',
+    'HINTERGRUND: <one short phrase for the background mood/scene>',
+    mcName ? 'SKIN-POSE: <one of default, marching, ultimate, cheering, pointing, lunging, archer, facepalm>' : 'SKIN-POSE: none',
+  ].join('\n');
+  const auftrag = `${de ? 'Beschreibung' : 'Description'}: ${String(beschreibung || '').slice(0, 1000)}`;
+  return { system, auftrag };
+}
+
+// Liest das Konzept (aus Video- ODER Beschreibungs-Analyse) in Felder, die der
+// Compositor nutzt: Headline-Text, Farben (Hex), Skin-Pose. Rein/robust.
+function konzeptLesen(text) {
+  const s = String(text || '');
+  const feld = (name) => {
+    const m = new RegExp(`(?:^|\\n)\\s*(?:\\d\\)\\s*)?${name}\\s*[:\\-]\\s*(.+)`, 'i').exec(s);
+    return m ? m[1].trim() : '';
+  };
+  const headline = (feld('TEXT') || '').replace(/^["'*]+|["'*]+$/g, '').slice(0, 40);
+  const farbenRoh = feld('FARBEN') || feld('COLORS');
+  const farben = (farbenRoh.match(/#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3}/g) || []).slice(0, 3);
+  let pose = (feld('SKIN-POSE') || feld('SKIN POSE') || '').toLowerCase().replace(/[^a-z_]/g, '');
+  if (!POSEN.includes(pose)) pose = '';
+  return { headline, farben, pose, hintergrund: feld('HINTERGRUND') || feld('BACKGROUND') };
+}
+
+module.exports = { POSEN, CROPS, KATEGORIEN, SKIN_BASIS, mcNameRein, skinRenderUrl, kategorieFuerKanal, thumbnailKonzeptPrompt, beschreibungKonzeptPrompt, konzeptLesen, THUMB_REGELN };

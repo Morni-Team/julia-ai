@@ -441,7 +441,8 @@
               <img id="ctAvatar" class="ct-avatar" alt="" hidden>
               <div class="ct-avatar platzhalter" id="ctAvatarLeer">🎬</div>
               <div class="ct-bar-text">
-                <select id="ctKanalWahl" class="ct-select" title="Kanal"></select>
+                <span class="ct-eyebrow" data-t="content.studio"></span>
+                <select id="ctKanalWahl" class="ct-select ct-kanalwahl" title="Kanal"></select>
                 <div class="ct-bar-meta"><span id="ctKategorieBadge" class="ct-badge" hidden></span><span id="ctStats" class="ct-stats"></span></div>
               </div>
             </div>
@@ -493,6 +494,10 @@
               <div class="rt-karte">
                 <div class="rt-karte-kopf"><div class="rt-symbol">🖼️</div><div><h3 data-t="content.thumbnail"></h3><p data-t="content.thumbnail_unter"></p></div></div>
                 <p class="ct-klein" data-t="content.thumbnail_hinweis"></p>
+                <div class="segment" id="ctThumbModus">
+                  <button data-wert="video" class="aktiv" data-t="content.thumb_modus_video"></button>
+                  <button data-wert="beschreibung" data-t="content.thumb_modus_beschreibung"></button>
+                </div>
                 <div class="ct-reihe">
                   <div class="rt-feld"><span class="rt-label" data-t="content.thumbnail_kategorie"></span>
                     <div class="segment" id="ctThumbKat">
@@ -503,9 +508,14 @@
                   </div>
                   <div class="rt-feld ct-wachs"><label for="ctThumbTitel" data-t="content.thumbnail_titel"></label><input id="ctThumbTitel" type="text"></div>
                 </div>
+                <div class="rt-feld" id="ctThumbBeschreibungZeile" hidden>
+                  <label for="ctThumbBeschreibung" data-t="content.thumb_beschreibung"></label>
+                  <textarea id="ctThumbBeschreibung" rows="3" placeholder="z. B. Ich baue eine riesige Villa, schaue geschockt, roter Pfeil auf die Explosion"></textarea>
+                </div>
                 <p class="ct-klein" id="ctThumbSkinInfo"></p>
                 <div class="ct-leiste">
                   <button class="knopf primaer" id="ctThumbAnalyse" data-t="content.thumbnail_analysieren"></button>
+                  <button class="knopf primaer" id="ctThumbBeschreibungBtn" data-t="content.thumb_erzeugen" hidden></button>
                   <span class="ct-pfad" id="ctThumbStatus"></span>
                 </div>
                 <div class="ct-bericht" id="ctThumbKonzept" hidden></div>

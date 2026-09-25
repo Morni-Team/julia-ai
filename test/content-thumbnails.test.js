@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { skinRenderUrl, kategorieFuerKanal, thumbnailKonzeptPrompt, mcNameRein, POSEN, KATEGORIEN } = require('../src/main/content/thumbnails');
+const { skinRenderUrl, kategorieFuerKanal, thumbnailKonzeptPrompt, beschreibungKonzeptPrompt, konzeptLesen, mcNameRein, POSEN, KATEGORIEN } = require('../src/main/content/thumbnails');
 
 test('mcNameRein: nur gültige Minecraft-Namen', () => {
   assert.equal(mcNameRein('Moin_Julia'), 'Moin_Julia');
@@ -43,4 +43,22 @@ test('thumbnailKonzeptPrompt: fordert echtes Ansehen + Skin-Pose, wenn MC-Name g
   // Ohne MC-Name kein Skin-Pose-Punkt erzwungen
   const q = thumbnailKonzeptPrompt({ mcName: '', sprache: 'en' });
   assert.match(q.auftrag, /no skin/i);
+});
+
+test('beschreibungKonzeptPrompt: fordert festes Label-Format an', () => {
+  const p = beschreibungKonzeptPrompt({ beschreibung: 'Ich baue eine riesige Villa', label: 'Minecraft-Gaming', mcName: 'Julia' });
+  assert.match(p.system, /TEXT:/);
+  assert.match(p.system, /FARBEN:/);
+  assert.match(p.system, /SKIN-POSE:/);
+  assert.match(p.auftrag, /Villa/);
+});
+
+test('konzeptLesen: zieht Headline, Farben und Pose aus dem Modelltext', () => {
+  const t = 'TEXT: "RIESIGE VILLA"\nFARBEN: #ff2d2d, #ffd400\nHINTERGRUND: sonnige Minecraft-Landschaft\nSKIN-POSE: ultimate';
+  const k = konzeptLesen(t);
+  assert.equal(k.headline, 'RIESIGE VILLA');
+  assert.deepEqual(k.farben, ['#ff2d2d', '#ffd400']);
+  assert.equal(k.pose, 'ultimate');
+  // unbekannte Pose fällt weg
+  assert.equal(konzeptLesen('SKIN-POSE: quatschpose').pose, '');
 });

@@ -36,39 +36,70 @@
 .ct-thumb:hover { border-color: var(--akzent-rand); }
 .ct-thumb.gewaehlt { border-color: var(--akzent); box-shadow: var(--glow); }
 
-/* App in der App: Wrapper wie .rt-innen (zentriert, scrollt über .rt) */
-.ct-app { width: 100%; max-width: 1060px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+/* ============ „App in der App": Content-Studio ============ */
+/* Wrapper als eigenes App-Fenster (gerahmt, leicht abgesetzt), scrollt über .rt */
+.ct-app { width: 100%; max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.ct { padding-top: 16px; }
 
-/* Konto-/Kanal-Leiste (oben, wie bei YouTube) */
-.ct-bar { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
-  background: var(--flaeche); border: 1px solid var(--linie); border-radius: 14px; padding: 12px 16px; }
-.ct-bar-links { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.ct-avatar { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2px solid var(--akzent-rand); background: var(--grund-2); }
-.ct-avatar.klein { width: 40px; height: 40px; }
-.ct-avatar.platzhalter { display: flex; align-items: center; justify-content: center; font-size: 24px; }
-.ct-bar-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.ct-bar-text .ct-select { min-width: 200px; font-size: 15px; font-weight: 600; }
+/* Konto-/Kanal-Leiste als App-Kopfzeile (sticky, Akzent-Verlauf, wie YouTube oben) */
+.ct-bar { position: sticky; top: 0; z-index: 6; display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--akzent) 20%, var(--flaeche)) 0%, var(--flaeche) 55%);
+  border: 1px solid var(--akzent-rand); border-radius: 16px; padding: 14px 18px; box-shadow: var(--glow-klein);
+  backdrop-filter: blur(6px); }
+.ct-bar-links { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.ct-avatar { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 2px solid var(--akzent); background: var(--grund-2); box-shadow: 0 0 0 3px color-mix(in srgb, var(--akzent) 25%, transparent); }
+.ct-avatar.klein { width: 40px; height: 40px; box-shadow: none; border-color: var(--akzent-rand); }
+.ct-avatar.platzhalter { display: flex; align-items: center; justify-content: center; font-size: 26px; }
+.ct-bar-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ct-eyebrow { font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--akzent); }
+.ct-kanalwahl { min-width: 210px; font-size: 16px; font-weight: 700; border-color: transparent; background: color-mix(in srgb, var(--grund-2) 70%, transparent); }
+.ct-kanalwahl:hover { border-color: var(--akzent-rand); }
 .ct-bar-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.ct-badge { background: var(--akzent); color: #1a1206; font-weight: 700; font-size: 11px; padding: 2px 9px; border-radius: 999px; }
-.ct-stats { font-size: 12px; color: var(--text-3); }
+.ct-badge { background: var(--akzent); color: #1a1206; font-weight: 800; font-size: 11px; padding: 3px 10px; border-radius: 999px; letter-spacing: .02em; }
+.ct-stats { font-size: 12px; color: var(--text-2); }
 
-/* App-Reiter */
-.ct-tabs { width: 100%; }
-.ct-tabs button { flex: 1 1 auto; }
-.ct-panel { display: flex; flex-direction: column; gap: 14px; }
+/* App-Navigation: Icon-Tabs (segmentiert, aktive Pille mit Akzent) */
+.ct-tabs { width: 100%; gap: 4px; padding: 5px; border-radius: 14px; }
+.ct-tabs button { flex: 1 1 auto; display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-weight: 600; padding: 10px 8px; border-radius: 10px; transition: background .15s, color .15s, box-shadow .15s; }
+.ct-tabs button::before { font-size: 15px; line-height: 1; }
+.ct-tabs button[data-tab="schnitt"]::before { content: "✂️"; }
+.ct-tabs button[data-tab="planung"]::before { content: "🗓️"; }
+.ct-tabs button[data-tab="thumbnails"]::before { content: "🖼️"; }
+.ct-tabs button[data-tab="kanal"]::before { content: "⚙️"; }
+.ct-tabs button.aktiv { background: var(--akzent); color: #1a1206; box-shadow: var(--glow-klein); }
+.ct-panel { display: flex; flex-direction: column; gap: 14px; animation: ctrein .18s ease; }
+@keyframes ctrein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* Karten im Studio bekommen etwas mehr Präsenz */
+.ct-panel .rt-karte { border-radius: 16px; }
 
 /* Listen (Aufträge/Planung) */
 .ct-liste { display: flex; flex-direction: column; gap: 10px; }
-.ct-eintrag { background: var(--flaeche-2); border: 1px solid var(--linie); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.ct-eintrag { background: var(--flaeche-2); border: 1px solid var(--linie); border-left: 3px solid var(--akzent-rand); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
 .ct-eintrag-kopf { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .ct-eintrag-text { color: var(--text-2); font-size: 13px; white-space: pre-wrap; }
 .ct-datum { font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
-.ct-status { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--grund-2); color: var(--text-2); }
+.ct-status { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--grund-2); color: var(--text-2); text-transform: capitalize; }
 .ct-status-fertig, .ct-status-veroeffentlicht { background: color-mix(in srgb, var(--gruen) 25%, transparent); color: var(--gruen); }
 .ct-status-laeuft, .ct-status-in_arbeit { background: color-mix(in srgb, var(--akzent) 25%, transparent); color: var(--akzent); }
 .ct-status-fehler { background: color-mix(in srgb, #e5484d 25%, transparent); color: #ff8a8d; }
 .ct-skript { white-space: pre-wrap; background: var(--grund-2); border-radius: 8px; padding: 8px 10px; font-size: 12px; color: var(--text-2); max-height: 220px; overflow-y: auto; margin: 6px 0 0; }
 
+/* Leerer Zustand als freundliche gestrichelte Box */
+.ct-liste > .ct-klein:only-child { text-align: center; padding: 22px; border: 1px dashed var(--linie-stark); border-radius: 12px; margin: 0; }
+
+/* Kategorie-Hinweis als sichtbarer Callout (macht klar: hier Gaming/Reaction wählen) */
+#ctThumbKatFest { background: color-mix(in srgb, var(--akzent) 12%, transparent); border: 1px solid var(--akzent-rand); border-radius: 8px; padding: 6px 10px; color: var(--text-2); margin-top: 6px; }
+#ctThumbKat { gap: 4px; padding: 4px; }
+#ctThumbKat button { padding: 8px 14px; font-weight: 600; }
+#ctThumbKat button.aktiv { background: var(--akzent); color: #1a1206; }
+
 /* Thumbnail-Compositor */
-.ct-canvas { width: 100%; max-width: 640px; aspect-ratio: 16 / 9; height: auto; border-radius: 10px; border: 1px solid var(--linie-stark); background: #000; }
+.ct-canvas { width: 100%; max-width: 680px; aspect-ratio: 16 / 9; height: auto; border-radius: 12px; border: 1px solid var(--linie-stark); background: #000; box-shadow: var(--glow-klein); display: block; }
 .ct-select:disabled, .segment button:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Auf schmalen Fenstern: Tabs umbrechen lassen, Text der Kanalwahl nicht zu breit */
+@media (max-width: 620px) {
+  .ct-tabs button { font-size: 13px; padding: 9px 6px; }
+  .ct-kanalwahl { min-width: 150px; font-size: 15px; }
+}

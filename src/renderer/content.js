@@ -8,13 +8,23 @@
   const el = (id) => document.getElementById(id);
   const bildLaden = (src) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
   const escape = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  // #rgb/#rrggbb → rgba(...) mit Alpha (für Glows/Strahlen).
+  function hexRgba(hex, a) {
+    let h = String(hex || '').replace('#', '');
+    if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+    if (!/^[0-9a-fA-F]{6}$/.test(h)) h = 'ff8a1e';
+    const n = parseInt(h, 16);
+    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+  }
 
   let profile = [];
   let aktivId = null;
   let frames = [];         // aktuelle Standbilder (Thumbnail-Analyse)
-  let gewaehltesBild = null; // Image-Objekt des gewählten Frames
+  let gewaehltesBild = null; // Image-Objekt des gewählten Frames (Video-Modus)
   let skinBild = null;       // Image-Objekt des Skins (falls geholt)
   let thumbKat = 'gaming';
+  let thumbModus = 'video';  // 'video' | 'beschreibung'
+  let genFarben = [];        // Farben aus dem KI-Konzept (Hintergrund im Beschreibungs-Modus)
 
   // ---- Profil-Formular (Reiter „Kanal") ----
   function formLesen() {
@@ -97,8 +107,9 @@
       if (seg) seg.querySelectorAll('button').forEach((b) => { b.disabled = true; });
       if (fest) { fest.textContent = `Dieser Kanal ist fest auf „${map[aktiv.kategorie]}" – wird automatisch verwendet.`; fest.hidden = false; }
     } else {
+      // Frei wählbar: klar auffordern, Gaming oder Reaction zu wählen
       if (seg) seg.querySelectorAll('button').forEach((b) => { b.disabled = false; });
-      if (fest) fest.hidden = true;
+      if (fest) { fest.textContent = '👉 Wähle die Videoart: Gaming oder Reaction – das bestimmt Skin-Pose und Stil des Thumbnails.'; fest.hidden = false; }
     }
     // Skin-Info
     const info = el('ctThumbSkinInfo');
@@ -209,7 +220,41 @@
   }
 
   // ---- Reiter 3: Thumbnails ----
+  function thumbModusAnwenden(m) {
+    thumbModus = m;
+    const seg = el('ctThumbModus');
+    if (seg) seg.querySelectorAll('button').forEach((x) => x.classList.toggle('aktiv', x.dataset.wert === m));
+    if (el('ctThumbBeschreibungZeile')) el('ctThumbBeschreibungZeile').hidden = (m !== 'beschreibung');
+    if (el('ctThumbAnalyse')) el('ctThumbAnalyse').hidden = (m !== 'video');
+    if (el('ctThumbBeschreibungBtn')) el('ctThumbBeschreibungBtn').hidden = (m !== 'beschreibung');
+    if (el('ctThumbs')) el('ctThumbs').hidden = (m !== 'video');
+  }
+
+  // Beschreibung → KI-Konzept → Compositor (Farbverlauf-Hintergrund + Skin + Text).
+  async function beschreibungErzeugen() {
+    const status = el('ctThumbStatus'); const konzept = el('ctThumbKonzept');
+    const beschreibung = el('ctThumbBeschreibung') ? el('ctThumbBeschreibung').value.trim() : '';
+    if (!beschreibung) { alert('Bitte beschreibe kurz, was aufs Thumbnail soll.'); return; }
+    if (status) status.textContent = 'Baue ein Konzept aus deiner Beschreibung …';
+    if (konzept) konzept.hidden = true;
+    let r; try { r = await j.contentThumbnailKonzept({ beschreibung, wahl: thumbKat, titel: el('ctThumbTitel').value }); } catch (e) { r = { fehler: e && e.message }; }
+    if (!r || r.fehler) { if (status) status.textContent = (r && r.fehler) || 'Konzept fehlgeschlagen.'; return; }
+    genFarben = (r.farben && r.farben.length) ? r.farben : [];
+    gewaehltesBild = null; // kein Videoframe → Farbverlauf-Hintergrund
+    skinBild = null;
+    if (r.skinUrl) { try { const sk = await j.contentSkin({}); if (sk && sk.datenUrl) skinBild = await bildLaden(sk.datenUrl); } catch { /* ohne Skin weiter */ } }
+    if (el('ctThumbText')) el('ctThumbText').value = (r.headline || el('ctThumbText').value || '').toUpperCase();
+    if (genFarben[1] && el('ctThumbFarbe')) el('ctThumbFarbe').value = genFarben[1];
+    if (konzept && r.konzept) { konzept.hidden = false; konzept.textContent = r.konzept; }
+    if (el('ctThumbBauen')) el('ctThumbBauen').hidden = false;
+    if (status) status.textContent = 'Konzept fertig – unten dein Thumbnail (anpassbar & speicherbar).';
+    thumbnailZeichnen();
+  }
+
   function thumbVerdrahten() {
+    const modus = el('ctThumbModus');
+    if (modus) modus.querySelectorAll('button').forEach((b) => { b.onclick = () => thumbModusAnwenden(b.dataset.wert); });
+    if (el('ctThumbBeschreibungBtn')) el('ctThumbBeschreibungBtn').onclick = beschreibungErzeugen;
     const seg = el('ctThumbKat');
     if (seg) seg.querySelectorAll('button').forEach((b) => {
       b.onclick = () => { if (b.disabled) return; thumbKat = b.dataset.wert; seg.querySelectorAll('button').forEach((x) => x.classList.toggle('aktiv', x === b)); };
@@ -264,26 +309,59 @@
   // Zeichnet das Thumbnail: Standbild als Hintergrund, optional Skin-Figur, dann
   // fetter Text mit dickem Rand (Thumbnail-Best-Practices: großer, lesbarer Text).
   function thumbnailZeichnen() {
-    const c = el('ctThumbCanvas'); if (!c || !gewaehltesBild) return;
+    const c = el('ctThumbCanvas'); if (!c) return;
+    if (!gewaehltesBild && !(genFarben.length || thumbModus === 'beschreibung')) return;
     const ctx = c.getContext('2d'); const W = c.width; const H = c.height;
     ctx.clearRect(0, 0, W, H);
-    // Hintergrund (cover)
-    const iw = gewaehltesBild.width; const ih = gewaehltesBild.height;
-    const skala = Math.max(W / iw, H / ih);
-    const dw = iw * skala; const dh = ih * skala;
-    ctx.drawImage(gewaehltesBild, (W - dw) / 2, (H - dh) / 2, dw, dh);
-    // leichte Abdunklung für Textkontrast
+    // Position vorab: die Figur steht gegenüber dem Text – dort liegt der Fokus.
     const pos = el('ctThumbTextpos') ? el('ctThumbTextpos').value : 'links';
-    const grad = ctx.createLinearGradient(0, 0, W, 0);
-    if (pos === 'rechts') { grad.addColorStop(0, 'rgba(0,0,0,0)'); grad.addColorStop(1, 'rgba(0,0,0,0.55)'); }
-    else if (pos === 'mitte') { grad.addColorStop(0, 'rgba(0,0,0,0.15)'); grad.addColorStop(0.5, 'rgba(0,0,0,0.5)'); grad.addColorStop(1, 'rgba(0,0,0,0.15)'); }
-    else { grad.addColorStop(0, 'rgba(0,0,0,0.55)'); grad.addColorStop(1, 'rgba(0,0,0,0)'); }
-    ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
-    // Skin-Figur (rechts, wenn Text links – und umgekehrt)
     const skinAn = el('ctThumbSkinAn') ? el('ctThumbSkinAn').checked : true;
+    const figurX = pos === 'links' ? W * 0.72 : (pos === 'mitte' ? W * 0.5 : W * 0.28);
+    const akzent = genFarben[1] || genFarben[0] || '#ff8a1e';
+
+    if (gewaehltesBild) {
+      // Hintergrund aus Videoframe (cover)
+      const iw = gewaehltesBild.width; const ih = gewaehltesBild.height;
+      const skala = Math.max(W / iw, H / ih);
+      const dw = iw * skala; const dh = ih * skala;
+      ctx.drawImage(gewaehltesBild, (W - dw) / 2, (H - dh) / 2, dw, dh);
+    } else {
+      // Generierter Hintergrund: Farbverlauf + Strahlen-Burst hinter der Figur.
+      const f1 = genFarben[0] || '#20305a'; const f2 = genFarben[2] || '#0a0e18';
+      const g = ctx.createLinearGradient(0, 0, W, H);
+      g.addColorStop(0, f1); g.addColorStop(1, f2);
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      const cx = figurX; const cy = H * 0.58;
+      ctx.save(); ctx.globalAlpha = 0.10; ctx.fillStyle = akzent;
+      for (let i = 0; i < 16; i++) {
+        const a0 = (i / 16) * Math.PI * 2; const a1 = a0 + Math.PI / 16;
+        ctx.beginPath(); ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(a0) * W * 1.4, cy + Math.sin(a0) * W * 1.4);
+        ctx.lineTo(cx + Math.cos(a1) * W * 1.4, cy + Math.sin(a1) * W * 1.4);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.restore();
+    }
+    // Spotlight-Glow hinter der Figur (auch über einem Videoframe – lässt den Skin knallen)
     if (skinAn && skinBild) {
-      const sh = H * 0.92; const sw = skinBild.width * (sh / skinBild.height);
-      const sx = pos === 'links' ? W - sw - 20 : 20;
+      const gl = ctx.createRadialGradient(figurX, H * 0.55, 20, figurX, H * 0.55, H * 0.72);
+      gl.addColorStop(0, hexRgba(akzent, 0.5)); gl.addColorStop(1, hexRgba(akzent, 0));
+      ctx.fillStyle = gl; ctx.fillRect(0, 0, W, H);
+    }
+    // Vignette (Ränder abdunkeln → Blick zur Mitte)
+    const vg = ctx.createRadialGradient(W / 2, H / 2, H * 0.25, W / 2, H / 2, W * 0.72);
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.45)');
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+    // Abdunklung auf der Textseite für Kontrast
+    const grad = ctx.createLinearGradient(0, 0, W, 0);
+    if (pos === 'rechts') { grad.addColorStop(0, 'rgba(0,0,0,0)'); grad.addColorStop(1, 'rgba(0,0,0,0.6)'); }
+    else if (pos === 'mitte') { grad.addColorStop(0, 'rgba(0,0,0,0.15)'); grad.addColorStop(0.5, 'rgba(0,0,0,0.5)'); grad.addColorStop(1, 'rgba(0,0,0,0.15)'); }
+    else { grad.addColorStop(0, 'rgba(0,0,0,0.6)'); grad.addColorStop(1, 'rgba(0,0,0,0)'); }
+    ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+    // Skin-Figur (gegenüber dem Text)
+    if (skinAn && skinBild) {
+      const sh = H * 0.94; const sw = skinBild.width * (sh / skinBild.height);
+      const sx = pos === 'links' ? W - sw - 20 : (pos === 'mitte' ? (W - sw) / 2 : 20);
       ctx.drawImage(skinBild, sx, H - sh, sw, sh);
     }
     // Text

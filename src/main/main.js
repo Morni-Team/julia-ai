@@ -1252,6 +1252,27 @@ function ipcEinrichten() {
     } catch (e) { return { fehler: e.message }; }
   });
 
+  // Thumbnail AUS EINER BESCHREIBUNG (ohne Video): das Text-Modell macht ein
+  // konkretes Konzept (Headline/Farben/Hintergrund/Skin-Pose), das der Canvas-
+  // Compositor direkt zeichnet. So lässt sich ein Thumbnail rein aus Text bauen.
+  ipc.handle('content:thumbnail-konzept', async (_e, opts) => {
+    try {
+      const o = opts || {};
+      const beschreibung = String(o.beschreibung || '').trim();
+      if (!beschreibung) return { fehler: 'Bitte beschreibe kurz, was aufs Thumbnail soll.' };
+      const { kategorieFuerKanal, beschreibungKonzeptPrompt, konzeptLesen, skinRenderUrl } = require('./content/thumbnails');
+      const profil = content.profile.aktiv() || {};
+      const kat = kategorieFuerKanal(profil, o.wahl);
+      const mcName = profil.mc_name || '';
+      const { system, auftrag } = beschreibungKonzeptPrompt({ beschreibung, label: kat.label, mcName, sprache: config.get('sprachcode') });
+      let roh = '';
+      try { roh = await agent.einmalAntwort({ system, text: auftrag, maxTokens: 400 }); } catch (e) { return { fehler: `Konzept fehlgeschlagen: ${e.message}` }; }
+      const k = konzeptLesen(roh);
+      const pose = k.pose || kat.pose;
+      return { konzept: roh, kategorie: kat.kategorie, label: kat.label, festgelegt: kat.festgelegt, headline: k.headline, farben: k.farben, hintergrund: k.hintergrund, skinUrl: skinRenderUrl(mcName, { pose, crop: kat.crop }), mcName };
+    } catch (e) { return { fehler: e.message }; }
+  });
+
   // Skin-Render aus dem Minecraft-Namen holen (im Hauptprozess, umgeht die Renderer-
   // CSP) und als data-URL zurückgeben, damit der Renderer ihn ins Thumbnail malen kann.
   ipc.handle('content:skin', async (_e, opts) => {

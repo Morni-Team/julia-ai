@@ -1,5 +1,8 @@
 # Changelog
 
+## 8.7.0 – 2026-09-25
+- Content-Studio im echten Mini-App-Design (Studio-Kopfzeile, Icon-Reiter) und Thumbnails jetzt auch aus einer Beschreibung erzeugbar - mit richtigem cinematischem Hintergrund (Farbverlauf, Strahlen, Spotlight hinter dem Skin, Vignette); die Wahl Gaming/Reaction ist jetzt klar sichtbar
+
 ## 8.6.0 – 2026-09-25
 - Content komplett neu als App in der App - Konto-/Kanal-Leiste oben plus drei Reiter Schnitt (Schnittauftraege), Planung und Thumbnails; fuers Thumbnail sieht sich Julia das Video wirklich an, holt aus deinem Minecraft-Namen den Skin und baut ein fertiges 1280x720-Bild mit fettem Text
 
