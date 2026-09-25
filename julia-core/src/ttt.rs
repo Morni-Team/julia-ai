@@ -72,8 +72,10 @@ impl TttEngine {
         let rohdaten = std::fs::read(path)?;
         // 4 Bytes je f32; überzählige Rest-Bytes werden ignoriert.
         let base_weights: Vec<f32> = rohdaten
-            .chunks_exact(4)
-            .map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .map(|b| f32::from_le_bytes(*b))
             .collect();
         let mut engine = TttEngine::new();
         engine.base_weights = base_weights;
