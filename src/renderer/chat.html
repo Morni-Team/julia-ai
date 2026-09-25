@@ -434,115 +434,143 @@
       </section>
 
       <section class="ansicht rt ct" id="ansichtContent" hidden>
-        <div class="rt-innen">
-          <header class="rt-kopf">
-            <div class="rt-kopf-text"><h1 data-nav="nav.content"></h1><p data-nav="content.hinweis"></p></div>
+        <div class="ct-app">
+          <!-- Konto-/Kanal-Leiste (wie oben rechts auf YouTube: Avatar, Kanal, Kategorie, Stats) -->
+          <header class="ct-bar">
+            <div class="ct-bar-links">
+              <img id="ctAvatar" class="ct-avatar" alt="" hidden>
+              <div class="ct-avatar platzhalter" id="ctAvatarLeer">🎬</div>
+              <div class="ct-bar-text">
+                <select id="ctKanalWahl" class="ct-select" title="Kanal"></select>
+                <div class="ct-bar-meta"><span id="ctKategorieBadge" class="ct-badge" hidden></span><span id="ctStats" class="ct-stats"></span></div>
+              </div>
+            </div>
             <label class="mc-schalter"><input type="checkbox" id="contentAktiv"><span data-t="content.aktiv"></span></label>
           </header>
 
           <p class="rt-leer" id="contentAus" data-t="content.aus_text"></p>
 
-          <div id="contentAn" class="ct-inhalt" hidden>
-            <!-- Profil-Leiste -->
-            <div class="ct-leiste">
-              <select id="contentProfilWahl" class="ct-select" title="Profil"></select>
-              <button class="knopf klein" id="contentProfilNeu" data-t="content.neu"></button>
-              <button class="knopf klein" id="contentProfilAktiv" data-t="content.als_aktiv"></button>
-              <button class="knopf klein" id="contentProfilLoeschen" data-t="content.loeschen"></button>
-              <button class="knopf klein" id="contentProfilImport" data-t="content.import"></button>
-              <button class="knopf klein" id="contentProfilExport" data-t="content.export"></button>
+          <div id="contentAn" hidden>
+            <!-- App-Navigation: die drei Reiter + Kanal-Einrichtung -->
+            <nav class="segment ct-tabs" id="ctTabs">
+              <button data-tab="schnitt" class="aktiv" data-t="content.tab_schnitt"></button>
+              <button data-tab="planung" data-t="content.tab_planung"></button>
+              <button data-tab="thumbnails" data-t="content.tab_thumbnails"></button>
+              <button data-tab="kanal" data-t="content.tab_kanal"></button>
+            </nav>
+
+            <!-- Reiter 1: Schnittaufträge -->
+            <div class="ct-panel" data-panel="schnitt">
+              <div class="rt-karte">
+                <div class="rt-karte-kopf"><div class="rt-symbol">✂️</div><div><h3 data-t="content.auftrag_neu"></h3><p data-t="content.auftrag_neu_unter"></p></div></div>
+                <div class="rt-feld"><label for="ctAuftragTitel" data-t="content.auftrag_titel"></label><input id="ctAuftragTitel" type="text"></div>
+                <div class="rt-feld"><span class="rt-label" data-t="content.auftrag_rohcut"></span>
+                  <div class="ct-leiste"><button class="knopf klein" id="ctAuftragVideo" data-t="content.auftrag_video_waehlen"></button><span class="ct-pfad" id="ctAuftragVideoPfad" data-t="content.auftrag_kein_video"></span></div></div>
+                <div class="rt-feld"><label for="ctAuftragAnweisung" data-t="content.auftrag_anweisung"></label>
+                  <textarea id="ctAuftragAnweisung" rows="3" placeholder="z. B. Stille raus, straffe Jumpcuts, Intro 0–5 s behalten, am Ende Outro dran"></textarea></div>
+                <div class="ct-leiste"><button class="knopf primaer" id="ctAuftragAnlegen" data-t="content.auftrag_anlegen"></button></div>
+              </div>
+              <div class="ct-liste" id="ctAuftragListe"></div>
             </div>
 
-            <!-- Karte: dein Kanal (optional, nur zum Einrichten – standardmäßig eingeklappt) -->
-            <details class="rt-karte ct-karte-auf">
-              <summary class="rt-karte-kopf ct-summary">
-                <div class="rt-symbol">📺</div>
-                <div><h3 data-t="content.dein_kanal"></h3><p data-t="content.dein_kanal_unter"></p></div>
-              </summary>
-              <div class="ct-auf">
-                <div class="rt-feld"><label for="cfKanalLink" data-t="content.kanal_link"></label>
-                  <input id="cfKanalLink" class="ct-gross" type="url" placeholder="https://www.youtube.com/@deinkanal"></div>
+            <!-- Reiter 2: Planung -->
+            <div class="ct-panel" data-panel="planung" hidden>
+              <div class="rt-karte">
+                <div class="rt-karte-kopf"><div class="rt-symbol">🗓️</div><div><h3 data-t="content.plan_neu"></h3><p data-t="content.plan_neu_unter"></p></div></div>
                 <div class="ct-reihe">
-                  <div class="rt-feld ct-wachs"><label for="cfKanalname" data-t="content.kanalname"></label><input id="cfKanalname" type="text"></div>
-                  <div class="rt-feld"><label for="cfSprache" data-t="content.sprache"></label>
-                    <select id="cfSprache"><option value="de">Deutsch</option><option value="en">English</option></select></div>
+                  <div class="rt-feld"><label for="ctPlanDatum" data-t="content.plan_datum"></label><input id="ctPlanDatum" type="date"></div>
+                  <div class="rt-feld ct-wachs"><label for="ctPlanTitel" data-t="content.plan_titel"></label><input id="ctPlanTitel" type="text"></div>
                 </div>
-                <div class="rt-feld"><span class="rt-label" data-t="content.ordner"></span>
-                  <div class="ct-leiste">
-                    <button class="knopf klein" id="cfOrdnerWaehlen" data-t="content.ordner_waehlen"></button>
-                    <span class="ct-pfad" id="cfOrdnerAnzeige" data-t="content.ordner_keiner"></span>
-                  </div>
-                </div>
-                <p class="ct-klein" data-t="content.assets_hinweis"></p>
+                <div class="rt-feld"><label for="ctPlanIdee" data-t="content.plan_idee"></label><input id="ctPlanIdee" type="text"></div>
+                <div class="rt-feld"><label for="ctPlanSkript" data-t="content.plan_skript"></label><textarea id="ctPlanSkript" rows="4" placeholder="Hook, Mittelteil, Call-to-Action …"></textarea></div>
+                <div class="ct-leiste"><button class="knopf primaer" id="ctPlanAnlegen" data-t="content.plan_anlegen"></button></div>
               </div>
-            </details>
-
-            <!-- Karte: Feinschliff (aufklappbar) -->
-            <details class="rt-karte ct-karte-auf">
-              <summary class="rt-karte-kopf ct-summary">
-                <div class="rt-symbol">🎚️</div>
-                <div><h3 data-t="content.feinschliff"></h3><p data-t="content.feinschliff_unter"></p></div>
-              </summary>
-              <div class="ct-auf">
-                <div class="rt-feld"><label for="cfRegeln" data-t="content.regeln"></label>
-                  <textarea id="cfRegeln" rows="3" placeholder="nie länger als 3 s Stille&#10;Untertitel immer gelb"></textarea></div>
-                <div class="ct-reihe">
-                  <div class="rt-feld ct-wachs"><label for="csName" data-t="content.stil_name"></label><input id="csName" type="text"></div>
-                  <div class="rt-feld"><label for="csSchnitte" data-t="content.stil_schnitte"></label><input id="csSchnitte" type="number" min="1" max="60"></div>
-                  <div class="rt-feld"><label for="csHook" data-t="content.stil_hook"></label><input id="csHook" type="number" min="0" max="30"></div>
-                  <div class="rt-feld"><label for="csBroll" data-t="content.stil_broll"></label><input id="csBroll" type="number" min="0" max="100" step="5"></div>
-                </div>
-                <input id="cfZielgruppe" type="hidden"><input id="cfTonalitaet" type="hidden">
-              </div>
-            </details>
-
-            <div class="ct-leiste">
-              <button class="knopf primaer" id="contentProfilSpeichern" data-t="content.speichern"></button>
-              <span class="ct-ok" id="contentGespeichert" hidden data-t="content.gespeichert"></span>
+              <div class="ct-liste" id="ctPlanListe"></div>
             </div>
 
-            <!-- Karte: Analyse (aufklappbar) -->
-            <details class="rt-karte ct-karte-auf">
-              <summary class="rt-karte-kopf ct-summary">
-                <div class="rt-symbol">🔍</div>
-                <div><h3 data-t="content.analyse"></h3><p data-t="content.analyse_unter"></p></div>
-              </summary>
-              <div class="ct-auf">
-                <div class="segment" id="contentAnalyseArt">
-                  <button data-wert="video" class="aktiv" data-t="content.analyse_video"></button>
-                  <button data-wert="kanal" data-t="content.analyse_kanal"></button>
-                </div>
-                <p class="ct-klein" data-t="content.analyse_hinweis"></p>
-                <div class="ct-leiste" id="caVideoZeile">
-                  <button class="knopf klein" id="caVideo" data-t="content.video_hochladen"></button>
-                  <span class="ct-pfad" id="caVideoStatus"></span>
-                </div>
-                <div class="rt-feld"><label for="caTitel" data-t="content.analyse_titel"></label><input id="caTitel" type="text"></div>
-                <div class="rt-feld"><label id="caTextLabel" for="caText" data-t="content.analyse_transkript"></label><textarea id="caText" rows="6"></textarea></div>
-                <div class="rt-feld"><label for="caNotizen" data-t="content.analyse_notizen"></label><input id="caNotizen" type="text"></div>
-                <div class="ct-leiste">
-                  <button class="knopf primaer" id="contentAnalysieren" data-t="content.analysieren"></button>
-                  <span class="ct-ok" id="caLaeuft" hidden data-t="content.analyse_laeuft"></span>
-                </div>
-                <div class="ct-bericht" id="caBericht" hidden></div>
-              </div>
-            </details>
-
-            <!-- Karte: Thumbnails (aufklappbar) -->
-            <details class="rt-karte ct-karte-auf">
-              <summary class="rt-karte-kopf ct-summary">
-                <div class="rt-symbol">🖼️</div>
-                <div><h3 data-t="content.thumbnail"></h3><p data-t="content.thumbnail_unter"></p></div>
-              </summary>
-              <div class="ct-auf">
+            <!-- Reiter 3: Thumbnails -->
+            <div class="ct-panel" data-panel="thumbnails" hidden>
+              <div class="rt-karte">
+                <div class="rt-karte-kopf"><div class="rt-symbol">🖼️</div><div><h3 data-t="content.thumbnail"></h3><p data-t="content.thumbnail_unter"></p></div></div>
                 <p class="ct-klein" data-t="content.thumbnail_hinweis"></p>
+                <div class="ct-reihe">
+                  <div class="rt-feld"><span class="rt-label" data-t="content.thumbnail_kategorie"></span>
+                    <div class="segment" id="ctThumbKat">
+                      <button data-wert="gaming" class="aktiv" data-t="content.kat_gaming"></button>
+                      <button data-wert="reaction" data-t="content.kat_reaction"></button>
+                    </div>
+                    <p class="ct-klein" id="ctThumbKatFest" hidden></p>
+                  </div>
+                  <div class="rt-feld ct-wachs"><label for="ctThumbTitel" data-t="content.thumbnail_titel"></label><input id="ctThumbTitel" type="text"></div>
+                </div>
+                <p class="ct-klein" id="ctThumbSkinInfo"></p>
                 <div class="ct-leiste">
-                  <button class="knopf primaer" id="ctThumbVideo" data-t="content.thumbnail_aus_video"></button>
+                  <button class="knopf primaer" id="ctThumbAnalyse" data-t="content.thumbnail_analysieren"></button>
                   <span class="ct-pfad" id="ctThumbStatus"></span>
                 </div>
-                <div class="ct-thumbs" id="ctThumbs"></div>
+                <div class="ct-bericht" id="ctThumbKonzept" hidden></div>
               </div>
-            </details>
+              <div class="ct-thumbs" id="ctThumbs"></div>
+              <!-- Compositor: gewähltes Standbild + Skin + Text zum fertigen Thumbnail -->
+              <div class="rt-karte" id="ctThumbBauen" hidden>
+                <div class="rt-karte-kopf"><div class="rt-symbol">🎨</div><div><h3 data-t="content.thumbnail_bauen"></h3><p data-t="content.thumbnail_bauen_unter"></p></div></div>
+                <div class="ct-reihe">
+                  <div class="rt-feld ct-wachs"><label for="ctThumbText" data-t="content.thumbnail_text"></label><input id="ctThumbText" type="text" maxlength="40"></div>
+                  <div class="rt-feld"><label for="ctThumbFarbe" data-t="content.thumbnail_farbe"></label><input id="ctThumbFarbe" type="color" value="#ffdd00"></div>
+                  <div class="rt-feld"><label for="ctThumbTextpos" data-t="content.thumbnail_textpos"></label>
+                    <select id="ctThumbTextpos"><option value="links">links</option><option value="rechts">rechts</option><option value="mitte">Mitte</option></select></div>
+                  <div class="rt-feld"><label class="mc-schalter"><input type="checkbox" id="ctThumbSkinAn" checked><span data-t="content.thumbnail_skin_an"></span></label></div>
+                </div>
+                <canvas id="ctThumbCanvas" width="1280" height="720" class="ct-canvas"></canvas>
+                <div class="ct-leiste">
+                  <button class="knopf" id="ctThumbNeu" data-t="content.thumbnail_neu_zeichnen"></button>
+                  <button class="knopf primaer" id="ctThumbSpeichern" data-t="content.thumbnail_speichern"></button>
+                  <span class="ct-ok" id="ctThumbGespeichert" hidden data-t="content.gespeichert"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Reiter 4: Kanal einrichten (Profil) -->
+            <div class="ct-panel" data-panel="kanal" hidden>
+              <div class="ct-leiste">
+                <button class="knopf klein" id="contentProfilNeu" data-t="content.neu"></button>
+                <button class="knopf klein" id="contentProfilLoeschen" data-t="content.loeschen"></button>
+                <button class="knopf klein" id="contentProfilImport" data-t="content.import"></button>
+                <button class="knopf klein" id="contentProfilExport" data-t="content.export"></button>
+              </div>
+              <div class="rt-karte">
+                <div class="rt-karte-kopf"><div class="rt-symbol">📺</div><div><h3 data-t="content.dein_kanal"></h3><p data-t="content.dein_kanal_unter"></p></div></div>
+                <div class="ct-reihe">
+                  <div class="rt-feld ct-wachs"><label for="cfKanalname" data-t="content.kanalname"></label><input id="cfKanalname" type="text"></div>
+                  <div class="rt-feld"><label for="cfSprache" data-t="content.sprache"></label><select id="cfSprache"><option value="de">Deutsch</option><option value="en">English</option></select></div>
+                </div>
+                <div class="rt-feld"><label for="cfKanalLink" data-t="content.kanal_link"></label><input id="cfKanalLink" class="ct-gross" type="url" placeholder="https://www.youtube.com/@deinkanal"></div>
+                <div class="ct-reihe">
+                  <div class="rt-feld"><label for="cfMcName" data-t="content.mc_name"></label><input id="cfMcName" type="text" maxlength="16" placeholder="MoinMornhart"></div>
+                  <div class="rt-feld"><label for="cfKategorie" data-t="content.kanal_kategorie"></label>
+                    <select id="cfKategorie"><option value="" data-t="content.kat_frei"></option><option value="minecraft-gaming">Minecraft-Gaming</option><option value="gaming">Gaming</option><option value="reaction">Reaction</option></select></div>
+                </div>
+                <div class="rt-feld"><span class="rt-label" data-t="content.avatar"></span>
+                  <div class="ct-leiste"><button class="knopf klein" id="cfAvatarWaehlen" data-t="content.avatar_waehlen"></button><img id="cfAvatarBild" class="ct-avatar klein" alt="" hidden></div></div>
+                <div class="rt-feld"><span class="rt-label" data-t="content.ordner"></span>
+                  <div class="ct-leiste"><button class="knopf klein" id="cfOrdnerWaehlen" data-t="content.ordner_waehlen"></button><span class="ct-pfad" id="cfOrdnerAnzeige" data-t="content.ordner_keiner"></span></div></div>
+                <p class="ct-klein" data-t="content.assets_hinweis"></p>
+              </div>
+              <details class="rt-karte ct-karte-auf">
+                <summary class="rt-karte-kopf ct-summary"><div class="rt-symbol">🎚️</div><div><h3 data-t="content.feinschliff"></h3><p data-t="content.feinschliff_unter"></p></div></summary>
+                <div class="ct-auf">
+                  <div class="rt-feld"><label for="cfRegeln" data-t="content.regeln"></label><textarea id="cfRegeln" rows="3" placeholder="nie länger als 3 s Stille&#10;Untertitel immer gelb"></textarea></div>
+                  <div class="ct-reihe">
+                    <div class="rt-feld ct-wachs"><label for="csName" data-t="content.stil_name"></label><input id="csName" type="text"></div>
+                    <div class="rt-feld"><label for="csSchnitte" data-t="content.stil_schnitte"></label><input id="csSchnitte" type="number" min="1" max="60"></div>
+                    <div class="rt-feld"><label for="csHook" data-t="content.stil_hook"></label><input id="csHook" type="number" min="0" max="30"></div>
+                    <div class="rt-feld"><label for="csBroll" data-t="content.stil_broll"></label><input id="csBroll" type="number" min="0" max="100" step="5"></div>
+                  </div>
+                  <input id="cfZielgruppe" type="hidden"><input id="cfTonalitaet" type="hidden">
+                </div>
+              </details>
+              <div class="ct-leiste"><button class="knopf primaer" id="contentProfilSpeichern" data-t="content.speichern"></button><span class="ct-ok" id="contentGespeichert" hidden data-t="content.gespeichert"></span></div>
+            </div>
           </div>
         </div>
       </section>

@@ -503,6 +503,40 @@ class Agent extends EventEmitter {
     return this._einmal({ system: String(system || ''), text: frage, maxTokens });
   }
 
+  // Einmal-Aufruf MIT Bildern (Vision): schickt mehrere Standbilder + Text ans
+  // Modell und gibt den Text zurück. Fürs Content-Thumbnail („das Video wirklich
+  // ansehen"). bilder = Array aus Base64-PNG (ohne data:-Präfix) oder data-URLs.
+  async bildAntwort({ system, text, bilder = [], maxTokens = 1200 } = {}) {
+    const a = anbieter.anbieterVon(this.config);
+    const modell = this.config.get('modell');
+    if (a.art === 'claude-code') throw new Error('Ein Bild-Einmalaufruf ist im Claude-Code-Modus nicht verfügbar.');
+    const roh = (Array.isArray(bilder) ? bilder : []).slice(0, 8)
+      .map((b) => String(b || '').replace(/^data:image\/[a-z]+;base64,/, '')).filter(Boolean);
+    if (!roh.length) throw new Error('Keine Bilder zum Ansehen.');
+    const abbruch = new AbortController();
+    if (a.art === 'anthropic') {
+      const client = this._client();
+      const content = [
+        ...roh.map((data) => ({ type: 'image', source: { type: 'base64', media_type: 'image/png', data } })),
+        { type: 'text', text: String(text || '') },
+      ];
+      const msg = await client.messages.create({
+        model: modell, max_tokens: maxTokens, system: String(system || ''), messages: [{ role: 'user', content }],
+      }, { signal: abbruch.signal });
+      return textAus(msg.content) || '';
+    }
+    const schluessel = this._schluesselFuer(a);
+    const content = [
+      { type: 'text', text: String(text || '') },
+      ...roh.map((data) => ({ type: 'image_url', image_url: { url: `data:image/png;base64,${data}` } })),
+    ];
+    const r = await openai.runde({
+      url: a.url, schluessel, modell, system: String(system || ''), werkzeuge: [],
+      verlauf: [{ role: 'user', content }], signal: abbruch.signal, holen: this.holen, optionen: { kopf: a.kopf, maxTokens },
+    });
+    return textAus(r.content) || '';
+  }
+
   // Gemeinsamer Kern für die Einmal-Aufrufe (nebenAntwort/einmalAntwort).
   async _einmal({ system, text, maxTokens }) {
     const a = anbieter.anbieterVon(this.config);

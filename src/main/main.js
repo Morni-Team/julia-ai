@@ -1173,52 +1173,128 @@ function ipcEinrichten() {
       return { transkript: r.text };
     } catch (e) { return { fehler: e.message }; }
   });
-  // Thumbnail-Vorschläge: aus einem gewählten Video mehrere 1280×720-Standbilder
-  // an gleichmäßig verteilten Stellen ziehen (per ffmpeg) und als data-URL zurück-
-  // geben, damit der Nutzer das beste Bild als Ausgangspunkt hat. Rein lokal.
+  // Zieht aus einem Video mehrere 1280×720-Standbilder an gleichmäßig verteilten
+  // Stellen (per ffmpeg) und gibt sie als data-URLs zurück. Gemeinsame Helferlogik
+  // für die Thumbnail-Vorschläge UND die „Video wirklich ansehen"-Analyse.
+  async function contentFramesZiehen(pfad, anzahl) {
+    const ff = videoFfmpeg.aufgeloest(DATEN, (config.get('video') || {}).ffmpeg || '');
+    if (!ff) return { fehler: 'Für Thumbnails brauche ich ffmpeg. Bitte einmal ffmpeg laden (im Video-/Content-Bereich).' };
+    const { spawn: spawnP } = require('child_process');
+    const { dauerAusLog, thumbnailZeitpunkte, thumbnailBefehl } = require('./content/schneiden');
+    const dauer = await new Promise((res) => {
+      let err = '';
+      const p = spawnP(ff, ['-hide_banner', '-i', pfad], { windowsHide: true });
+      p.stderr.on('data', (d) => { err += d.toString(); });
+      p.on('error', () => res(0));
+      p.on('close', () => res(dauerAusLog(err)));
+    });
+    const zeiten = thumbnailZeitpunkte(dauer, anzahl);
+    if (!zeiten.length) return { fehler: 'Konnte die Videolänge nicht lesen – ist die Datei in Ordnung?' };
+    const ordner = fs.mkdtempSync(path.join(os.tmpdir(), 'julia-thumbs-'));
+    const bilder = [];
+    for (let i = 0; i < zeiten.length; i++) {
+      const ziel = path.join(ordner, `thumb-${i + 1}.png`);
+      const cmd = thumbnailBefehl(pfad, { bei_s: zeiten[i], ziel });
+      // eslint-disable-next-line no-await-in-loop
+      const ok = await new Promise((res) => {
+        const p = spawnP(ff, cmd.args, { windowsHide: true });
+        p.on('error', () => res(false));
+        p.on('close', (c) => res(c === 0));
+      });
+      if (ok && fs.existsSync(ziel)) {
+        try { bilder.push({ bei_s: zeiten[i], datenUrl: `data:image/png;base64,${fs.readFileSync(ziel).toString('base64')}` }); } catch { /* einzeln überspringen */ }
+      }
+    }
+    try { fs.rmSync(ordner, { recursive: true, force: true }); } catch { /* egal */ }
+    if (!bilder.length) return { fehler: 'Es ließ sich kein Standbild erzeugen.' };
+    return { bilder };
+  }
+  async function contentVideoWaehlenPfad() {
+    const fenster = (chatFenster && !chatFenster.isDestroyed()) ? chatFenster : null;
+    const wahl = { properties: ['openFile'], filters: [{ name: 'Video', extensions: ['mp4', 'mov', 'mkv', 'webm', 'avi', 'm4v'] }] };
+    const w = fenster ? await dialog.showOpenDialog(fenster, wahl) : await dialog.showOpenDialog(wahl);
+    if (w.canceled || !w.filePaths || !w.filePaths[0]) return null;
+    return w.filePaths[0];
+  }
+
   ipc.handle('content:thumbnails', async (_e, opts) => {
     try {
       const anzahl = Math.max(1, Math.min(6, Number((opts || {}).anzahl) || 3));
-      const fenster = (chatFenster && !chatFenster.isDestroyed()) ? chatFenster : null;
-      const wahl = { properties: ['openFile'], filters: [{ name: 'Video', extensions: ['mp4', 'mov', 'mkv', 'webm', 'avi', 'm4v'] }] };
-      const w = fenster ? await dialog.showOpenDialog(fenster, wahl) : await dialog.showOpenDialog(wahl);
-      if (w.canceled || !w.filePaths || !w.filePaths[0]) return { abgebrochen: true };
-      const pfad = w.filePaths[0];
-      const ff = videoFfmpeg.aufgeloest(DATEN, (config.get('video') || {}).ffmpeg || '');
-      if (!ff) return { fehler: 'Für Thumbnails brauche ich ffmpeg. Bitte einmal ffmpeg laden (im Video-/Content-Bereich).' };
-      const { spawn: spawnP } = require('child_process');
-      const { dauerAusLog, thumbnailZeitpunkte, thumbnailBefehl } = require('./content/schneiden');
-      // Dauer ermitteln: ffmpeg -i liest die Datei und schreibt "Duration:" nach stderr.
-      const dauer = await new Promise((res) => {
-        let err = '';
-        const p = spawnP(ff, ['-hide_banner', '-i', pfad], { windowsHide: true });
-        p.stderr.on('data', (d) => { err += d.toString(); });
-        p.on('error', () => res(0));
-        p.on('close', () => res(dauerAusLog(err)));
+      const pfad = String((opts || {}).pfad || '') || await contentVideoWaehlenPfad();
+      if (!pfad) return { abgebrochen: true };
+      return await contentFramesZiehen(pfad, anzahl);
+    } catch (e) { return { fehler: e.message }; }
+  });
+
+  // Reiter 3: Thumbnail – das Video WIRKLICH ansehen. Frames ziehen, an ein Vision-
+  // Modell schicken (bestes Standbild + Konzept: Text/Farben/Aufbau/Skin-Pose), und
+  // die Skin-Render-URL aus dem Minecraft-Namen des aktiven Kanals bauen.
+  ipc.handle('content:thumbnail-analysieren', async (_e, opts) => {
+    try {
+      const o = opts || {};
+      const pfad = String(o.pfad || '') || await contentVideoWaehlenPfad();
+      if (!pfad) return { abgebrochen: true };
+      const frames = await contentFramesZiehen(pfad, Math.max(4, Math.min(8, Number(o.frames) || 6)));
+      if (frames.fehler) return frames;
+      const { kategorieFuerKanal, thumbnailKonzeptPrompt, skinRenderUrl } = require('./content/thumbnails');
+      const profil = content.profile.aktiv() || {};
+      const kat = kategorieFuerKanal(profil, o.wahl);
+      const mcName = profil.mc_name || '';
+      const { system, auftrag } = thumbnailKonzeptPrompt({
+        kategorie: kat.kategorie, label: kat.label, mcName, titel: o.titel, sprache: config.get('sprachcode'), frameAnzahl: frames.bilder.length,
       });
-      const zeiten = thumbnailZeitpunkte(dauer, anzahl);
-      if (!zeiten.length) return { fehler: 'Konnte die Videolänge nicht lesen – ist die Datei in Ordnung?' };
-      const ordner = fs.mkdtempSync(path.join(os.tmpdir(), 'julia-thumbs-'));
-      const bilder = [];
-      for (let i = 0; i < zeiten.length; i++) {
-        const ziel = path.join(ordner, `thumb-${i + 1}.png`);
-        const cmd = thumbnailBefehl(pfad, { bei_s: zeiten[i], ziel });
-        // eslint-disable-next-line no-await-in-loop
-        const ok = await new Promise((res) => {
-          const p = spawnP(ff, cmd.args, { windowsHide: true });
-          p.on('error', () => res(false));
-          p.on('close', (c) => res(c === 0));
-        });
-        if (ok && fs.existsSync(ziel)) {
-          try {
-            const b64 = fs.readFileSync(ziel).toString('base64');
-            bilder.push({ bei_s: zeiten[i], datenUrl: `data:image/png;base64,${b64}` });
-          } catch { /* einzelnes Bild überspringen */ }
-        }
-      }
-      try { fs.rmSync(ordner, { recursive: true, force: true }); } catch { /* egal */ }
-      if (!bilder.length) return { fehler: 'Es ließ sich kein Standbild erzeugen.' };
-      return { bilder };
+      const nummeriert = `${auftrag}\n\n(${frames.bilder.length} Standbilder in Reihenfolge angehängt, Nummer 1..${frames.bilder.length}.)`;
+      let konzept = '';
+      try {
+        konzept = await agent.bildAntwort({ system, text: nummeriert, bilder: frames.bilder.map((b) => b.datenUrl), maxTokens: 900 });
+      } catch (e) { konzept = `Die Bild-Analyse ist fehlgeschlagen: ${e.message}. (Braucht ein Modell mit Bild-Unterstützung.)`; }
+      return { bilder: frames.bilder, konzept, kategorie: kat.kategorie, label: kat.label, festgelegt: kat.festgelegt, skinUrl: skinRenderUrl(mcName, { pose: kat.pose, crop: kat.crop }), mcName };
+    } catch (e) { return { fehler: e.message }; }
+  });
+
+  // Skin-Render aus dem Minecraft-Namen holen (im Hauptprozess, umgeht die Renderer-
+  // CSP) und als data-URL zurückgeben, damit der Renderer ihn ins Thumbnail malen kann.
+  ipc.handle('content:skin', async (_e, opts) => {
+    try {
+      const o = opts || {};
+      const { skinRenderUrl } = require('./content/thumbnails');
+      const name = String(o.mcName || (content.profile.aktiv() || {}).mc_name || '');
+      const url = skinRenderUrl(name, { pose: o.pose, crop: o.crop });
+      if (!url) return { fehler: 'Kein gültiger Minecraft-Name im aktiven Kanal-Profil.' };
+      const r = await net.fetch(url);
+      if (!r.ok) return { fehler: `Der Skin-Dienst antwortete mit ${r.status}.` };
+      const buf = Buffer.from(await r.arrayBuffer());
+      if (!(buf.length > 0 && buf.length < 8 * 1024 * 1024)) return { fehler: 'Unerwartete Skin-Größe.' };
+      return { datenUrl: `data:image/png;base64,${buf.toString('base64')}`, url };
+    } catch (e) { return { fehler: e.message }; }
+  });
+
+  // Reiter 1: Schnittaufträge (CRUD).
+  ipc.handle('content:auftrag-list', () => { try { return content.auftragListe(); } catch (e) { return { fehler: e.message }; } });
+  ipc.handle('content:auftrag-add', (_e, a) => { try { return { auftrag: content.auftragHinzufuegen(a) }; } catch (e) { return { fehler: e.message }; } });
+  ipc.handle('content:auftrag-status', (_e, id, status, notiz) => { try { return { auftrag: content.auftragStatus(id, status, notiz) }; } catch (e) { return { fehler: e.message }; } });
+  ipc.handle('content:auftrag-remove', (_e, id) => { try { return { ok: content.auftragEntfernen(id) }; } catch (e) { return { fehler: e.message }; } });
+  ipc.handle('content:auftrag-video', async () => { try { const p = await contentVideoWaehlenPfad(); return p ? { pfad: p } : { abgebrochen: true }; } catch (e) { return { fehler: e.message }; } });
+
+  // Reiter 2: Planung (CRUD).
+  ipc.handle('content:plan-list', () => { try { return content.planListe(); } catch (e) { return { fehler: e.message }; } });
+  ipc.handle('content:plan-add', (_e, p) => { try { return { plan: content.planHinzufuegen(p) }; } catch (e) { return { fehler: e.message }; } });
+  ipc.handle('content:plan-update', (_e, id, felder) => { try { return { plan: content.planAktualisieren(id, felder) }; } catch (e) { return { fehler: e.message }; } });
+  ipc.handle('content:plan-remove', (_e, id) => { try { return { ok: content.planEntfernen(id) }; } catch (e) { return { fehler: e.message }; } });
+
+  // Kanal-Avatar wählen: ein Bild aussuchen und als (kleine) data-URL zurückgeben.
+  ipc.handle('content:bild-waehlen', async () => {
+    try {
+      const fenster = (chatFenster && !chatFenster.isDestroyed()) ? chatFenster : null;
+      const opts = { properties: ['openFile'], filters: [{ name: 'Bild', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif'] }] };
+      const w = fenster ? await dialog.showOpenDialog(fenster, opts) : await dialog.showOpenDialog(opts);
+      if (w.canceled || !w.filePaths || !w.filePaths[0]) return { abgebrochen: true };
+      const p = w.filePaths[0];
+      const buf = fs.readFileSync(p);
+      if (buf.length > 2 * 1024 * 1024) return { fehler: 'Bitte ein kleineres Bild wählen (max. 2 MB).' };
+      const ext = path.extname(p).slice(1).toLowerCase();
+      const typ = ext === 'jpg' ? 'jpeg' : (ext || 'png');
+      return { datenUrl: `data:image/${typ};base64,${buf.toString('base64')}` };
     } catch (e) { return { fehler: e.message }; }
   });
   // "Allem zustimmen" (und "auch nach fremden Inhalten") lassen sich nur hier

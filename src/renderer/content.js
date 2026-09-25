@@ -1,29 +1,35 @@
 'use strict';
 
-// Renderer für das Content-Creation-Modul (erste Scheibe: Aktivierung + Creator-
-// Profile). Alles in einer IIFE gekapselt, damit keine geteilten Renderer-Globals
-// (aus chat.js/markdown.js …) kollidieren. Nutzt das globale `$` (getElementById).
-(() => {
-  if (typeof window === 'undefined' || !window.julia) return;
-  const j = window.julia;
+// Content-Modul – „App in der App": Kontoleiste + vier Reiter (Schnittaufträge,
+// Planung, Thumbnails, Kanal). Rein die Oberfläche; die Arbeit macht der
+// Hauptprozess über die content*-Brücken.
+(function () {
+  const j = window.julia || {};
   const el = (id) => document.getElementById(id);
+  const bildLaden = (src) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+  const escape = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
   let profile = [];
   let aktivId = null;
-  let gewaehlt = null; // id des gerade im Formular bearbeiteten Profils ('' = neu)
-  let gewaehltOrdner = ''; // per Dialog gewählter Arbeits-/Speicherordner
+  let frames = [];         // aktuelle Standbilder (Thumbnail-Analyse)
+  let gewaehltesBild = null; // Image-Objekt des gewählten Frames
+  let skinBild = null;       // Image-Objekt des Skins (falls geholt)
+  let thumbKat = 'gaming';
 
+  // ---- Profil-Formular (Reiter „Kanal") ----
   function formLesen() {
-    const zeilen = (s) => String(s || '').split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
     return {
-      id: gewaehlt || '',
+      id: aktivId || undefined,
       kanalname: el('cfKanalname').value,
       kanal_link: el('cfKanalLink').value,
-      ordner: gewaehltOrdner,
+      mc_name: el('cfMcName').value,
+      kategorie: el('cfKategorie').value,
+      avatar: el('cfAvatarBild').dataset.url || '',
+      ordner: el('cfOrdnerAnzeige').dataset.pfad || '',
+      sprache: el('cfSprache').value,
       zielgruppe: el('cfZielgruppe').value,
       tonalitaet: el('cfTonalitaet').value,
-      sprache: el('cfSprache').value,
-      regeln: zeilen(el('cfRegeln').value),
+      regeln: el('cfRegeln').value.split('\n').map((s) => s.trim()).filter(Boolean),
       stilprofile: [{
         name: el('csName').value || 'Standard',
         schnitte_pro_min: Number(el('csSchnitte').value) || 14,
@@ -32,199 +38,334 @@
       }],
     };
   }
-
-  function ordnerAnzeigen() {
-    const a = el('cfOrdnerAnzeige');
-    if (!a) return;
-    if (gewaehltOrdner) { a.textContent = gewaehltOrdner; a.removeAttribute('data-t'); }
-    else { a.setAttribute('data-t', 'content.ordner_keiner'); if (window.juliaTexteNach) window.juliaTexteNach(); }
-  }
-
   function formFuellen(p) {
     p = p || {};
-    gewaehlt = p.id || '';
-    gewaehltOrdner = p.ordner || '';
     el('cfKanalname').value = p.kanalname || '';
     el('cfKanalLink').value = p.kanal_link || '';
+    el('cfMcName').value = p.mc_name || '';
+    el('cfKategorie').value = p.kategorie || '';
+    el('cfSprache').value = p.sprache || 'de';
     el('cfZielgruppe').value = p.zielgruppe || '';
     el('cfTonalitaet').value = p.tonalitaet || '';
-    el('cfSprache').value = p.sprache === 'en' ? 'en' : 'de';
     el('cfRegeln').value = (p.regeln || []).join('\n');
     const s = (p.stilprofile && p.stilprofile[0]) || {};
     el('csName').value = s.name || 'Standard';
     el('csSchnitte').value = s.schnitte_pro_min || 14;
     el('csHook').value = s.hook_sekunden || 8;
     el('csBroll').value = Math.round((s.broll_anteil != null ? s.broll_anteil : 0.3) * 100);
-    ordnerAnzeigen();
+    // Ordner
+    const o = el('cfOrdnerAnzeige'); o.dataset.pfad = p.ordner || '';
+    o.textContent = p.ordner || 'kein Ordner gewählt';
+    // Avatar
+    const av = el('cfAvatarBild');
+    av.dataset.url = p.avatar || '';
+    if (p.avatar) { av.src = p.avatar; av.hidden = false; } else { av.hidden = true; }
   }
 
-  function listeFuellen() {
-    const wahl = el('contentProfilWahl');
-    if (!wahl) return;
-    wahl.innerHTML = '';
-    for (const p of profile) {
-      const o = document.createElement('option');
-      o.value = p.id;
-      o.textContent = p.id === aktivId ? `★ ${p.kanalname}` : p.kanalname;
-      wahl.appendChild(o);
+  // ---- Kontoleiste oben ----
+  function barFuellen() {
+    const wahl = el('ctKanalWahl');
+    if (wahl) {
+      wahl.innerHTML = '';
+      profile.forEach((p) => {
+        const opt = document.createElement('option');
+        opt.value = p.id; opt.textContent = (p.id === aktivId ? '★ ' : '') + (p.kanalname || p.id);
+        wahl.appendChild(opt);
+      });
+      if (aktivId) wahl.value = aktivId;
     }
-    if (gewaehlt) wahl.value = gewaehlt;
+    const aktiv = profile.find((p) => p.id === aktivId) || null;
+    const avatar = el('ctAvatar'); const leer = el('ctAvatarLeer');
+    if (aktiv && aktiv.avatar) { avatar.src = aktiv.avatar; avatar.hidden = false; if (leer) leer.hidden = true; }
+    else { if (avatar) avatar.hidden = true; if (leer) leer.hidden = false; }
+    const badge = el('ctKategorieBadge');
+    if (badge) {
+      const map = { 'minecraft-gaming': 'Minecraft-Gaming', gaming: 'Gaming', reaction: 'Reaction' };
+      if (aktiv && aktiv.kategorie && map[aktiv.kategorie]) { badge.textContent = map[aktiv.kategorie]; badge.hidden = false; } else badge.hidden = true;
+    }
+    const stats = el('ctStats');
+    if (stats) stats.textContent = aktiv && aktiv.kanal_link ? aktiv.kanal_link.replace(/^https?:\/\/(www\.)?/, '') : '';
+    // Thumbnail-Kategorie-Segment an die feste Kanal-Kategorie anpassen
+    thumbKatAnpassen(aktiv);
+  }
+
+  function thumbKatAnpassen(aktiv) {
+    const seg = el('ctThumbKat'); const fest = el('ctThumbKatFest');
+    const map = { 'minecraft-gaming': 'Minecraft-Gaming', gaming: 'Gaming', reaction: 'Reaction' };
+    if (aktiv && aktiv.kategorie && map[aktiv.kategorie]) {
+      // Fest: Segment sperren und den festen Wert anzeigen
+      if (seg) seg.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+      if (fest) { fest.textContent = `Dieser Kanal ist fest auf „${map[aktiv.kategorie]}" – wird automatisch verwendet.`; fest.hidden = false; }
+    } else {
+      if (seg) seg.querySelectorAll('button').forEach((b) => { b.disabled = false; });
+      if (fest) fest.hidden = true;
+    }
+    // Skin-Info
+    const info = el('ctThumbSkinInfo');
+    if (info) info.textContent = (aktiv && aktiv.mc_name)
+      ? `Skin aus dem Minecraft-Namen „${aktiv.mc_name}" wird cinematisch einkomponiert.`
+      : 'Kein Minecraft-Name im Kanal gesetzt – trage ihn im Reiter „Kanal" ein, dann kommt dein Skin ins Thumbnail.';
   }
 
   async function laden() {
-    try {
-      const st = await j.contentStatus();
-      if (st && el('contentAktiv')) el('contentAktiv').checked = st.aktiv === true;
-      umschalten(st && st.aktiv === true);
-      const d = await j.contentProfileListe();
-      profile = (d && d.profile) || [];
-      aktivId = (d && d.aktivId) || null;
-      if (!profile.length) { formFuellen(await j.contentProfilVorlage('Mein Kanal')); }
-      else { const akt = profile.find((p) => p.id === aktivId) || profile[0]; formFuellen(akt); }
-      listeFuellen();
-    } catch { /* Fenster wird geschlossen */ }
-  }
-
-  function umschalten(an) {
+    let st;
+    try { st = await j.contentStatus(); } catch { st = {}; }
+    const an = !!(st && st.aktiv);
+    if (el('contentAktiv')) el('contentAktiv').checked = an;
+    if (el('contentAus')) el('contentAus').hidden = an;
     if (el('contentAn')) el('contentAn').hidden = !an;
-    if (el('contentAus')) el('contentAus').hidden = !!an;
+    if (!an) return;
+    let r; try { r = await j.contentProfileListe(); } catch { r = {}; }
+    profile = (r && r.profile) || [];
+    aktivId = (r && r.aktivId) || (profile[0] && profile[0].id) || null;
+    barFuellen();
+    formFuellen(profile.find((p) => p.id === aktivId) || {});
+    await auftraegeLaden();
+    await planLaden();
   }
 
-  function gespeichertZeigen() {
-    const g = el('contentGespeichert');
-    if (!g) return;
-    g.hidden = false;
-    setTimeout(() => { g.hidden = true; }, 1500);
+  // ---- Reiter-Umschaltung ----
+  function tabsVerdrahten() {
+    const tabs = el('ctTabs'); if (!tabs) return;
+    tabs.querySelectorAll('button').forEach((b) => {
+      b.onclick = () => {
+        tabs.querySelectorAll('button').forEach((x) => x.classList.toggle('aktiv', x === b));
+        document.querySelectorAll('#contentAn .ct-panel').forEach((p) => { p.hidden = (p.dataset.panel !== b.dataset.tab); });
+      };
+    });
   }
 
-  function verdrahten() {
-    if (el('contentAktiv')) el('contentAktiv').onchange = async () => {
-      const an = el('contentAktiv').checked;
-      await j.setzen('content.aktiv', an);
-      umschalten(an);
+  // ---- Reiter 1: Schnittaufträge ----
+  async function auftraegeLaden() {
+    const box = el('ctAuftragListe'); if (!box) return;
+    let r; try { r = await j.contentAuftragListe(); } catch { r = {}; }
+    const liste = (r && r.auftraege) || [];
+    box.innerHTML = '';
+    if (!liste.length) { box.innerHTML = '<p class="ct-klein" data-t="content.auftrag_leer"></p>'; if (window.juliaTexteNach) window.juliaTexteNach(); return; }
+    liste.forEach((a) => {
+      const div = document.createElement('div');
+      div.className = 'ct-eintrag';
+      div.innerHTML = `<div class="ct-eintrag-kopf"><b>${escape(a.titel)}</b><span class="ct-status ct-status-${a.status}">${a.status}</span></div>`
+        + (a.videoPfad ? `<div class="ct-pfad">${escape(a.videoPfad)}</div>` : '')
+        + (a.anweisung ? `<div class="ct-eintrag-text">${escape(a.anweisung)}</div>` : '')
+        + `<div class="ct-leiste"><button class="knopf klein" data-fertig="${a.id}">✓ erledigt</button><button class="knopf klein" data-offen="${a.id}">↺ offen</button><button class="knopf klein" data-weg="${a.id}">✕</button></div>`;
+      box.appendChild(div);
+    });
+    box.querySelectorAll('[data-fertig]').forEach((b) => { b.onclick = async () => { await j.contentAuftragStatus(b.dataset.fertig, 'fertig'); auftraegeLaden(); }; });
+    box.querySelectorAll('[data-offen]').forEach((b) => { b.onclick = async () => { await j.contentAuftragStatus(b.dataset.offen, 'offen'); auftraegeLaden(); }; });
+    box.querySelectorAll('[data-weg]').forEach((b) => { b.onclick = async () => { await j.contentAuftragRemove(b.dataset.weg); auftraegeLaden(); }; });
+  }
+
+  function auftraegeVerdrahten() {
+    if (el('ctAuftragVideo')) el('ctAuftragVideo').onclick = async () => {
+      const r = await j.contentAuftragVideo();
+      if (r && r.pfad) { const f = el('ctAuftragVideoPfad'); f.textContent = r.pfad; f.dataset.pfad = r.pfad; }
     };
-    if (el('contentProfilWahl')) el('contentProfilWahl').onchange = () => {
-      const p = profile.find((x) => x.id === el('contentProfilWahl').value);
-      if (p) formFuellen(p);
+    if (el('ctAuftragAnlegen')) el('ctAuftragAnlegen').onclick = async () => {
+      const titel = el('ctAuftragTitel').value.trim();
+      const videoPfad = el('ctAuftragVideoPfad').dataset.pfad || '';
+      const anweisung = el('ctAuftragAnweisung').value.trim();
+      if (!titel && !videoPfad) { alert('Bitte mindestens einen Titel oder einen Rohcut wählen.'); return; }
+      await j.contentAuftragAdd({ titel, videoPfad, anweisung, kanalId: aktivId });
+      el('ctAuftragTitel').value = ''; el('ctAuftragAnweisung').value = '';
+      const f = el('ctAuftragVideoPfad'); f.dataset.pfad = ''; f.textContent = 'kein Rohcut gewählt';
+      auftraegeLaden();
+    };
+  }
+
+  // ---- Reiter 2: Planung ----
+  async function planLaden() {
+    const box = el('ctPlanListe'); if (!box) return;
+    let r; try { r = await j.contentPlanListe(); } catch { r = {}; }
+    const liste = (r && r.plan) || [];
+    box.innerHTML = '';
+    if (!liste.length) { box.innerHTML = '<p class="ct-klein" data-t="content.plan_leer"></p>'; if (window.juliaTexteNach) window.juliaTexteNach(); return; }
+    liste.forEach((p) => {
+      const div = document.createElement('div');
+      div.className = 'ct-eintrag';
+      const opts = ['idee', 'geplant', 'in_arbeit', 'fertig', 'veroeffentlicht']
+        .map((s) => `<option value="${s}"${s === p.status ? ' selected' : ''}>${s}</option>`).join('');
+      div.innerHTML = `<div class="ct-eintrag-kopf"><b>${escape(p.titel)}</b><span class="ct-datum">${escape(p.datum || '—')}</span></div>`
+        + (p.idee ? `<div class="ct-eintrag-text">${escape(p.idee)}</div>` : '')
+        + (p.skript ? `<details><summary class="ct-klein">Skript</summary><pre class="ct-skript">${escape(p.skript)}</pre></details>` : '')
+        + `<div class="ct-leiste"><select data-status="${p.id}">${opts}</select><button class="knopf klein" data-weg="${p.id}">✕</button></div>`;
+      box.appendChild(div);
+    });
+    box.querySelectorAll('[data-status]').forEach((sel) => { sel.onchange = async () => { await j.contentPlanUpdate(sel.dataset.status, { status: sel.value }); }; });
+    box.querySelectorAll('[data-weg]').forEach((b) => { b.onclick = async () => { await j.contentPlanRemove(b.dataset.weg); planLaden(); }; });
+  }
+
+  function planVerdrahten() {
+    if (el('ctPlanAnlegen')) el('ctPlanAnlegen').onclick = async () => {
+      const titel = el('ctPlanTitel').value.trim();
+      if (!titel) { alert('Bitte einen Titel für das geplante Video eingeben.'); return; }
+      await j.contentPlanAdd({
+        titel, datum: el('ctPlanDatum').value, idee: el('ctPlanIdee').value.trim(),
+        skript: el('ctPlanSkript').value, kanalId: aktivId,
+      });
+      el('ctPlanTitel').value = ''; el('ctPlanIdee').value = ''; el('ctPlanSkript').value = ''; el('ctPlanDatum').value = '';
+      planLaden();
+    };
+  }
+
+  // ---- Reiter 3: Thumbnails ----
+  function thumbVerdrahten() {
+    const seg = el('ctThumbKat');
+    if (seg) seg.querySelectorAll('button').forEach((b) => {
+      b.onclick = () => { if (b.disabled) return; thumbKat = b.dataset.wert; seg.querySelectorAll('button').forEach((x) => x.classList.toggle('aktiv', x === b)); };
+    });
+    if (el('ctThumbAnalyse')) el('ctThumbAnalyse').onclick = async () => {
+      const status = el('ctThumbStatus'); const konzept = el('ctThumbKonzept'); const gitter = el('ctThumbs');
+      if (status) status.textContent = 'Sehe mir das Video an … (Frames ziehen + analysieren, kann dauern)';
+      if (gitter) gitter.innerHTML = ''; if (konzept) konzept.hidden = true;
+      if (el('ctThumbBauen')) el('ctThumbBauen').hidden = true;
+      frames = []; gewaehltesBild = null; skinBild = null;
+      let r; try { r = await j.contentThumbnailAnalysieren({ wahl: thumbKat, titel: el('ctThumbTitel').value }); } catch (e) { r = { fehler: e && e.message }; }
+      if (!r || r.abgebrochen) { if (status) status.textContent = ''; return; }
+      if (r.fehler) { if (status) status.textContent = r.fehler; return; }
+      frames = r.bilder || [];
+      if (status) status.textContent = `${frames.length} Standbilder – klick das beste an, dann baust du dein Thumbnail.`;
+      if (konzept && r.konzept) { konzept.hidden = false; konzept.textContent = r.konzept; }
+      if (gitter) frames.forEach((b, i) => {
+        const img = document.createElement('img');
+        img.className = 'ct-thumb'; img.src = b.datenUrl; img.title = `Frame ${i + 1} (bei ${Math.round(b.bei_s)} s)`;
+        img.onclick = async () => {
+          gitter.querySelectorAll('img').forEach((x) => x.classList.toggle('gewaehlt', x === img));
+          try { gewaehltesBild = await bildLaden(b.datenUrl); } catch { gewaehltesBild = null; }
+          // Skin (falls Kanal einen MC-Namen hat) im Hintergrund holen
+          if (r.skinUrl && !skinBild) {
+            try { const sk = await j.contentSkin({ }); if (sk && sk.datenUrl) skinBild = await bildLaden(sk.datenUrl); } catch { /* ohne Skin weiter */ }
+          }
+          if (el('ctThumbBauen')) el('ctThumbBauen').hidden = false;
+          // Textvorschlag aus dem Konzept ziehen (Zeile mit TEXT:)
+          const m = /(?:TEXT|Text)\s*:\s*"?([^"\n]{2,40})"?/.exec(r.konzept || '');
+          if (m && el('ctThumbText') && !el('ctThumbText').value) el('ctThumbText').value = m[1].trim();
+          thumbnailZeichnen();
+        };
+        gitter.appendChild(img);
+      });
+    };
+    ['ctThumbText', 'ctThumbFarbe', 'ctThumbTextpos', 'ctThumbSkinAn'].forEach((id) => {
+      if (el(id)) el(id).oninput = thumbnailZeichnen;
+      if (el(id)) el(id).onchange = thumbnailZeichnen;
+    });
+    if (el('ctThumbNeu')) el('ctThumbNeu').onclick = thumbnailZeichnen;
+    if (el('ctThumbSpeichern')) el('ctThumbSpeichern').onclick = () => {
+      const c = el('ctThumbCanvas'); if (!c) return;
+      try {
+        const a = document.createElement('a');
+        a.href = c.toDataURL('image/png'); a.download = `thumbnail-${Date.now()}.png`;
+        document.body.appendChild(a); a.click(); a.remove();
+        const ok = el('ctThumbGespeichert'); if (ok) { ok.hidden = false; setTimeout(() => { ok.hidden = true; }, 2500); }
+      } catch (e) { alert('Speichern nicht möglich: ' + (e && e.message)); }
+    };
+  }
+
+  // Zeichnet das Thumbnail: Standbild als Hintergrund, optional Skin-Figur, dann
+  // fetter Text mit dickem Rand (Thumbnail-Best-Practices: großer, lesbarer Text).
+  function thumbnailZeichnen() {
+    const c = el('ctThumbCanvas'); if (!c || !gewaehltesBild) return;
+    const ctx = c.getContext('2d'); const W = c.width; const H = c.height;
+    ctx.clearRect(0, 0, W, H);
+    // Hintergrund (cover)
+    const iw = gewaehltesBild.width; const ih = gewaehltesBild.height;
+    const skala = Math.max(W / iw, H / ih);
+    const dw = iw * skala; const dh = ih * skala;
+    ctx.drawImage(gewaehltesBild, (W - dw) / 2, (H - dh) / 2, dw, dh);
+    // leichte Abdunklung für Textkontrast
+    const pos = el('ctThumbTextpos') ? el('ctThumbTextpos').value : 'links';
+    const grad = ctx.createLinearGradient(0, 0, W, 0);
+    if (pos === 'rechts') { grad.addColorStop(0, 'rgba(0,0,0,0)'); grad.addColorStop(1, 'rgba(0,0,0,0.55)'); }
+    else if (pos === 'mitte') { grad.addColorStop(0, 'rgba(0,0,0,0.15)'); grad.addColorStop(0.5, 'rgba(0,0,0,0.5)'); grad.addColorStop(1, 'rgba(0,0,0,0.15)'); }
+    else { grad.addColorStop(0, 'rgba(0,0,0,0.55)'); grad.addColorStop(1, 'rgba(0,0,0,0)'); }
+    ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+    // Skin-Figur (rechts, wenn Text links – und umgekehrt)
+    const skinAn = el('ctThumbSkinAn') ? el('ctThumbSkinAn').checked : true;
+    if (skinAn && skinBild) {
+      const sh = H * 0.92; const sw = skinBild.width * (sh / skinBild.height);
+      const sx = pos === 'links' ? W - sw - 20 : 20;
+      ctx.drawImage(skinBild, sx, H - sh, sw, sh);
+    }
+    // Text
+    const text = (el('ctThumbText') ? el('ctThumbText').value : '').toUpperCase().trim();
+    if (text) {
+      const farbe = el('ctThumbFarbe') ? el('ctThumbFarbe').value : '#ffdd00';
+      const worte = text.split(/\s+/);
+      const zeilen = []; let z = '';
+      worte.forEach((w) => { if ((z + ' ' + w).trim().length > 12) { if (z) zeilen.push(z); z = w; } else z = (z + ' ' + w).trim(); });
+      if (z) zeilen.push(z);
+      const groesse = Math.min(150, Math.floor(560 / Math.max(...zeilen.map((l) => l.length), 4) * 1.7));
+      ctx.font = `900 ${groesse}px Arial, sans-serif`;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = pos === 'rechts' ? 'right' : (pos === 'mitte' ? 'center' : 'left');
+      const x = pos === 'rechts' ? W - 60 : (pos === 'mitte' ? W / 2 : 60);
+      const gesamt = zeilen.length * groesse * 1.05;
+      let y = H / 2 - gesamt / 2 + groesse / 2;
+      ctx.lineJoin = 'round';
+      zeilen.forEach((l) => {
+        ctx.lineWidth = groesse * 0.18; ctx.strokeStyle = '#000';
+        ctx.strokeText(l, x, y);
+        ctx.fillStyle = farbe; ctx.fillText(l, x, y);
+        y += groesse * 1.05;
+      });
+    }
+  }
+
+  // ---- Reiter 4: Kanal (Profil-CRUD) ----
+  function kanalVerdrahten() {
+    if (el('ctKanalWahl')) el('ctKanalWahl').onchange = async () => {
+      await j.contentProfilAktiv(el('ctKanalWahl').value);
+      await laden();
+    };
+    if (el('contentAktiv')) el('contentAktiv').onchange = async () => {
+      try { await j.setzen('content.aktiv', el('contentAktiv').checked); } catch { /* egal */ }
+      laden();
     };
     if (el('contentProfilNeu')) el('contentProfilNeu').onclick = async () => {
-      formFuellen(await j.contentProfilVorlage('Neuer Kanal'));
-      gewaehlt = ''; // erzwingt neue id aus dem Namen beim Speichern
+      const name = prompt('Name des neuen Kanals:'); if (!name) return;
+      const v = await j.contentProfilVorlage(name);
+      const r = await j.contentProfilSpeichern(v);
+      if (r && r.profil) { await j.contentProfilAktiv(r.profil.id); }
+      await laden();
+    };
+    if (el('contentProfilLoeschen')) el('contentProfilLoeschen').onclick = async () => {
+      if (!aktivId || !confirm('Diesen Kanal wirklich löschen?')) return;
+      await j.contentProfilLoeschen(aktivId); await laden();
+    };
+    if (el('contentProfilExport')) el('contentProfilExport').onclick = async () => {
+      const r = await j.contentProfilExport(aktivId);
+      if (r && r.json) { try { await navigator.clipboard.writeText(r.json); alert('Kanal-Profil in die Zwischenablage kopiert.'); } catch { alert(r.json); } }
+    };
+    if (el('contentProfilImport')) el('contentProfilImport').onclick = async () => {
+      let txt = ''; try { txt = await navigator.clipboard.readText(); } catch { /* keine Berechtigung */ }
+      if (!txt) { alert('Kopiere zuerst ein Profil-JSON in die Zwischenablage.'); return; }
+      const r = await j.contentProfilImport(txt);
+      if (r && r.fehler) { alert(r.fehler); return; }
+      alert(`${(r && r.anzahl) || 0} Profil(e) importiert.`); await laden();
     };
     if (el('cfOrdnerWaehlen')) el('cfOrdnerWaehlen').onclick = async () => {
       const r = await j.contentOrdnerWaehlen();
-      if (r && r.ordner) { gewaehltOrdner = r.ordner; ordnerAnzeigen(); }
-      else if (r && r.fehler) alert(r.fehler);
+      if (r && r.ordner) { const o = el('cfOrdnerAnzeige'); o.dataset.pfad = r.ordner; o.textContent = r.ordner; }
+    };
+    if (el('cfAvatarWaehlen')) el('cfAvatarWaehlen').onclick = async () => {
+      const r = await j.contentBildWaehlen();
+      if (r && r.datenUrl) { const av = el('cfAvatarBild'); av.dataset.url = r.datenUrl; av.src = r.datenUrl; av.hidden = false; }
     };
     if (el('contentProfilSpeichern')) el('contentProfilSpeichern').onclick = async () => {
       const r = await j.contentProfilSpeichern(formLesen());
       if (r && r.fehler) { alert(r.fehler); return; }
-      gespeichertZeigen();
+      if (r && r.profil) aktivId = r.profil.id;
+      const ok = el('contentGespeichert'); if (ok) { ok.hidden = false; setTimeout(() => { ok.hidden = true; }, 2000); }
       await laden();
     };
-    if (el('contentProfilAktiv')) el('contentProfilAktiv').onclick = async () => {
-      const id = el('contentProfilWahl').value;
-      if (id) { await j.contentProfilAktiv(id); await laden(); }
-    };
-    if (el('contentProfilLoeschen')) el('contentProfilLoeschen').onclick = async () => {
-      const id = el('contentProfilWahl').value;
-      if (id && confirm('Dieses Profil löschen?')) { await j.contentProfilLoeschen(id); await laden(); }
-    };
-    if (el('contentProfilExport')) el('contentProfilExport').onclick = async () => {
-      const id = el('contentProfilWahl').value;
-      const r = await j.contentProfilExport(id);
-      if (r && r.json) {
-        try { await navigator.clipboard.writeText(r.json); alert('Profil als JSON in die Zwischenablage kopiert.'); }
-        catch { alert(r.json); }
-      }
-    };
-    if (el('contentProfilImport')) el('contentProfilImport').onclick = async () => {
-      let txt = '';
-      try { txt = await navigator.clipboard.readText(); } catch { /* keine Berechtigung */ }
-      if (!txt) { alert('Kopiere zuerst ein Profil-JSON in die Zwischenablage, dann erneut auf „Import".'); return; }
-      const r = await j.contentProfilImport(txt);
-      if (r && r.fehler) { alert(r.fehler); return; }
-      alert(`${(r && r.anzahl) || 0} Profil(e) importiert.`);
-      await laden();
-    };
-    // --- Analyse (Video-Transkript / Kanal-Infos) ---
-    let analyseArt = 'video';
-    const artSegment = el('contentAnalyseArt');
-    // Sichtbar umschalten: Bei „Kanal" verschwindet der Video-Upload und das
-    // Textfeld bittet um Kanal-Infos; bei „Video" ist der Upload wieder da.
-    function artAnwenden(art) {
-      analyseArt = art;
-      if (artSegment) artSegment.querySelectorAll('button').forEach((x) => x.classList.toggle('aktiv', x.dataset.wert === art));
-      const zeile = el('caVideoZeile');
-      if (zeile) zeile.hidden = (art === 'kanal');
-      const lab = el('caTextLabel');
-      if (lab) lab.setAttribute('data-t', art === 'kanal' ? 'content.analyse_kanalinfos' : 'content.analyse_transkript');
-      const feld = el('caText');
-      if (feld) feld.placeholder = (art === 'kanal')
-        ? 'Kanal-Infos: z. B. Kanalname, Themen, Aufrufe, letzte Titel …'
-        : 'Transkript deines Videos hier einfügen (oder oben ein Video hochladen).';
-      if (window.juliaTexteNach) window.juliaTexteNach();
-    }
-    if (artSegment) artSegment.querySelectorAll('button').forEach((b) => {
-      b.onclick = () => artAnwenden(b.dataset.wert);
-    });
-    artAnwenden('video');
-    if (el('caVideo')) el('caVideo').onclick = async () => {
-      const status = el('caVideoStatus');
-      const r = await j.contentVideoWaehlen();
-      if (!r || r.abgebrochen) return;
-      if (r.fehler) { if (status) status.textContent = r.fehler; return; }
-      // auf „Video"-Modus stellen
-      artAnwenden('video');
-      if (status) status.textContent = 'Transkribiere Video … (kann dauern)';
-      const t = await j.contentVideoTranskribieren(r.pfad);
-      if (t && t.transkript) {
-        if (el('caText')) el('caText').value = t.transkript;
-        if (status) status.textContent = 'Transkript eingefügt ✓ – jetzt „Analysieren".';
-      } else if (status) {
-        status.textContent = (t && t.fehler) ? t.fehler : 'Transkription fehlgeschlagen.';
-      }
-    };
-    if (el('contentAnalysieren')) el('contentAnalysieren').onclick = async () => {
-      const txt = el('caText').value.trim();
-      if (!txt) { alert('Bitte erst das Transkript bzw. die Kanal-Infos einfügen.'); return; }
-      const laeuft = el('caLaeuft'); const bericht = el('caBericht');
-      if (laeuft) laeuft.hidden = false;
-      if (bericht) bericht.hidden = true;
-      try {
-        const eingabe = { art: analyseArt, titel: el('caTitel').value, notizen: el('caNotizen').value };
-        if (analyseArt === 'kanal') eingabe.kanalInfos = txt; else eingabe.transkript = txt;
-        const r = await j.contentAnalysieren(eingabe);
-        if (bericht) {
-          bericht.hidden = false;
-          bericht.textContent = (r && r.fehler) ? r.fehler : ((r && r.antwort) || 'Keine Antwort erhalten.');
-        }
-      } catch (e) {
-        if (bericht) { bericht.hidden = false; bericht.textContent = 'Fehler: ' + (e && e.message); }
-      } finally {
-        if (laeuft) laeuft.hidden = true;
-      }
-    };
-    // --- Thumbnails: Standbilder aus einem Video ziehen ---
-    if (el('ctThumbVideo')) el('ctThumbVideo').onclick = async () => {
-      const status = el('ctThumbStatus');
-      const gitter = el('ctThumbs');
-      if (status) status.textContent = 'Ziehe Standbilder … (kann kurz dauern)';
-      if (gitter) gitter.innerHTML = '';
-      let r;
-      try { r = await j.contentThumbnails({ anzahl: 4 }); } catch (e) { r = { fehler: e && e.message }; }
-      if (!r || r.abgebrochen) { if (status) status.textContent = ''; return; }
-      if (r.fehler) { if (status) status.textContent = r.fehler; return; }
-      if (status) status.textContent = `${r.bilder.length} Vorschläge – Rechtsklick → Bild speichern unter …`;
-      if (gitter) r.bilder.forEach((b) => {
-        const img = document.createElement('img');
-        img.className = 'ct-thumb';
-        img.src = b.datenUrl;
-        img.alt = `Standbild bei ${Math.round(b.bei_s)} s`;
-        img.title = `bei ${Math.round(b.bei_s)} s`;
-        gitter.appendChild(img);
-      });
-    };
+  }
+
+  function verdrahten() {
+    tabsVerdrahten();
+    auftraegeVerdrahten();
+    planVerdrahten();
+    thumbVerdrahten();
+    kanalVerdrahten();
   }
 
   function start() {

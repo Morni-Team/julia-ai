@@ -64,6 +64,8 @@ function standardProfil(name = 'Mein Kanal') {
     ordner: '', // EIN Arbeits-/Speicherordner (per Auswahl-Dialog) – hier legt die KI alles ab
     mc_name: '', // Minecraft-Name: soll (falls gesetzt) immer ins Thumbnail (Skin/Name)
     thumbnail_thema: '', // z. B. "gaming/minecraft", "reactions" – prägt Stil/Elemente des Thumbnails
+    kategorie: '', // FESTE Kanal-Kategorie fürs Thumbnail: 'minecraft-gaming' | 'gaming' | 'reaction' | '' (frei wählbar)
+    avatar: '', // Kanal-Bild (data-URL oder Pfad) – wird oben in der Konto-/Kanal-Leiste gezeigt
     zielgruppe: '',
     tonalitaet: '',
     sprache: 'de',
@@ -92,6 +94,8 @@ function profilBereinigen(roh = {}) {
     ordner: text(roh.ordner, 500),
     mc_name: text(roh.mc_name, 16).replace(/[^A-Za-z0-9_]/g, ''), // gültige MC-Namen: Buchstaben/Ziffern/_
     thumbnail_thema: text(roh.thumbnail_thema, 40),
+    kategorie: /^(minecraft-gaming|gaming|reaction)$/.test(String(roh.kategorie)) ? String(roh.kategorie) : '',
+    avatar: text(roh.avatar, 300000), // data-URL des Kanal-Bilds (klein) oder Pfad
     zielgruppe: text(roh.zielgruppe, 200),
     tonalitaet: text(roh.tonalitaet, 200),
     sprache: /^(de|en)$/.test(String(roh.sprache)) ? String(roh.sprache) : 'de',

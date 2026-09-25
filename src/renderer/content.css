@@ -32,4 +32,43 @@
 
 /* Thumbnail-Vorschläge */
 .ct-thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-top: 10px; }
-.ct-thumb { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 10px; border: 1px solid var(--linie-stark); background: var(--grund-2); }
+.ct-thumb { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 10px; border: 1px solid var(--linie-stark); background: var(--grund-2); cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.ct-thumb:hover { border-color: var(--akzent-rand); }
+.ct-thumb.gewaehlt { border-color: var(--akzent); box-shadow: var(--glow); }
+
+/* App in der App: Wrapper wie .rt-innen (zentriert, scrollt über .rt) */
+.ct-app { width: 100%; max-width: 1060px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+
+/* Konto-/Kanal-Leiste (oben, wie bei YouTube) */
+.ct-bar { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  background: var(--flaeche); border: 1px solid var(--linie); border-radius: 14px; padding: 12px 16px; }
+.ct-bar-links { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.ct-avatar { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2px solid var(--akzent-rand); background: var(--grund-2); }
+.ct-avatar.klein { width: 40px; height: 40px; }
+.ct-avatar.platzhalter { display: flex; align-items: center; justify-content: center; font-size: 24px; }
+.ct-bar-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.ct-bar-text .ct-select { min-width: 200px; font-size: 15px; font-weight: 600; }
+.ct-bar-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ct-badge { background: var(--akzent); color: #1a1206; font-weight: 700; font-size: 11px; padding: 2px 9px; border-radius: 999px; }
+.ct-stats { font-size: 12px; color: var(--text-3); }
+
+/* App-Reiter */
+.ct-tabs { width: 100%; }
+.ct-tabs button { flex: 1 1 auto; }
+.ct-panel { display: flex; flex-direction: column; gap: 14px; }
+
+/* Listen (Aufträge/Planung) */
+.ct-liste { display: flex; flex-direction: column; gap: 10px; }
+.ct-eintrag { background: var(--flaeche-2); border: 1px solid var(--linie); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.ct-eintrag-kopf { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ct-eintrag-text { color: var(--text-2); font-size: 13px; white-space: pre-wrap; }
+.ct-datum { font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.ct-status { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--grund-2); color: var(--text-2); }
+.ct-status-fertig, .ct-status-veroeffentlicht { background: color-mix(in srgb, var(--gruen) 25%, transparent); color: var(--gruen); }
+.ct-status-laeuft, .ct-status-in_arbeit { background: color-mix(in srgb, var(--akzent) 25%, transparent); color: var(--akzent); }
+.ct-status-fehler { background: color-mix(in srgb, #e5484d 25%, transparent); color: #ff8a8d; }
+.ct-skript { white-space: pre-wrap; background: var(--grund-2); border-radius: 8px; padding: 8px 10px; font-size: 12px; color: var(--text-2); max-height: 220px; overflow-y: auto; margin: 6px 0 0; }
+
+/* Thumbnail-Compositor */
+.ct-canvas { width: 100%; max-width: 640px; aspect-ratio: 16 / 9; height: auto; border-radius: 10px; border: 1px solid var(--linie-stark); background: #000; }
+.ct-select:disabled, .segment button:disabled { opacity: .5; cursor: not-allowed; }

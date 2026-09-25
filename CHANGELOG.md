@@ -1,5 +1,8 @@
 # Changelog
 
+## 8.6.0 – 2026-09-25
+- Content komplett neu als App in der App - Konto-/Kanal-Leiste oben plus drei Reiter Schnitt (Schnittauftraege), Planung und Thumbnails; fuers Thumbnail sieht sich Julia das Video wirklich an, holt aus deinem Minecraft-Namen den Skin und baut ein fertiges 1280x720-Bild mit fettem Text
+
 ## 8.5.0 – 2026-09-25
 - Content-Bereich reparieren und erweitern - der Knopf Kanal schaltet jetzt sichtbar um (Video-Upload weg, Textfeld bittet um Kanal-Infos), und ein neuer Thumbnail-Bereich zieht mehrere Standbilder aus einem Video als Ausgangspunkt fuers Thumbnail
 

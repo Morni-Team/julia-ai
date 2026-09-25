@@ -62,6 +62,14 @@ test('profilBereinigen: Minecraft-Name und Thumbnail-Thema (fürs Thumbnail)', (
   assert.equal(p.thumbnail_thema, 'gaming/minecraft');
 });
 
+test('profilBereinigen: feste Kanal-Kategorie und Avatar', () => {
+  const p = profilBereinigen({ kanalname: 'MoinMornhart', kategorie: 'minecraft-gaming', avatar: 'data:image/png;base64,AAAA' });
+  assert.equal(p.kategorie, 'minecraft-gaming');
+  assert.equal(p.avatar, 'data:image/png;base64,AAAA');
+  // ungültige Kategorie → leer (frei wählbar)
+  assert.equal(profilBereinigen({ kanalname: 'K', kategorie: 'quatsch' }).kategorie, '');
+});
+
 test('ProfilSpeicher: anlegen, aktiv, laden, löschen', () => {
   const o = ordner();
   try {
