@@ -62,6 +62,8 @@ function standardProfil(name = 'Mein Kanal') {
     kanalname: text(name, 80) || 'Mein Kanal',
     kanal_link: '', // YouTube-Kanal-Link (das Erste, was der Nutzer einträgt)
     ordner: '', // EIN Arbeits-/Speicherordner (per Auswahl-Dialog) – hier legt die KI alles ab
+    mc_name: '', // Minecraft-Name: soll (falls gesetzt) immer ins Thumbnail (Skin/Name)
+    thumbnail_thema: '', // z. B. "gaming/minecraft", "reactions" – prägt Stil/Elemente des Thumbnails
     zielgruppe: '',
     tonalitaet: '',
     sprache: 'de',
@@ -88,6 +90,8 @@ function profilBereinigen(roh = {}) {
     kanalname: text(roh.kanalname, 80) || 'Mein Kanal',
     kanal_link: linkBereinigen(roh.kanal_link),
     ordner: text(roh.ordner, 500),
+    mc_name: text(roh.mc_name, 16).replace(/[^A-Za-z0-9_]/g, ''), // gültige MC-Namen: Buchstaben/Ziffern/_
+    thumbnail_thema: text(roh.thumbnail_thema, 40),
     zielgruppe: text(roh.zielgruppe, 200),
     tonalitaet: text(roh.tonalitaet, 200),
     sprache: /^(de|en)$/.test(String(roh.sprache)) ? String(roh.sprache) : 'de',

@@ -56,6 +56,12 @@ test('profilBereinigen: Kanal-Link (optional) und Arbeitsordner werden übernomm
   assert.equal(profilBereinigen({ kanalname: 'K', kanal_link: 'nope' }).kanal_link, '');
 });
 
+test('profilBereinigen: Minecraft-Name und Thumbnail-Thema (fürs Thumbnail)', () => {
+  const p = profilBereinigen({ kanalname: 'K', mc_name: 'Moin_Julia!! ', thumbnail_thema: 'gaming/minecraft' });
+  assert.equal(p.mc_name, 'Moin_Julia'); // ungültige Zeichen raus, gültige MC-Zeichen bleiben
+  assert.equal(p.thumbnail_thema, 'gaming/minecraft');
+});
+
 test('ProfilSpeicher: anlegen, aktiv, laden, löschen', () => {
   const o = ordner();
   try {

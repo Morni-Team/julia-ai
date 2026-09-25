@@ -1,5 +1,8 @@
 # Changelog
 
+## 8.3.0 – 2026-09-25
+- Content-Schnitt-Engine als getestete Grundlage - aus einem Video Stille erkennen und Rohschnitt (Jump-Cut) bauen, daraus 9:16-Clips fuer TikTok/YouTube Shorts schneiden und Thumbnail-Standbilder ziehen (alles FFmpeg); Content-Profil merkt sich Minecraft-Name und Thumbnail-Thema
+
 ## 8.2.0 – 2026-09-25
 - Content-Modul im echten Julia-Design (gleiche Farben/Karten/Buttons) statt zusammengewuerfelt, Kanal-Link optional, Ordner per Auswahl-Dialog, Assets macht Julia selbst; neu: Video hochladen und lokal per Whisper transkribieren lassen fuer die Analyse. Ausserdem Minecraft: haengt nicht mehr passiv im Wasser fest (taucht auf und sucht neuen Weg)
 
