@@ -10,6 +10,7 @@
 //! * [`grammar`] – Grammatik-Masking auf Logit-Ebene (constrained decoding): erzwingt gültige Ausgaben.
 //! * [`safety`] – ein ehrlich begrenztes Sicherheits-Gate (kein Ersatz für die Ampel – siehe Modul-Doku).
 //! * [`train`] – lokaler Online-Trainings-Loop (Delta-/Hebb'sche Updates), 100 % lokal, plus Statistik und Quantisierung nach ternär.
+//! * [`ttt`] – Live-Lern-Mechanik (Test-Time Training) mit O(1)-Speicher + Grammatik-Maske (Experiment, Issue #119) – ehrlich als Mechanik-Demo gekennzeichnet, kein trainiertes Modell.
 //!
 //! ## Ehrliche Einordnung
 //!
@@ -28,6 +29,7 @@ pub mod state;
 pub mod stream;
 pub mod ternary;
 pub mod train;
+pub mod ttt;
 
 #[cfg(test)]
 mod tests {
