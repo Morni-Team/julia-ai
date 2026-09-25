@@ -142,6 +142,38 @@
       alert(`${(r && r.anzahl) || 0} Profil(e) importiert.`);
       await laden();
     };
+    // --- Analyse (Video-Transkript / Kanal-Infos) ---
+    let analyseArt = 'video';
+    const artSegment = el('contentAnalyseArt');
+    if (artSegment) artSegment.querySelectorAll('button').forEach((b) => {
+      b.onclick = () => {
+        analyseArt = b.dataset.wert;
+        artSegment.querySelectorAll('button').forEach((x) => x.classList.toggle('aktiv', x === b));
+        const lab = el('caTextLabel');
+        if (lab) lab.setAttribute('data-t', analyseArt === 'kanal' ? 'content.analyse_kanalinfos' : 'content.analyse_transkript');
+        if (window.juliaTexteNach) window.juliaTexteNach();
+      };
+    });
+    if (el('contentAnalysieren')) el('contentAnalysieren').onclick = async () => {
+      const txt = el('caText').value.trim();
+      if (!txt) { alert('Bitte erst das Transkript bzw. die Kanal-Infos einfügen.'); return; }
+      const laeuft = el('caLaeuft'); const bericht = el('caBericht');
+      if (laeuft) laeuft.hidden = false;
+      if (bericht) bericht.hidden = true;
+      try {
+        const eingabe = { art: analyseArt, titel: el('caTitel').value, notizen: el('caNotizen').value };
+        if (analyseArt === 'kanal') eingabe.kanalInfos = txt; else eingabe.transkript = txt;
+        const r = await j.contentAnalysieren(eingabe);
+        if (bericht) {
+          bericht.hidden = false;
+          bericht.textContent = (r && r.fehler) ? r.fehler : ((r && r.antwort) || 'Keine Antwort erhalten.');
+        }
+      } catch (e) {
+        if (bericht) { bericht.hidden = false; bericht.textContent = 'Fehler: ' + (e && e.message); }
+      } finally {
+        if (laeuft) laeuft.hidden = true;
+      }
+    };
   }
 
   function start() {

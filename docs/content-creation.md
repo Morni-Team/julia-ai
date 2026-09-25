@@ -49,6 +49,11 @@ Gebaut (erste vertikale Scheibe):
 - [x] Modul-Aktivierung + UI-Grundgerüst (Tab „Content", Schalter `content.aktiv`).
 - [x] Creator-Profil-Speicher (anlegen, aktiv setzen, löschen, Import/Export).
 - [x] Reine Formate/Entscheidungen: Schnittplan-Validierung, Analyse-Regeln.
+- [x] **Einfache Variante (Nutzerwunsch): Video/Kanal analysieren** – Transkript oder
+      Kanal-Infos einfügen → Julia gibt Creator-Feedback (Hook/Tempo/Retention/Titel/
+      Thumbnail/Verbesserungen) über einen Einmal-Aufwand ohne Werkzeuge, nur Text.
+      [src/main/content/analyse-video.js](../src/main/content/analyse-video.js),
+      IPC `content:analysieren`, UI im Content-Tab.
 
 Als Nächstes (aufbauend):
 

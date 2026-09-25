@@ -13,4 +13,5 @@
 .content-formular textarea { resize: vertical; }
 .content-speichern { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
 .content-gespeichert { color: var(--gruen, #2e7d32); font-size: 0.9em; }
+.content-bericht { margin-top: 12px; padding: 12px 14px; border-radius: 10px; background: var(--flaeche-2, rgba(127,127,127,0.08)); white-space: pre-wrap; line-height: 1.5; max-height: 420px; overflow-y: auto; }
 @media (max-width: 560px) { .content-formular { grid-template-columns: 1fr; } }

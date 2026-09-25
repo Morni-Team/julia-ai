@@ -1117,6 +1117,21 @@ function ipcEinrichten() {
   ipc.handle('content:profile-loeschen', (_e, id) => { try { return { ok: content.profilLoeschen(String(id || '')) }; } catch (e) { return { fehler: e.message }; } });
   ipc.handle('content:profile-import', (_e, jsonText) => { try { return { anzahl: content.profilImportieren(String(jsonText || '')) }; } catch (e) { return { fehler: e.message }; } });
   ipc.handle('content:profile-export', (_e, id) => { try { return { json: content.profilExportieren(String(id || '')) }; } catch (e) { return { fehler: e.message }; } });
+  // Content-Analyse (einfache Variante): Julia analysiert ein Video-Transkript oder
+  // Kanal-Infos wie ein YouTube-Coach. Ein Einmal-Aufruf ohne Werkzeuge; nur Text.
+  ipc.handle('content:analysieren', async (_e, eingabe) => {
+    try {
+      const { analysePrompt } = require('./content/analyse-video');
+      const ein = eingabe || {};
+      const { system, user } = analysePrompt({
+        art: ein.art === 'kanal' ? 'kanal' : 'video',
+        transkript: ein.transkript, kanalInfos: ein.kanalInfos, titel: ein.titel, notizen: ein.notizen,
+        sprache: config.get('sprachcode'),
+      });
+      const antwort = await agent.einmalAntwort({ system, text: user, maxTokens: 1800 });
+      return { antwort };
+    } catch (e) { return { fehler: e.message }; }
+  });
   // "Allem zustimmen" (und "auch nach fremden Inhalten") lassen sich nur hier
   // einschalten – nach einem Ja im Windows-Dialog. Julia selbst kann es nicht
   // (einstellung_setzen: ROT).

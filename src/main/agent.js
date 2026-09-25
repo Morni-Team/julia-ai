@@ -492,15 +492,27 @@ class Agent extends EventEmitter {
   async nebenAntwort(frage, { name = 'Julia', sprachcode = 'de', kontext = '' } = {}) {
     const text = String(frage || '').trim().slice(0, 800);
     if (!text) return '';
-    const system = spielSystem({ name, sprachcode, kontext });
+    return this._einmal({ system: spielSystem({ name, sprachcode, kontext }), text, maxTokens: 350 });
+  }
+
+  // Generischer EINMAL-Aufruf (ein Modell-Aufruf OHNE Werkzeuge), z. B. für die
+  // Content-Analyse eines Videos/Kanals. Eigener Abbruch, unabhängig vom Hauptlauf.
+  async einmalAntwort({ system, text, maxTokens = 1500 } = {}) {
+    const frage = String(text || '').trim().slice(0, 20000);
+    if (!frage) return '';
+    return this._einmal({ system: String(system || ''), text: frage, maxTokens });
+  }
+
+  // Gemeinsamer Kern für die Einmal-Aufrufe (nebenAntwort/einmalAntwort).
+  async _einmal({ system, text, maxTokens }) {
     const a = anbieter.anbieterVon(this.config);
     const modell = this.config.get('modell');
-    if (a.art === 'claude-code') throw new Error('Die Neben-KI ist im Claude-Code-Modus nicht verfügbar.');
+    if (a.art === 'claude-code') throw new Error('Ein Einmal-Aufruf ist im Claude-Code-Modus nicht verfügbar.');
     const abbruch = new AbortController();
     if (a.art === 'anthropic') {
       const client = this._client();
       const msg = await client.messages.create({
-        model: modell, max_tokens: 350, system, messages: [{ role: 'user', content: text }],
+        model: modell, max_tokens: maxTokens, system, messages: [{ role: 'user', content: text }],
       }, { signal: abbruch.signal });
       return textAus(msg.content) || '';
     }
@@ -508,7 +520,7 @@ class Agent extends EventEmitter {
     const r = await openai.runde({
       url: a.url, schluessel, modell, system, werkzeuge: [],
       verlauf: [{ role: 'user', content: [{ type: 'text', text }] }],
-      signal: abbruch.signal, holen: this.holen, optionen: { kopf: a.kopf, maxTokens: 350 },
+      signal: abbruch.signal, holen: this.holen, optionen: { kopf: a.kopf, maxTokens },
     });
     return textAus(r.content) || '';
   }

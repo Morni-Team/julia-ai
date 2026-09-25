@@ -485,6 +485,27 @@
               <span class="content-gespeichert" id="contentGespeichert" hidden data-t="content.gespeichert"></span>
             </div>
           </div>
+
+          <div class="content-block">
+            <div class="content-block-kopf">
+              <h3 data-t="content.analyse"></h3>
+              <div class="segment" id="contentAnalyseArt">
+                <button data-wert="video" class="aktiv" data-t="content.analyse_video"></button>
+                <button data-wert="kanal" data-t="content.analyse_kanal"></button>
+              </div>
+            </div>
+            <p class="mc-klein" data-t="content.analyse_hinweis"></p>
+            <div class="content-formular">
+              <label class="content-breit"><span data-t="content.analyse_titel"></span><input id="caTitel" type="text"></label>
+              <label class="content-breit"><span id="caTextLabel" data-t="content.analyse_transkript"></span><textarea id="caText" rows="6"></textarea></label>
+              <label class="content-breit"><span data-t="content.analyse_notizen"></span><input id="caNotizen" type="text"></label>
+            </div>
+            <div class="content-speichern">
+              <button class="haupt" id="contentAnalysieren" data-t="content.analysieren"></button>
+              <span class="content-gespeichert" id="caLaeuft" hidden data-t="content.analyse_laeuft"></span>
+            </div>
+            <div class="content-bericht" id="caBericht" hidden></div>
+          </div>
         </div>
       </section>
 

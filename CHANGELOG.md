@@ -1,5 +1,8 @@
 # Changelog
 
+## 8.0.0 – 2026-09-25
+- Content-Modul einfacher - Julia analysiert jetzt ein Video (per Transkript) oder einen Kanal (per eingefuegten Infos) und gibt Creator-Feedback wie ein YouTube-Coach: Hook, Tempo/Retention, Struktur, drei Titel- und drei Thumbnail-Ideen und die wichtigsten Verbesserungen - rein textbasiert
+
 ## 7.9.1 – 2026-09-25
 - Update-Wächter loggt bei einem Fehlschlag jetzt die genaue Ursache (errno/syscall/Pfad, z. B. EBUSY/EPERM samt gesperrter Datei) statt nur den Exit-Code - so ist ein hartnaeckiger Update-Fehler diagnostizierbar; dazu eine Anleitung zur Fehlerbehebung
 
