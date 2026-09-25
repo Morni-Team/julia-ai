@@ -1283,7 +1283,7 @@ function ipcEinrichten() {
       const prompt = String((opts || {}).prompt || '').trim().slice(0, 800);
       if (!prompt) return { fehler: 'Kein Bild-Prompt.' };
       const seed = Math.floor(Math.random() * 1e6);
-      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1280&height=720&nologo=true&seed=${seed}`;
+      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1280&height=720&nologo=true&model=flux&seed=${seed}`;
       let letzter = '';
       for (let versuch = 0; versuch < 2; versuch++) {
         try {

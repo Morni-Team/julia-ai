@@ -380,31 +380,43 @@
     else { grad.addColorStop(0, 'rgba(0,0,0,0.62)'); grad.addColorStop(1, 'rgba(0,0,0,0)'); }
     ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
 
-    // --- Skin-Figur mit Schatten, Glow und Kontur ---
+    // --- Skin-Figur: groß, leicht gekippt (dynamisch), mit Boden-Schatten,
+    //     Glow, Kontur – so wirkt sie in die Szene integriert statt draufgeklebt. ---
     if (skinAn && skinBild && skinBild.width) {
-      const sh = H * 0.98; const sw = skinBild.width * (sh / skinBild.height);
-      const sx = pos === 'links' ? W - sw - 10 : (pos === 'mitte' ? (W - sw) / 2 : 10);
-      const sy = H - sh;
-      // 1) weicher Schlagschatten
+      const sh = H * 1.06; const sw = skinBild.width * (sh / skinBild.height);
+      const sx = pos === 'links' ? W - sw + 6 : (pos === 'mitte' ? (W - sw) / 2 : -6);
+      const sy = H - sh + 12; // Füße leicht unter dem Rand → füllt mehr
+      const mittigX = sx + sw / 2;
+      // Boden-Kontaktschatten (bleibt am Boden, dreht nicht mit)
       try {
-        ctx.save(); ctx.filter = 'blur(16px)'; ctx.globalAlpha = 0.55;
-        ctx.drawImage(silhouette(skinBild, sw, sh, '#000'), sx + 18, sy + 14, sw, sh);
+        ctx.save(); ctx.filter = 'blur(12px)'; ctx.globalAlpha = 0.45; ctx.fillStyle = '#000';
+        ctx.beginPath(); ctx.ellipse(mittigX, H - 16, sw * 0.32, 24, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      } catch { /* ohne Schatten weiter */ }
+      // Die ganze Figur leicht kippen (mehr „Action") – Drehpunkt an den Füßen.
+      const kippen = pos === 'mitte' ? 0 : (pos === 'links' ? -0.05 : 0.05);
+      ctx.save();
+      ctx.translate(mittigX, H); ctx.rotate(kippen); ctx.translate(-mittigX, -H);
+      // 1) weicher Schlagschatten hinter der Figur
+      try {
+        ctx.save(); ctx.filter = 'blur(18px)'; ctx.globalAlpha = 0.5;
+        ctx.drawImage(silhouette(skinBild, sw, sh, '#000'), sx + 16, sy + 10, sw, sh);
         ctx.restore();
-      } catch { /* filter evtl. nicht verfügbar – ohne Schatten weiter */ }
-      // 2) Akzent-Glow (weich) direkt hinter der Figur
+      } catch { /* egal */ }
+      // 2) Akzent-Glow direkt hinter der Figur (lässt sie „leuchten")
       try {
-        ctx.save(); ctx.filter = 'blur(22px)'; ctx.globalAlpha = 0.7;
+        ctx.save(); ctx.filter = 'blur(24px)'; ctx.globalAlpha = 0.75;
         ctx.drawImage(silhouette(skinBild, sw, sh, akzent), sx, sy, sw, sh);
         ctx.restore();
       } catch { /* egal */ }
-      // 3) weiße Sticker-Kontur (mehrfach versetzt für gleichmäßigen Rand)
+      // 3) weiße Sticker-Kontur (mehrfach versetzt = gleichmäßiger, dicker Rand)
       const weiss = silhouette(skinBild, sw, sh, '#ffffff');
-      const ol = Math.max(5, sw * 0.028);
+      const ol = Math.max(6, sw * 0.03);
       ctx.save(); ctx.globalAlpha = 1;
-      for (let a = 0; a < 20; a++) { const ang = (a / 20) * Math.PI * 2; ctx.drawImage(weiss, sx + Math.cos(ang) * ol, sy + Math.sin(ang) * ol, sw, sh); }
+      for (let a = 0; a < 24; a++) { const ang = (a / 24) * Math.PI * 2; ctx.drawImage(weiss, sx + Math.cos(ang) * ol, sy + Math.sin(ang) * ol, sw, sh); }
       ctx.restore();
       // 4) der echte Skin obendrauf
       ctx.drawImage(skinBild, sx, sy, sw, sh);
+      ctx.restore();
     }
 
     // --- Text: groß, fett, dicker Rand + Schatten ---

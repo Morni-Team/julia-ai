@@ -18,7 +18,7 @@ const SKIN_BASIS = 'https://nmsr.nickac.dev';
 // Kategorien und die dazu passende, wirkungsvolle Skin-Pose fürs Thumbnail.
 const KATEGORIEN = {
   'minecraft-gaming': { label: 'Minecraft-Gaming', pose: 'fullbodyiso', crop: 'full' },
-  gaming: { label: 'Gaming', pose: 'fullbody', crop: 'full' },
+  gaming: { label: 'Gaming', pose: 'fullbodyiso', crop: 'full' },
   reaction: { label: 'Reaction', pose: 'bust', crop: 'bust' },
 };
 
