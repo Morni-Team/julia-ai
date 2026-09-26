@@ -3,14 +3,14 @@
   "beschreibung": "Lacht, Hand am Bauch, Kopf zurueck",
   "knochen": {
     "upper_arm.R": [
-      -42,
+      -14,
       0,
-      12
+      0
     ],
     "upper_arm.L": [
-      -42,
+      -14,
       0,
-      -12
+      0
     ],
     "upper_leg.R": [
       4,
@@ -23,22 +23,22 @@
       0
     ],
     "lower_arm.R": [
-      -72,
+      -84,
       0,
-      0
+      40
     ],
     "lower_arm.L": [
-      -72,
+      -84,
       0,
-      0
+      -40
     ],
     "spine": [
-      -8,
+      -6,
       0,
       0
     ],
     "head": [
-      -20,
+      -16,
       0,
       0
     ]

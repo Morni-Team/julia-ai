@@ -3,12 +3,12 @@
   "beschreibung": "Winken mit erhobenem Arm",
   "knochen": {
     "upper_arm.R": [
-      -150,
-      22,
+      -12,
+      122,
       0
     ],
     "upper_arm.L": [
-      6,
+      -8,
       0,
       0
     ],
@@ -23,12 +23,12 @@
       0
     ],
     "lower_arm.R": [
-      -42,
+      -40,
       0,
       0
     ],
     "lower_arm.L": [
-      -9,
+      -10,
       0,
       0
     ]

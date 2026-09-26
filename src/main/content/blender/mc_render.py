@@ -91,7 +91,7 @@ def _bevel(nt, principled, radius=0.06):
         bev=nt.nodes.new('ShaderNodeBevel'); bev.samples=4
         bev.inputs['Radius'].default_value=radius
         nt.links.new(bev.outputs['Normal'], principled.inputs['Normal'])
-    except Exception: pass
+    except Exception: pass  # nosec B110 - optionaler Blender-API-Aufruf, darf je Version fehlen
 
 # ---------------------------------------------------------------- Materialien
 def hautmaterial(skin_path):
@@ -101,7 +101,7 @@ def hautmaterial(skin_path):
     tex=nt.nodes.new('ShaderNodeTexImage'); tex.image=img; tex.interpolation='Closest'
     b=nt.nodes.new('ShaderNodeBsdfPrincipled'); b.inputs['Roughness'].default_value=0.9
     try: b.inputs['Specular IOR Level'].default_value=0.35
-    except Exception: pass
+    except Exception: pass  # nosec B110 - optionaler Blender-API-Aufruf, darf je Version fehlen
     o=nt.nodes.new('ShaderNodeOutputMaterial')
     nt.links.new(tex.outputs['Color'], b.inputs['Base Color'])
     nt.links.new(tex.outputs['Alpha'], b.inputs['Alpha'])
@@ -117,7 +117,7 @@ def farbmaterial(rgb, rough=0.7, emiss=0.0):
     if emiss>0:
         try:
             b.inputs['Emission Color'].default_value=c; b.inputs['Emission Strength'].default_value=emiss
-        except Exception: pass
+        except Exception: pass  # nosec B110 - optionaler Blender-API-Aufruf, darf je Version fehlen
     _bevel(m.node_tree, b)
     return m
 
@@ -167,7 +167,7 @@ def make_part(name,w,d,h,ztop,uv,loc,mat):
     return ob
 
 # ---------------------------------------------------------------- 3D-Item
-def add_item_3d(tex_path, rarm, groesse=0.82):
+def add_item_3d(tex_path, rarm, groesse=0.82, extra_yaw=0.0, griff=None, profil=False, grip_frac=0.5):
     im=bpy.data.images.load(tex_path); w,h=im.size; px=im.pixels[:]
     me=bpy.data.meshes.new('item'); it=bpy.data.objects.new('item',me); scn.collection.objects.link(it)
     bm=bmesh.new(); col=bm.loops.layers.color.new('Col')
@@ -185,7 +185,8 @@ def add_item_3d(tex_path, rarm, groesse=0.82):
             i=(yy*w+xx)*4
             if px[i+3] < 0.5: continue
             cube(xx-gx, yy-gz, (px[i],px[i+1],px[i+2],1.0))
-    for v in bm.verts: v.co.rotate(Euler((0.0, math.radians(-45.0), 0.0)))
+    # Greifpunkt setzen: unterer Teil (brauner Griff) in der Faust, Item ragt in +Z (Arm-Richtung) raus.
+    for v in bm.verts: v.co.z += (gz - grip_frac*h)
     bm.normal_update(); bm.to_mesh(me); bm.free()
     m=bpy.data.materials.new('itemmat'); m.use_nodes=True; nt2=m.node_tree; nt2.nodes.clear()
     vc=nt2.nodes.new('ShaderNodeVertexColor'); vc.layer_name='Col'
@@ -196,10 +197,13 @@ def add_item_3d(tex_path, rarm, groesse=0.82):
     me.materials.append(m)
     for p in me.polygons: p.use_smooth=False
     bpy.context.view_layer.update()
-    hand = rarm.matrix_world @ Vector((0.0,-2.2,-6.6))   # rarm = Unterarm, Hand am Ende
+    # Item FEST an die Hand parenten und in Minecraft-Haltung kippen: das Item folgt dem
+    # Unterarm/der Hand in JEDER Pose und liegt immer auf DERSELBEN Linie (die diagonale
+    # MC-Haltung ~45 grad nach vorne-oben), nie in einer anderen Richtung.
+    go = Vector(griff) if griff else Vector((0.0,-1.0,-5.5))  # Griff EXAKT an der Hand (vorne unten am Unterarm)
+    hand = rarm.matrix_world @ go
     cam = scn.camera.matrix_world.translation
-    zb = Vector((0.0,-0.78,0.63)).normalized()
-    hand = hand + Vector((-0.2,-1.1,0.2))   # Griff mittig auf der Handlinie (aussen), leicht vorne
+    zb = Vector((0.0,0.0,1.0))   # Klinge/Kopf zeigt IMMER nach OBEN (Weltachse), egal welche Pose
     camdir = (cam-hand)
     if camdir.length<1e-4: camdir=Vector((0,-1,0))
     camdir.normalize()
@@ -208,7 +212,7 @@ def add_item_3d(tex_path, rarm, groesse=0.82):
     nb.normalize()
     yb=-nb; xb=yb.cross(zb).normalized(); yb=zb.cross(xb).normalized()
     R=Matrix(((xb.x,yb.x,zb.x),(xb.y,yb.y,zb.y),(xb.z,yb.z,zb.z)))
-    it.matrix_world = Matrix.Translation(hand) @ R.to_4x4() @ Matrix.Rotation(math.radians(60),4,'Z') @ Matrix.Scale(groesse,4)
+    it.matrix_world = Matrix.Translation(hand) @ R.to_4x4() @ Matrix.Scale(groesse,4)
     return it
 
 # ---------------------------------------------------------------- Posen
@@ -226,9 +230,11 @@ POSE_PRESETS = {
     'gehen':  {'rarm':-32,'rarm_l':-18,'larm':32,'larm_l':-18,'rleg':30,'rleg_l':12,'lleg':-28,'lleg_l':24},
     'rennen': {'rarm':-58,'rarm_l':-80,'larm':58,'larm_l':-80,'rleg':50,'rleg_l':28,'lleg':-42,'lleg_l':72,'neigung':18},
     'springen':{'rarm':[-140,0,0],'rarm_l':[-28,0,0],'larm':[-140,0,0],'larm_l':[-28,0,0],'rleg':-45,'rleg_l':78,'lleg':-45,'lleg_l':78,'neigung':-5},
-    'jubeln': {'rarm':-165,'rarm_l':-16,'larm':-165,'larm_l':-16,'rleg':4,'lleg':-4},
-    'jubel':  {'rarm':-165,'rarm_l':-16,'larm':-165,'larm_l':-16,'rleg':4,'lleg':-4},
-    'winken': {'rarm':[-150,22,0],'rarm_l':[-42,0,0],'larm':6,'larm_l':-9,'rleg':0,'lleg':0},
+    'jubeln': {'rarm':[-150,0,-26],'rarm_l':[-16,0,0],'larm':[-150,0,26],'larm_l':[-16,0,0],'rleg':4,'lleg':-4},
+    'jubel':  {'rarm':[-150,0,-26],'rarm_l':[-16,0,0],'larm':[-150,0,26],'larm_l':[-16,0,0],'rleg':4,'lleg':-4},
+    'winken': {'rarm':[-12,122,0],'rarm_l':[-40,0,0],'larm':[-8,0,0],'larm_l':[-10,0,0],'rleg':0,'lleg':0},
+    'salutieren':{'rarm':[-96,44,0],'rarm_l':[-92,0,8],'larm':[-6,0,0],'larm_l':[-8,0,0],'rleg':0,'lleg':0,'kopf':[2,0,0]},
+    'salut': {'rarm':[-96,44,0],'rarm_l':[-92,0,8],'larm':[-6,0,0],'larm_l':[-8,0,0],'rleg':0,'lleg':0,'kopf':[2,0,0]},
     'zeigen': {'rarm':[-92,0,0],'rarm_l':[-8,0,0],'larm':8,'larm_l':-10,'rleg':2,'lleg':-2},
     'cool':   {'rarm':[-16,-24,0],'rarm_l':[-38,0,0],'larm':[-16,24,0],'larm_l':[-38,0,0],'rleg':6,'lleg':-6},
     'lehnen': {'rarm':-7,'rarm_l':-9,'larm':7,'larm_l':-9,'rleg':3,'lleg':-3},
@@ -239,15 +245,20 @@ POSE_PRESETS = {
     'nachdenklich':{'rarm':[-120,0,16],'rarm_l':[-98,0,0],'larm':8,'larm_l':-10,'rleg':2,'lleg':-2,'kopf':[8,0,0]},
     'sitzen': {'rarm':[-12,0,0],'rarm_l':[-82,0,0],'larm':[-12,0,0],'larm_l':[-82,0,0],'rleg':[-92,0,0],'rleg_l':[92,0,0],'lleg':[-92,0,0],'lleg_l':[92,0,0],'zoff':-6},
     'liegen': {'rarm':-18,'larm':18,'rleg':4,'lleg':-4,'neigung':90},
-    'kaempfen_schwert':{'rarm':[-92,0,0],'rarm_l':[-72,0,0],'larm':[-32,0,0],'larm_l':[-42,0,0],'rleg':18,'rleg_l':14,'lleg':-18,'lleg_l':16,'neigung':8},
+    'kaempfen_schwert':{'rarm':[-60,0,0],'rarm_l':[-28,0,0],'larm':[-32,0,0],'larm_l':[-42,0,0],'rleg':18,'rleg_l':14,'lleg':-18,'lleg_l':16,'neigung':8},
     'attack': {'rarm':[-165,0,0],'rarm_l':[-22,0,0],'larm':[20,0,0],'larm_l':[-30,0,0],'rleg':18,'lleg':-15,'neigung':6},
     'angreifer':{'rarm':[-112,0,0],'rarm_l':[-48,0,0],'larm':[-40,0,0],'larm_l':[-42,0,0],'rleg':38,'rleg_l':42,'lleg':-30,'lleg_l':18,'neigung':14},
-    'abbauen_spitzhacke':{'rarm':[-55,0,0],'rarm_l':[-42,0,0],'larm':[-20,0,0],'larm_l':[-30,0,0],'rleg':12,'rleg_l':10,'lleg':-8,'lleg_l':10,'neigung':12,'kopf':[14,0,0]},
+    'abbauen_spitzhacke':{'rarm':[-55,0,0],'rarm_l':[-42,0,0],'larm':[-20,0,0],'larm_l':[-30,0,0],'rleg':12,'rleg_l':10,'lleg':-8,'lleg_l':10,'neigung':12,'kopf':[14,0,0],'item_yaw':50},
     'schleichen':{'rarm':[-16,0,0],'rarm_l':[-22,0,0],'larm':[16,0,0],'larm_l':[-22,0,0],'rleg':[36,0,0],'rleg_l':[46,0,0],'lleg':[30,0,0],'lleg_l':[46,0,0],'neigung':22,'zoff':-3,'kopf':[10,0,0]},
     'fallen': {'rarm':[-120,0,15],'rarm_l':[-42,0,0],'larm':[-120,0,-15],'larm_l':[-42,0,0],'rleg':[-25,0,0],'rleg_l':[42,0,0],'lleg':[20,0,0],'lleg_l':[30,0,0],'neigung':28,'kopf':[-8,0,0]},
     'triumphierend':{'rarm':[-175,0,-10],'rarm_l':[-30,0,0],'larm':[10,0,0],'larm_l':[-16,0,0],'rleg':6,'lleg':-8,'neigung':-5,'kopf':[-6,0,0]},
-    'verzweifelt':{'rarm':[-135,0,14],'rarm_l':[-88,0,0],'larm':[-135,0,-14],'larm_l':[-88,0,0],'rleg':4,'lleg':-4,'neigung':10,'kopf':[12,0,0]},
-    'lachend':{'rarm':[-42,0,12],'rarm_l':[-72,0,0],'larm':[-42,0,-12],'larm_l':[-72,0,0],'rleg':4,'lleg':-4,'neigung':-8,'kopf':[-20,0,0]},
+    'verzweifelt':{'rarm':[-120,0,40],'rarm_l':[-72,0,0],'larm':[-120,0,-40],'larm_l':[-72,0,0],'rleg':4,'lleg':-4,'neigung':8,'kopf':[10,0,0]},
+    'lachend':{'rarm':[-14,0,0],'rarm_l':[-84,0,40],'larm':[-14,0,0],'larm_l':[-84,0,-40],'rleg':4,'lleg':-4,'neigung':-6,'kopf':[-16,0,0]},
+    # Essen: Hand mit Item zum Mund fuehren (z. B. Apfel essen)
+    'essen':{'rarm':[-72,0,12],'rarm_l':[-128,0,-10],'larm':[-10,0,0],'larm_l':[-12,0,0],'rleg':3,'lleg':-3,'kopf':[8,0,0]},
+    # Denker-Pose: eine Hand unter dem Mund/Kinn, der andere Arm quer als Stütze (Ellbogen ruht darauf)
+    'hand_gesicht':{'rarm':[-33,0,8],'rarm_l':[-156,0,-8],'larm':[-85,0,-10],'larm_l':[-70,0,-55],'rleg':3,'lleg':-3,'kopf':[5,0,6]},
+    'emote_hand':{'rarm':[-33,0,8],'rarm_l':[-156,0,-8],'larm':[-85,0,-10],'larm_l':[-70,0,-55],'rleg':3,'lleg':-3,'kopf':[5,0,6]},
 }
 
 # Knochen-Namen (Spec-Format) -> Blockfigur-Teile. lower_* (Ellbogen/Knie) werden
@@ -427,6 +438,13 @@ def add_mund(head, art):
     if a in ('striche','zwei','strich','neutral','laecheln','smile','freundlich'):
         # zwei kleine gerade Striche nebeneinander (kein Panzer, nicht nach oben)
         rect(27,48,31,50,M); rect(33,48,37,50,M)
+    elif a in ('lachen','lachmund','lach','grinsen','froh','happy'):
+        # kleiner, dezent geoeffneter Mund im BastiGHG-Stil: braeunliches Oval,
+        # leicht geoeffnet - KEIN Zahn-Grinsen, KEINE Zunge
+        br=(0.34,0.18,0.16)   # weiches Braun (Mundrand)
+        dk=(0.13,0.06,0.06)   # dunkle Oeffnung (Mitte)
+        rect(30,47,36,50,br)          # kleiner Mund (schmal)
+        rect(31,48,35,49,dk)          # leicht geoeffnet, dunkle Mitte
     elif a in ('o','ueberrascht','open','schock'):
         rect(30,46,35,52,M); rect(31,48,34,51,(0.15,0.06,0.08))
     else:
@@ -526,7 +544,18 @@ def build_char(f):
     if item and item!='none':
         p=_pfad(item if item.endswith('.png') else item+'.png')
         if os.path.exists(p):
-            add_item_3d(p, rarm['l'], float(f.get('item_groesse',0.82))*gr)
+            # Griff-Punkt je nach Item-Typ:
+            #  - Werkzeuge/Waffen mit Stiel -> unten am BRAUNEN GRIFF greifen (grip_frac klein),
+            #    Griffende in der Handflaeche, Klinge/Kopf ragt entlang der Arm-Linie nach oben.
+            #  - runde Items ohne Griff (Enderperle/Apfel/Block) -> MITTE in der Handmitte (grip_frac 0.5).
+            il=str(item).lower()
+            hat_stiel = any(k in il for k in ('sword','schwert','pickaxe','hacke','spitzhacke',
+                                              'axe','axt','shovel','schaufel','hoe','stab','stick','trident','dreizack'))
+            gf=float(f.get('item_grip', ang.get('item_grip', 0.12 if hat_stiel else 0.5)))
+            add_item_3d(p, rarm['l'], float(f.get('item_groesse',0.82))*gr,
+                        extra_yaw=float(f.get('item_yaw', ang.get('item_yaw',0) or 0)),
+                        griff=f.get('item_griff'), grip_frac=gf,
+                        profil=bool(f.get('item_profil', ang.get('item_profil', False))))
 
 # ---------------------------------------------------------------- Props
 def make_logo(pr):
@@ -568,7 +597,7 @@ def make_logobild(pr):
     if e>0:
         try:
             nt.links.new(t.outputs['Color'], b.inputs['Emission Color']); b.inputs['Emission Strength'].default_value=e
-        except Exception: pass
+        except Exception: pass  # nosec B110 - optionaler Blender-API-Aufruf, darf je Version fehlen
     o=nt.nodes.new('ShaderNodeOutputMaterial')
     nt.links.new(t.outputs['Color'], b.inputs['Base Color'])
     nt.links.new(t.outputs['Alpha'], b.inputs['Alpha'])
@@ -629,15 +658,15 @@ def make_block(pr):
 
 def make_burst(pr):
     """Radialer Strahlen-Burst (Energie-Explosion) hinter der Figur - z_olisw-Stil."""
-    import random as _r; _r.seed(int(pr.get('seed',3)))
+    import random as _r; _r.seed(int(pr.get('seed',3)))  # nosec B311 - nur Deko-Variation, nicht sicherheitsrelevant
     C=Vector(pr.get('pos',[0,55,22])); col=pr.get('farbe',[0.14,0.42,1.0])
     n=int(pr.get('strahlen',30)); L=float(pr.get('laenge',95)); inner=float(pr.get('innen',5)); w=float(pr.get('breite',1.4))
     me=bpy.data.meshes.new('burst'); ob=bpy.data.objects.new('burst',me); scn.collection.objects.link(ob)
     bm=bmesh.new()
     for i in range(n):
-        a=(i/n)*2*math.pi + _r.uniform(-0.04,0.04)
+        a=(i/n)*2*math.pi + _r.uniform(-0.04,0.04)  # nosec B311 - nur Deko-Variation, nicht sicherheitsrelevant
         d=Vector((math.cos(a),0,math.sin(a))); perp=Vector((-math.sin(a),0,math.cos(a)))
-        Li=L*_r.uniform(0.45,1.0); ww=w*_r.uniform(0.6,1.3)
+        Li=L*_r.uniform(0.45,1.0); ww=w*_r.uniform(0.6,1.3)  # nosec B311 - nur Deko-Variation, nicht sicherheitsrelevant
         b1=C+d*inner+perp*ww; b2=C+d*inner-perp*ww
         t1=C+d*Li+perp*(ww*0.15); t2=C+d*Li-perp*(ww*0.15)
         vs=[bm.verts.new(b1),bm.verts.new(t1),bm.verts.new(t2),bm.verts.new(b2)]
@@ -648,13 +677,13 @@ def make_burst(pr):
     try:
         bb.inputs['Emission Color'].default_value=(col[0],col[1],col[2],1)
         bb.inputs['Emission Strength'].default_value=float(pr.get('leuchten',7))
-    except Exception: pass
+    except Exception: pass  # nosec B110 - optionaler Blender-API-Aufruf, darf je Version fehlen
     me.materials.append(m)
     return ob
 
 def make_partikel(pr):
     """Leuchtende Partikel/Funken (Bokeh) - Tiefe + Glow im z_olisw-Stil."""
-    import random as _r; _r.seed(int(pr.get('seed',9)))
+    import random as _r; _r.seed(int(pr.get('seed',9)))  # nosec B311 - nur Deko-Variation, nicht sicherheitsrelevant
     C=pr.get('pos',[0,35,22]); col=pr.get('farbe',[0.35,0.6,1.0]); n=int(pr.get('anzahl',46))
     sp=pr.get('streuung',[80,30,55]); gr=float(pr.get('groesse',0.9))
     m=bpy.data.materials.new('partmat'); m.use_nodes=True
@@ -662,13 +691,13 @@ def make_partikel(pr):
     try:
         bb.inputs['Emission Color'].default_value=(col[0],col[1],col[2],1)
         bb.inputs['Emission Strength'].default_value=float(pr.get('leuchten',9))
-    except Exception: pass
+    except Exception: pass  # nosec B110 - optionaler Blender-API-Aufruf, darf je Version fehlen
     for i in range(n):
-        s=gr*_r.uniform(0.35,1.3)
+        s=gr*_r.uniform(0.35,1.3)  # nosec B311 - nur Deko-Variation, nicht sicherheitsrelevant
         bpy.ops.mesh.primitive_cube_add(size=s)
         c=bpy.context.active_object
-        c.location=(C[0]+_r.uniform(-0.5,0.5)*sp[0], C[1]+_r.uniform(-0.5,0.5)*sp[1], C[2]+_r.uniform(-0.5,0.5)*sp[2])
-        c.rotation_euler=(_r.uniform(0,3),_r.uniform(0,3),_r.uniform(0,3))
+        c.location=(C[0]+_r.uniform(-0.5,0.5)*sp[0], C[1]+_r.uniform(-0.5,0.5)*sp[1], C[2]+_r.uniform(-0.5,0.5)*sp[2])  # nosec B311 - nur Deko-Variation, nicht sicherheitsrelevant
+        c.rotation_euler=(_r.uniform(0,3),_r.uniform(0,3),_r.uniform(0,3))  # nosec B311 - nur Deko-Variation, nicht sicherheitsrelevant
         c.data.materials.append(m)
 
 # ---------------------------------------------------------------- Szene/Licht
@@ -713,8 +742,9 @@ if HB and os.path.exists(HB):
         bpy.ops.mesh.primitive_plane_add(size=800, location=(0,0,0))
         bpy.context.active_object.data.materials.append(farbmaterial(grund, rough=1.0))
 
-# Boden + Backdrop (nicht im Studio-/Transparent-Modus / nicht wenn Hintergrund-Bild da)
-elif SZENE not in ('transparent','studio'):
+# Boden + Backdrop (nicht im Studio-/Transparent-Modus / nicht wenn Hintergrund-Bild da /
+# nicht wenn eine echte Block-Szene gebaut wird)
+elif SZENE not in ('transparent','studio') and not SPEC.get('blockszene'):
     bpy.ops.mesh.primitive_plane_add(size=800, location=(0,0,0))
     g=bpy.context.active_object; g.data.materials.append(farbmaterial(grund, rough=1.0))
     # Stehender Hintergrund mit senkrechtem Farbverlauf (Studio-Backdrop, gibt Tiefe)
@@ -775,6 +805,65 @@ if SPEC.get('dof') or kam.get('dof'):
         cam.dof.aperture_fstop=float(kam.get('blende', 2.2))
     except Exception as e: print('WARN DoF:', e)
 
+# ---------------------------------------------------------------- Block-Szene (echte MC-Bloecke)
+import random as _rnd  # nosec B311 - nur Deko-Variation, nicht sicherheitsrelevant
+BLOCKDIR = os.path.abspath(arg('bloeckedir','bloecke'))
+_bmat={}
+def _blockmat(tex, emiss=0.0):
+    key=(tex,round(emiss,2))
+    if key in _bmat: return _bmat[key]
+    m=bpy.data.materials.new('blk_'+tex); m.use_nodes=True; nt=m.node_tree; nt.nodes.clear()
+    out=nt.nodes.new('ShaderNodeOutputMaterial')
+    p=os.path.join(BLOCKDIR, tex+'.png')
+    if os.path.exists(p):
+        img=bpy.data.images.load(p)
+        t=nt.nodes.new('ShaderNodeTexImage'); t.image=img; t.interpolation='Closest'
+        if emiss>0:
+            e=nt.nodes.new('ShaderNodeEmission'); e.inputs['Strength'].default_value=emiss
+            nt.links.new(t.outputs['Color'], e.inputs['Color']); nt.links.new(e.outputs['Emission'], out.inputs['Surface'])
+        else:
+            b=nt.nodes.new('ShaderNodeBsdfPrincipled'); b.inputs['Roughness'].default_value=1.0
+            nt.links.new(t.outputs['Color'], b.inputs['Base Color']); nt.links.new(b.outputs['BSDF'], out.inputs['Surface'])
+    else:
+        b=nt.nodes.new('ShaderNodeBsdfPrincipled'); nt.links.new(b.outputs['BSDF'], out.inputs['Surface'])
+    _bmat[key]=m; return m
+def _block(cx,cy,cz,tex,emiss=0.0,B=16.0):
+    bpy.ops.mesh.primitive_cube_add(size=B, location=(cx,cy,cz))
+    o=bpy.context.active_object; o.data.materials.append(_blockmat(tex,emiss)); return o
+_BLOCKENV={
+ 'nether':{'floor':[('netherrack',0,7),('nether_bricks',0,2),('magma',3.2,1),('gravel',0,1)],
+           'wall':[('netherrack',0,8),('nether_bricks',0,2),('glowstone',5.5,1),('obsidian',0,1)],'glow':(1.0,0.42,0.20)},
+ 'end':{'floor':[('end_stone',0,8),('purpur_block',0,2)],
+        'wall':[('end_stone',0,7),('purpur_block',0,2),('obsidian',0,2)],'glow':(0.7,0.6,1.0)},
+ 'wiese':{'floor':[('grass_block_side',0,8),('dirt',0,2)],'wall':None,'glow':None},
+ 'gras':{'floor':[('grass_block_side',0,8),('dirt',0,2)],'wall':None,'glow':None},
+ 'wueste':{'floor':[('sand',0,9),('gravel',0,1)],'wall':None,'glow':None},
+ 'hoehle':{'floor':[('stone',0,6),('cobblestone',0,3),('gravel',0,1)],
+           'wall':[('stone',0,7),('cobblestone',0,2),('glowstone',4.5,1)],'glow':(1.0,0.7,0.4)},
+}
+def baue_blockszene(name):
+    B=16.0; r=_rnd.Random(1234)  # nosec B311 - nur Deko-Variation, nicht sicherheitsrelevant
+    env=_BLOCKENV.get(name, _BLOCKENV['wiese'])
+    def pick(tbl):
+        pool=[]
+        for tex,em,w in tbl: pool+=[(tex,em)]*w
+        return r.choice(pool)
+    for gx in range(-5,6):
+        for gy in range(-1,10):
+            tex,em=pick(env['floor']); _block(gx*B, gy*B, -B/2, tex, em, B)
+    if env.get('wall'):
+        for gx in range(-6,7):
+            for gz in range(0,8):
+                tex,em=pick(env['wall']); _block(gx*B, 10*B, gz*B+B/2, tex, em, B)
+    if env.get('glow'):
+        gc=env['glow']
+        for gy in (2,7):
+            L=bpy.data.lights.new('gl','POINT'); L.energy=float(SPEC.get('glow_energie',120000)); L.color=gc
+            o=bpy.data.objects.new('gl',L); scn.collection.objects.link(o); o.location=(0,gy*B,40)
+try:
+    if SPEC.get('blockszene'): baue_blockszene(str(SPEC.get('blockszene')).lower())
+except Exception as e: print('WARN Blockszene:', e)
+
 # ---------------------------------------------------------------- Aufbau
 for f in FIGUREN:
     try: build_char(f)
@@ -811,7 +900,7 @@ scn.render.film_transparent = (SZENE=='transparent')
 try:
     scn.view_settings.view_transform='Standard'; scn.view_settings.look='None'
     scn.view_settings.exposure=float(SPEC.get('belichtung',0.0))
-except Exception: pass
+except Exception: pass  # nosec B110 - optionaler Blender-API-Aufruf, darf je Version fehlen
 
 # Compositor: Glow (Bloom), leichter Kontrast/Saettigung, Vignette -> weg vom flachen Look.
 if SPEC.get('stil', True) and SZENE!='transparent':

@@ -3,14 +3,14 @@
   "beschreibung": "Beide Arme hoch, Jubel",
   "knochen": {
     "upper_arm.R": [
-      -165,
+      -150,
       0,
-      0
+      -26
     ],
     "upper_arm.L": [
-      -165,
+      -150,
       0,
-      0
+      26
     ],
     "upper_leg.R": [
       4,

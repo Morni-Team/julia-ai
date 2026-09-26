@@ -1,5 +1,8 @@
 # Changelog
 
+## 9.1.1 – 2026-09-26
+- Repo-Check #44: harmlose Blender-Render-Befunde (try/except/pass, Deko-Zufall) sauber als nosec begruendet
+
 ## 9.1.0 – 2026-09-25
 - Content-Studio baut echte 3D-Minecraft-Thumbnails aus deinem Skin per Blender - Julia waehlt Pose, Item und Anordnung passend zum Thema, mehrere Spieler und Kampf-Szenen moeglich, Aenderungswuensche per Chatbox; Blender wird beim ersten Mal einmalig geladen, danach offline
 

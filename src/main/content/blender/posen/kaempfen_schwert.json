@@ -3,7 +3,7 @@
   "beschreibung": "Kampfbereit mit Schwert",
   "knochen": {
     "upper_arm.R": [
-      -92,
+      -60,
       0,
       0
     ],
@@ -23,7 +23,7 @@
       0
     ],
     "lower_arm.R": [
-      -72,
+      -28,
       0,
       0
     ],
