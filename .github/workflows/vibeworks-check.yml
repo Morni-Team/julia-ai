@@ -39,6 +39,15 @@ jobs:
 
       # Ein abgebrochenes Werkzeug darf nicht wie ein sauberer Lauf aussehen (#149):
       # jeder Schritt schreibt seinen Fehler in .vw-errors.txt, das landet im Bericht.
+      # Images vorab holen, mit zweitem Anlauf: Ein Aussetzer bei der Registry
+      # hat sonst einen ganzen Prüfschritt gekostet (#208).
+      - name: Prüf-Container laden
+        continue-on-error: true
+        run: |
+          for image in zricethezav/gitleaks:v8.30.1 ghcr.io/google/osv-scanner:v2.6.0 semgrep/semgrep:1.177.0; do
+            docker pull -q "$image" || { sleep 15; docker pull -q "$image" || echo "Konnte $image nicht laden"; }
+          done
+
       - name: Geheimnisse (Gitleaks)
         id: gitleaks
         continue-on-error: true
@@ -131,16 +140,16 @@ jobs:
               "toolErrors": [],
           }
 
-          # Abgebrochene Schritte melden – sonst sieht ein kaputtes Werkzeug aus
-          # wie ein sauberer Lauf (#149)
+          # Abgebrochene Schritte merken – gemeldet wird erst am Ende, wenn
+          # feststeht, ob trotzdem Ergebnisse da sind (#149, #208). Werkzeuge wie
+          # der OSV-Scanner enden mit Fehlercode, wenn sie etwas FINDEN – das ist
+          # kein Abbruch und darf nicht als "Ergebnisse fehlen" erscheinen.
           STEP_LABEL = {"gitleaks": "Gitleaks", "osv": "OSV-Scanner", "semgrep": "Semgrep", "todos": "TODO-Suche", "languages": "Sprachwerkzeuge"}
           try:
               outcomes = json.loads(os.environ.get("VW_OUTCOMES") or "{}")
           except Exception:
               outcomes = {}
-          for key, outcome in outcomes.items():
-              if outcome in ("failure", "cancelled"):
-                  out["toolErrors"].append({"tool": key, "message": f"{STEP_LABEL.get(key, key)}: Schritt abgebrochen ({outcome}) – die Ergebnisse fehlen"})
+          broken = [key for key, outcome in outcomes.items() if outcome in ("failure", "cancelled")]
 
           leaks = load(".vw-gitleaks.json")
           out["tools"]["gitleaks"] = leaks is not None
@@ -245,6 +254,15 @@ jobs:
                   add("fallow", x.get("path"), x.get("line"), "unused-export", "INFO", f"Export {x.get('export_name')} is not used")
 
           out["findings"] = extra + out["findings"][: 400 - len(extra)]
+
+          # Jetzt erst melden: Ein Schritt mit Fehlercode, der trotzdem Ergebnisse
+          # geliefert hat, ist kein Abbruch – nur einer ohne (#208).
+          HAS_OUTPUT = {"gitleaks": lambda: out["tools"].get("gitleaks"), "osv": lambda: out["tools"].get("osv"), "semgrep": lambda: out["tools"].get("semgrep"), "todos": lambda: out["tools"].get("todos"), "languages": lambda: any(out["tools"].get(k) for k in ("bandit", "shellcheck", "hadolint", "actionlint", "fallow"))}
+          for key in broken:
+              lieferte = HAS_OUTPUT.get(key, lambda: False)()
+              if lieferte:
+                  continue
+              out["toolErrors"].append({"tool": key, "message": f"{STEP_LABEL.get(key, key)}: Schritt abgebrochen – die Ergebnisse fehlen"})
 
           out["counts"] = {k: len(out[k]) for k in ("secrets", "vulnerabilities", "findings", "todos")}
           with open("vibeworks-check.json", "w", encoding="utf-8") as f:
