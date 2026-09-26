@@ -3,12 +3,12 @@
   "beschreibung": "Nach vorn gelehnt, aggressiv",
   "knochen": {
     "upper_arm.R": [
-      -22,
+      -30,
       0,
       0
     ],
     "upper_arm.L": [
-      -22,
+      -30,
       0,
       0
     ],
@@ -19,6 +19,26 @@
     ],
     "upper_leg.L": [
       -14,
+      0,
+      0
+    ],
+    "lower_arm.R": [
+      -48,
+      0,
+      0
+    ],
+    "lower_arm.L": [
+      -48,
+      0,
+      0
+    ],
+    "lower_leg.R": [
+      12,
+      0,
+      0
+    ],
+    "lower_leg.L": [
+      14,
       0,
       0
     ],

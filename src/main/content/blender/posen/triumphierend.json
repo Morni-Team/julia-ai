@@ -3,12 +3,12 @@
   "beschreibung": "Faust nach oben, Sieg",
   "knochen": {
     "upper_arm.R": [
-      -182,
+      -175,
       0,
-      -14
+      -10
     ],
     "upper_arm.L": [
-      8,
+      10,
       0,
       0
     ],
@@ -19,6 +19,16 @@
     ],
     "upper_leg.L": [
       -8,
+      0,
+      0
+    ],
+    "lower_arm.R": [
+      -30,
+      0,
+      0
+    ],
+    "lower_arm.L": [
+      -16,
       0,
       0
     ],
@@ -33,6 +43,5 @@
       0
     ]
   },
-  "getestet": true,
-  "gesicht": "lachen"
+  "getestet": true
 }

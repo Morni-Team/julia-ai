@@ -127,6 +127,22 @@ def region(ox,oy,w,d,h):
             'right':(ox,oy+d,ox+d,oy+d+h),'front':(ox+d,oy+d,ox+d+w,oy+d+h),
             'left':(ox+d+w,oy+d,ox+2*d+w,oy+d+h),'back':(ox+2*d+w,oy+d,ox+2*d+2*w,oy+d+h)}
 
+def region_slice(ox,oy,w,d,h,part):
+    """UV eines halben Gliedmaßen-Kastens (obere/untere Hälfte) für Ellbogen/Knie."""
+    hh=h/2.0
+    if part=='oben':
+        y0,y1=oy+d, oy+d+hh
+        return {'top':(ox+d,oy,ox+d+w,oy+d),
+                'bottom':(ox+d,y1-0.5,ox+d+w,y1+0.5),
+                'right':(ox,y0,ox+d,y1),'front':(ox+d,y0,ox+d+w,y1),
+                'left':(ox+d+w,y0,ox+2*d+w,y1),'back':(ox+2*d+w,y0,ox+2*d+2*w,y1)}
+    else:
+        y0,y1=oy+d+hh, oy+d+h
+        return {'top':(ox+d,y0-0.5,ox+d+w,y0+0.5),
+                'bottom':(ox+d+w,oy,ox+d+2*w,oy+d),
+                'right':(ox,y0,ox+d,y1),'front':(ox+d,y0,ox+d+w,y1),
+                'left':(ox+d+w,y0,ox+2*d+w,y1),'back':(ox+2*d+w,y0,ox+2*d+2*w,y1)}
+
 def uvrect(px):
     x0,y0,x1,y1=px
     return [(x0/64,1-y1/64),(x1/64,1-y1/64),(x1/64,1-y0/64),(x0/64,1-y0/64)]
@@ -180,10 +196,10 @@ def add_item_3d(tex_path, rarm, groesse=0.82):
     me.materials.append(m)
     for p in me.polygons: p.use_smooth=False
     bpy.context.view_layer.update()
-    hand = rarm.matrix_world @ Vector((0.0,-2.2,-13.3))
+    hand = rarm.matrix_world @ Vector((0.0,-2.2,-6.6))   # rarm = Unterarm, Hand am Ende
     cam = scn.camera.matrix_world.translation
     zb = Vector((0.0,-0.78,0.63)).normalized()
-    hand = hand + Vector((-1.0,-1.4,0.3))   # nach vorne/aussen aus der Faust heraus (nicht durchgestochen)
+    hand = hand + Vector((-0.2,-1.1,0.2))   # Griff mittig auf der Handlinie (aussen), leicht vorne
     camdir = (cam-hand)
     if camdir.length<1e-4: camdir=Vector((0,-1,0))
     camdir.normalize()
@@ -201,43 +217,43 @@ def _rad3(a):
     e=[math.radians(x) for x in a]+[0,0,0]
     return (e[0],e[1],e[2])
 
+# Posen mit GELENKEN: rarm/larm/rleg/lleg = Ober (Schulter/Hüfte), *_l = Unter (Ellbogen/Knie).
 POSE_PRESETS = {
-    'idle':   {'rarm':-6,'larm':6,'rleg':0,'lleg':0},
-    'walk':   {'rarm':-35,'larm':35,'rleg':30,'lleg':-30},
-    'attack': {'rarm':-150,'larm':20,'rleg':15,'lleg':-15},
-    'angreifer': {'rarm':[-128,0,0],'larm':[-38,0,0],'rleg':28,'lleg':-22,'neigung':12},
-    'bereit': {'rarm':-62,'larm':-22,'rleg':18,'lleg':-16},
-    'angst':  {'rarm':-120,'larm':-120,'rleg':-10,'lleg':20},
-    'lehnen': {'rarm':-7,'larm':7,'rleg':3,'lleg':-3},
-    'jubel':  {'rarm':-170,'larm':-170,'rleg':3,'lleg':-3},
-    'winken': {'rarm':[-165,25,0],'larm':6,'rleg':0,'lleg':0},
-    'zeigen': {'rarm':[-95,0,0],'larm':6,'rleg':2,'lleg':-2},
-    'cool':   {'rarm':[-18,-30,0],'larm':[-18,30,0],'rleg':6,'lleg':-6},
-    # --- Grundausstattung (deutsche Namen) ---
-    'stehen':          {'rarm':-5,'larm':5,'rleg':0,'lleg':0},
-    'gehen':           {'rarm':-30,'larm':30,'rleg':28,'lleg':-28},
-    'rennen':          {'rarm':-58,'larm':58,'rleg':46,'lleg':-46,'neigung':16},
-    'springen':        {'rarm':[-125,0,0],'larm':[-125,0,0],'rleg':-38,'lleg':-38,'neigung':-4},
-    'jubeln':          {'rarm':-168,'larm':-168,'rleg':4,'lleg':-4},
-    'schockiert':      {'rarm':[-142,0,24],'larm':[-142,0,-24],'rleg':-8,'lleg':14,'neigung':-12,'kopf':[-8,0,0]},
-    'aengstlich':      {'rarm':[-118,0,10],'larm':[-118,0,-10],'rleg':-10,'lleg':16,'neigung':-15},
-    'wuetend':         {'rarm':[-22,0,0],'larm':[-22,0,0],'rleg':16,'lleg':-14,'neigung':13,'kopf':[6,0,0]},
-    'nachdenklich':    {'rarm':[-142,0,22],'larm':8,'rleg':2,'lleg':-2,'kopf':[8,0,0]},
-    'sitzen':          {'rarm':[-14,0,0],'larm':[14,0,0],'rleg':[-88,0,0],'lleg':[-88,0,0],'zoff':-11},
-    'liegen':          {'rarm':-18,'larm':18,'rleg':4,'lleg':-4,'neigung':90},
-    'kaempfen_schwert':{'rarm':[-120,0,0],'larm':[-20,0,0],'rleg':18,'lleg':-16,'neigung':8},
-    'abbauen_spitzhacke':{'rarm':[-46,0,0],'larm':10,'rleg':10,'lleg':-8,'neigung':10,'kopf':[14,0,0]},
-    'schleichen':      {'rarm':[-14,0,0],'larm':[14,0,0],'rleg':[24,0,0],'lleg':[24,0,0],'neigung':22,'kopf':[10,0,0]},
-    'fallen':          {'rarm':[-112,0,18],'larm':[-112,0,-18],'rleg':[-30,0,0],'lleg':[22,0,0],'neigung':30,'gesicht':'schock','kopf':[-8,0,0]},
-    'triumphierend':   {'rarm':[-182,0,-14],'larm':[8,0,0],'rleg':6,'lleg':-8,'neigung':-5,'kopf':[-6,0,0],'gesicht':'lachen'},
-    'verzweifelt':     {'rarm':[-142,0,20],'larm':[-72,0,-38],'rleg':4,'lleg':-4,'neigung':6,'kopf':[10,0,0],'gesicht':'weinen'},
-    'lachend':         {'rarm':[-48,0,14],'larm':[10,0,0],'rleg':4,'lleg':-4,'neigung':-8,'kopf':[-22,0,0],'gesicht':'lachen'},
+    'idle':   {'rarm':-6,'rarm_l':-6,'larm':6,'larm_l':-6},
+    'stehen': {'rarm':-5,'rarm_l':-9,'larm':5,'larm_l':-9,'rleg':2,'rleg_l':3,'lleg':-2,'lleg_l':3},
+    'bereit': {'rarm':[-78,0,0],'rarm_l':[-55,0,0],'larm':[-30,0,0],'larm_l':[-45,0,0],'rleg':16,'rleg_l':14,'lleg':-16,'lleg_l':16,'neigung':6},
+    'walk':   {'rarm':-32,'rarm_l':-18,'larm':32,'larm_l':-18,'rleg':30,'rleg_l':12,'lleg':-28,'lleg_l':24},
+    'gehen':  {'rarm':-32,'rarm_l':-18,'larm':32,'larm_l':-18,'rleg':30,'rleg_l':12,'lleg':-28,'lleg_l':24},
+    'rennen': {'rarm':-58,'rarm_l':-80,'larm':58,'larm_l':-80,'rleg':50,'rleg_l':28,'lleg':-42,'lleg_l':72,'neigung':18},
+    'springen':{'rarm':[-140,0,0],'rarm_l':[-28,0,0],'larm':[-140,0,0],'larm_l':[-28,0,0],'rleg':-45,'rleg_l':78,'lleg':-45,'lleg_l':78,'neigung':-5},
+    'jubeln': {'rarm':-165,'rarm_l':-16,'larm':-165,'larm_l':-16,'rleg':4,'lleg':-4},
+    'jubel':  {'rarm':-165,'rarm_l':-16,'larm':-165,'larm_l':-16,'rleg':4,'lleg':-4},
+    'winken': {'rarm':[-150,22,0],'rarm_l':[-42,0,0],'larm':6,'larm_l':-9,'rleg':0,'lleg':0},
+    'zeigen': {'rarm':[-92,0,0],'rarm_l':[-8,0,0],'larm':8,'larm_l':-10,'rleg':2,'lleg':-2},
+    'cool':   {'rarm':[-16,-24,0],'rarm_l':[-38,0,0],'larm':[-16,24,0],'larm_l':[-38,0,0],'rleg':6,'lleg':-6},
+    'lehnen': {'rarm':-7,'rarm_l':-9,'larm':7,'larm_l':-9,'rleg':3,'lleg':-3},
+    'schockiert':{'rarm':[-150,0,16],'rarm_l':[-72,0,0],'larm':[-150,0,-16],'larm_l':[-72,0,0],'rleg':-8,'rleg_l':12,'lleg':12,'lleg_l':12,'neigung':-12,'kopf':[-8,0,0]},
+    'aengstlich':{'rarm':[-135,0,8],'rarm_l':[-78,0,0],'larm':[-135,0,-8],'larm_l':[-78,0,0],'rleg':-12,'rleg_l':22,'lleg':16,'lleg_l':10,'neigung':-15},
+    'angst':  {'rarm':[-135,0,8],'rarm_l':[-78,0,0],'larm':[-135,0,-8],'larm_l':[-78,0,0],'rleg':-12,'rleg_l':22,'lleg':16,'lleg_l':10,'neigung':-15},
+    'wuetend':{'rarm':[-30,0,0],'rarm_l':[-48,0,0],'larm':[-30,0,0],'larm_l':[-48,0,0],'rleg':16,'rleg_l':12,'lleg':-14,'lleg_l':14,'neigung':13,'kopf':[6,0,0]},
+    'nachdenklich':{'rarm':[-120,0,16],'rarm_l':[-98,0,0],'larm':8,'larm_l':-10,'rleg':2,'lleg':-2,'kopf':[8,0,0]},
+    'sitzen': {'rarm':[-12,0,0],'rarm_l':[-82,0,0],'larm':[-12,0,0],'larm_l':[-82,0,0],'rleg':[-92,0,0],'rleg_l':[92,0,0],'lleg':[-92,0,0],'lleg_l':[92,0,0],'zoff':-6},
+    'liegen': {'rarm':-18,'larm':18,'rleg':4,'lleg':-4,'neigung':90},
+    'kaempfen_schwert':{'rarm':[-92,0,0],'rarm_l':[-72,0,0],'larm':[-32,0,0],'larm_l':[-42,0,0],'rleg':18,'rleg_l':14,'lleg':-18,'lleg_l':16,'neigung':8},
+    'attack': {'rarm':[-165,0,0],'rarm_l':[-22,0,0],'larm':[20,0,0],'larm_l':[-30,0,0],'rleg':18,'lleg':-15,'neigung':6},
+    'angreifer':{'rarm':[-112,0,0],'rarm_l':[-48,0,0],'larm':[-40,0,0],'larm_l':[-42,0,0],'rleg':38,'rleg_l':42,'lleg':-30,'lleg_l':18,'neigung':14},
+    'abbauen_spitzhacke':{'rarm':[-55,0,0],'rarm_l':[-42,0,0],'larm':[-20,0,0],'larm_l':[-30,0,0],'rleg':12,'rleg_l':10,'lleg':-8,'lleg_l':10,'neigung':12,'kopf':[14,0,0]},
+    'schleichen':{'rarm':[-16,0,0],'rarm_l':[-22,0,0],'larm':[16,0,0],'larm_l':[-22,0,0],'rleg':[36,0,0],'rleg_l':[46,0,0],'lleg':[30,0,0],'lleg_l':[46,0,0],'neigung':22,'zoff':-3,'kopf':[10,0,0]},
+    'fallen': {'rarm':[-120,0,15],'rarm_l':[-42,0,0],'larm':[-120,0,-15],'larm_l':[-42,0,0],'rleg':[-25,0,0],'rleg_l':[42,0,0],'lleg':[20,0,0],'lleg_l':[30,0,0],'neigung':28,'kopf':[-8,0,0]},
+    'triumphierend':{'rarm':[-175,0,-10],'rarm_l':[-30,0,0],'larm':[10,0,0],'larm_l':[-16,0,0],'rleg':6,'lleg':-8,'neigung':-5,'kopf':[-6,0,0]},
+    'verzweifelt':{'rarm':[-135,0,14],'rarm_l':[-88,0,0],'larm':[-135,0,-14],'larm_l':[-88,0,0],'rleg':4,'lleg':-4,'neigung':10,'kopf':[12,0,0]},
+    'lachend':{'rarm':[-42,0,12],'rarm_l':[-72,0,0],'larm':[-42,0,-12],'larm_l':[-72,0,0],'rleg':4,'lleg':-4,'neigung':-8,'kopf':[-20,0,0]},
 }
 
 # Knochen-Namen (Spec-Format) -> Blockfigur-Teile. lower_* (Ellbogen/Knie) werden
 # beim Block-Look zum jeweiligen upper_* addiert, spine/head kippen Rumpf/Kopf.
 BONE_MAP = {'upper_arm.R':'rarm','upper_arm.L':'larm','upper_leg.R':'rleg','upper_leg.L':'lleg',
-            'lower_arm.R':'rarm','lower_arm.L':'larm','lower_leg.R':'rleg','lower_leg.L':'lleg'}
+            'lower_arm.R':'rarm_l','lower_arm.L':'larm_l','lower_leg.R':'rleg_l','lower_leg.L':'lleg_l'}
 POSENDIR = arg('posendir')
 
 def lade_pose(name):
@@ -353,27 +369,37 @@ def add_emotion(head, emotion, skin_path=None):
     if not emotion: return None
     e=str(emotion).lower()
     if e in ('normal','keine','none'): return None
-    W=16; px=[0.0]*(W*W*4)  # transparent -> Original-Gesicht bleibt sichtbar
-    def tint(x0,y0,x1,y1,col,a):
-        for yy in range(max(0,y0),min(W,y1)):
-            for xx in range(max(0,x0),min(W,x1)):
-                i=((W-1-yy)*W+xx)*4
-                px[i]=col[0]; px[i+1]=col[1]; px[i+2]=col[2]; px[i+3]=max(px[i+3],a)
-    if e in ('wuetend','boese','angry','wut','sauer'):
-        tint(2,6,6,10,(0.80,0.08,0.05),0.44); tint(10,6,14,10,(0.80,0.08,0.05),0.44)   # gerötete Augen (satter, kein Blush)
-        tint(2,10,6,11,(0.70,0.12,0.08),0.12); tint(10,10,14,11,(0.70,0.12,0.08),0.12) # nur Hauch unter den Augen
-    elif e in ('muede','augenringe','tot','tired','uebermuedet','erschoepft'):
-        tint(2,9,6,12,(0.28,0.14,0.34),0.50); tint(10,9,14,12,(0.28,0.14,0.34),0.50)   # Augenringe
-    elif e in ('traurig','sad'):
-        tint(3,9,5,13,(0.28,0.5,0.92),0.34); tint(11,9,13,13,(0.28,0.5,0.92),0.34)     # feuchte Untertränen
+    W=64; px=[0.0]*(W*W*4)  # transparent -> Original-Gesicht bleibt sichtbar
+    def put(x,y,col):
+        x=int(round(x)); y=int(round(y))
+        if 0<=x<W and 0<=y<W:
+            i=((W-1-y)*W+x)*4; a=col[3]
+            if a<=0: return
+            ba=px[i+3]; na=a+ba*(1-a)
+            if na>0:
+                for c in range(3): px[i+c]=(col[c]*a+px[i+c]*ba*(1-a))/na
+                px[i+3]=na
+    def disc(cx,cy,rx,ry,col,feather=2.2):  # weicher, anti-aliased Fleck
+        for y in range(int(cy-ry-2),int(cy+ry+3)):
+            for x in range(int(cx-rx-2),int(cx+rx+3)):
+                dx=(x-cx)/rx; dy=(y-cy)/ry; d=math.sqrt(dx*dx+dy*dy)
+                a=col[3]*max(0.0,min(1.0,(1.0-d)*min(rx,ry)/feather))
+                if a>0: put(x,y,(col[0],col[1],col[2],a))
+    LX,RX,EY=15,49,33   # 2-Pixel-Augen (eine Reihe)
+    if e in ('muede','augenringe','tot','tired','uebermuedet','erschoepft'):
+        # weiche, GROSSE dunkle Schatten unter dem GANZEN Auge (breit + tiefer reichend)
+        for cx in (LX,RX):
+            disc(cx,EY+7,11,6,(0.20,0.20,0.25,0.52))
+            disc(cx,EY+7,8,4,(0.12,0.12,0.17,0.5))
     elif e in ('krank','blass','uebel'):
-        tint(1,4,15,14,(0.45,0.72,0.45),0.16)                                          # blass-grünlich
+        for cx in (LX,RX): disc(cx,EY+6,8,4,(0.22,0.30,0.22,0.45))
+        disc(32,20,20,10,(0.55,0.78,0.55,0.10))
     else:
         return None
     img=bpy.data.images.new('emo',W,W,alpha=True); img.pixels=px
     m=bpy.data.materials.new('emomat'); m.use_nodes=True; m.blend_method='BLEND'
     nt=m.node_tree; nt.nodes.clear()
-    t=nt.nodes.new('ShaderNodeTexImage'); t.image=img; t.interpolation='Closest'
+    t=nt.nodes.new('ShaderNodeTexImage'); t.image=img; t.interpolation='Linear'
     b=nt.nodes.new('ShaderNodeBsdfPrincipled'); b.inputs['Roughness'].default_value=0.85
     o=nt.nodes.new('ShaderNodeOutputMaterial')
     nt.links.new(t.outputs['Color'], b.inputs['Base Color'])
@@ -386,6 +412,41 @@ def add_emotion(head, emotion, skin_path=None):
     pl.location=(0.0,-4.12,4.0)
     return pl
 
+# Winziger, scharfer Mund als hochaufgeloestes Overlay (feiner als das 8x8-Skin-Raster
+# -> "Minipixel"). Sitzt mittig unter den Augen.
+def add_mund(head, art):
+    if not art: return None
+    a=str(art).lower()
+    if a in ('keiner','none','weg','kein'): return None
+    W=64; px=[0.0]*(W*W*4)
+    def rect(x0,y0,x1,y1,col):  # y0=oben, scharfe Mini-Pixel
+        for yy in range(max(0,y0),min(W,y1)):
+            for xx in range(max(0,x0),min(W,x1)):
+                i=((W-1-yy)*W+xx)*4; px[i]=col[0]; px[i+1]=col[1]; px[i+2]=col[2]; px[i+3]=1.0
+    M=(0.42,0.36,0.38)
+    if a in ('striche','zwei','strich','neutral','laecheln','smile','freundlich'):
+        # zwei kleine gerade Striche nebeneinander (kein Panzer, nicht nach oben)
+        rect(27,48,31,50,M); rect(33,48,37,50,M)
+    elif a in ('o','ueberrascht','open','schock'):
+        rect(30,46,35,52,M); rect(31,48,34,51,(0.15,0.06,0.08))
+    else:
+        return None
+    img=bpy.data.images.new('mund',W,W,alpha=True); img.pixels=px
+    m=bpy.data.materials.new('mundmat'); m.use_nodes=True; m.blend_method='CLIP'
+    nt=m.node_tree; nt.nodes.clear()
+    t=nt.nodes.new('ShaderNodeTexImage'); t.image=img; t.interpolation='Closest'
+    b=nt.nodes.new('ShaderNodeBsdfPrincipled'); b.inputs['Roughness'].default_value=0.85
+    o=nt.nodes.new('ShaderNodeOutputMaterial')
+    nt.links.new(t.outputs['Color'], b.inputs['Base Color'])
+    nt.links.new(t.outputs['Alpha'], b.inputs['Alpha'])
+    nt.links.new(b.outputs['BSDF'], o.inputs['Surface'])
+    bpy.ops.mesh.primitive_plane_add(size=8); pl=bpy.context.active_object
+    pl.rotation_euler=(math.radians(90),0,0)
+    pl.data.materials.append(m)
+    pl.parent=head; pl.matrix_parent_inverse=Matrix.Identity(4)
+    pl.location=(0.0,-4.14,4.0)
+    return pl
+
 def make_part2(name,w,d,h,ztop,uvb,uvo,loc,mat,inflate=0.35):
     """Koerperteil MIT zweiter Ebene (Jacke/Aermel/Hose/Haare) - moderne 64x64-Skins.
     Die Overlay-Box ist leicht aufgeblasen und haengt am Basis-Teil (folgt der Pose)."""
@@ -394,32 +455,47 @@ def make_part2(name,w,d,h,ztop,uvb,uvo,loc,mat,inflate=0.35):
     ov.parent=base; ov.matrix_parent_inverse=Matrix.Identity(4); ov.location=(0,0,0)
     return base
 
+def make_limb(name,w,d,h,ox,oy,ovx,ovy,loc,mat,inflate=0.35):
+    """Gliedmaße mit GELENK: Ober- + Unterteil (Ellbogen/Knie), je mit zweiter Ebene.
+    Pivot oben = Schulter/Hüfte; Unterteil hängt am Ellbogen/Knie und dreht relativ dazu."""
+    hh=h/2.0
+    up =make_part(name+'_u', w,d,hh, 0, region_slice(ox,oy,w,d,h,'oben'), loc, mat)
+    upo=make_part(name+'_uo', w+2*inflate,d+2*inflate,hh+2*inflate, inflate, region_slice(ovx,ovy,w,d,h,'oben'),(0,0,0),mat)
+    upo.parent=up; upo.matrix_parent_inverse=Matrix.Identity(4); upo.location=(0,0,0)
+    lo =make_part(name+'_l', w,d,hh, 0, region_slice(ox,oy,w,d,h,'unten'),(0,0,0),mat)
+    lo.parent=up; lo.matrix_parent_inverse=Matrix.Identity(4); lo.location=(0,0,-hh)
+    loo=make_part(name+'_lo', w+2*inflate,d+2*inflate,hh+2*inflate, inflate, region_slice(ovx,ovy,w,d,h,'unten'),(0,0,0),mat)
+    loo.parent=lo; loo.matrix_parent_inverse=Matrix.Identity(4); loo.location=(0,0,0)
+    return {'u':up,'l':lo}
+
 def build_char(f):
     skin = _pfad(f.get('skin'))
     mat = hautmaterial(skin)
     head=make_part2('head',8,8,8,8,region(0,0,8,8,8),  region(32,0,8,8,8),  (0,0,24),mat,inflate=0.5)
     body=make_part2('body',8,4,12,12,region(16,16,8,4,12),region(16,32,8,4,12),(0,0,12),mat)
-    rarm=make_part2('rarm',4,4,12,0,region(40,16,4,4,12),region(40,32,4,4,12),(-6,0,24),mat)
-    larm=make_part2('larm',4,4,12,0,region(32,48,4,4,12),region(48,48,4,4,12),(6,0,24),mat)
-    rleg=make_part2('rleg',4,4,12,0,region(0,16,4,4,12), region(0,32,4,4,12), (-2,0,12),mat)
-    lleg=make_part2('lleg',4,4,12,0,region(16,48,4,4,12),region(0,48,4,4,12), (2,0,12),mat)
+    rarm=make_limb('rarm',4,4,12,40,16,40,32,(-6,0,24),mat)
+    larm=make_limb('larm',4,4,12,32,48,48,48,(6,0,24),mat)
+    rleg=make_limb('rleg',4,4,12,0,16,0,32,(-2,0,12),mat)
+    lleg=make_limb('lleg',4,4,12,16,48,0,48,(2,0,12),mat)
     limbs={'rarm':rarm,'larm':larm,'rleg':rleg,'lleg':lleg}
     # Reihenfolge: JSON-Pose (Datei) -> Preset -> explizite Gelenkwinkel (volle Freiheit)
     posename=f.get('pose','bereit')
     ang = dict(POSE_PRESETS.get(posename, POSE_PRESETS['bereit']))
     kopf_ang=ang.get('kopf'); pose_neigung=ang.get('neigung'); pose_zoff=ang.get('zoff'); gesicht=ang.get('gesicht')
+    GELENKE=('rarm','larm','rleg','lleg','rarm_l','larm_l','rleg_l','lleg_l')
     pj=lade_pose(posename)
     if pj:
-        for k in ('rarm','larm','rleg','lleg'):
+        for k in GELENKE:
             if k in pj: ang[k]=pj[k]
         if pj.get('kopf') is not None: kopf_ang=pj.get('kopf')
         if pj.get('neigung') is not None: pose_neigung=pj.get('neigung')
         if pj.get('gesicht'): gesicht=pj.get('gesicht')
         if pj.get('root_offset'): pose_zoff=pj['root_offset'][2] if len(pj['root_offset'])>2 else pose_zoff
-    for k in ('rarm','larm','rleg','lleg'):
+    for k in GELENKE:
         if k in f: ang[k]=f[k]
-    for k,ob in limbs.items():
-        ob.rotation_euler=_rad3(ang.get(k,0))
+    for k,seg in limbs.items():
+        seg['u'].rotation_euler=_rad3(ang.get(k,0))         # Ober (Schulter/Hüfte)
+        seg['l'].rotation_euler=_rad3(ang.get(k+'_l',0))    # Unter (Ellbogen/Knie)
     if kopf_ang is not None:
         head.rotation_euler=_rad3(kopf_ang)
     # Gesichtsausdruck NUR wenn ausdruecklich gewuenscht - Standard: echtes Skin-Gesicht
@@ -427,15 +503,15 @@ def build_char(f):
     if SPEC.get('gesichter_zeichnen'):
         try: add_face(head, f.get('gesicht', gesicht), skin)
         except Exception as e: print('WARN Gesicht:', e)
-    # Emotions-Tints standardmaessig AUS: aufgemalte rote Augen/Ringe passen bei der
-    # Skin-Aufloesung nicht (wirkt "wie ein Jahr geweint"). BastiGHG & z_olisw lassen
-    # das echte Gesicht neutral - Emotion kommt aus Pose/Szene/Licht. Nur bei Bedarf.
-    if SPEC.get('emotes_zeichnen'):
-        try: add_emotion(head, f.get('emotion'), skin)
-        except Exception as e: print('WARN Emotion:', e)
+    # Augen-Posen / Emotions-Overlay (weich, entsaettigt - wie BastiGHG-Referenz):
+    # nur wenn die Figur ausdruecklich 'emotion' oder 'augen' setzt, sonst echtes Gesicht.
+    try: add_emotion(head, f.get('emotion') or f.get('augen'), skin)
+    except Exception as e: print('WARN Emotion:', e)
+    try: add_mund(head, f.get('mund'))
+    except Exception as e: print('WARN Mund:', e)
     # Wurzel: Position + Blickrichtung + optionale Ganzkoerper-Neigung
     root=bpy.data.objects.new('root',None); scn.collection.objects.link(root)
-    for ob in [head,body,rarm,larm,rleg,lleg]:
+    for ob in [head,body,rarm['u'],larm['u'],rleg['u'],lleg['u']]:
         ob.parent=root; ob.matrix_parent_inverse=Matrix.Identity(4)
     pos=f.get('pos',[0,0]); drehung=f.get('drehung',0)
     neigung=f.get('neigung', pose_neigung if pose_neigung is not None else 0)
@@ -450,7 +526,7 @@ def build_char(f):
     if item and item!='none':
         p=_pfad(item if item.endswith('.png') else item+'.png')
         if os.path.exists(p):
-            add_item_3d(p, rarm, float(f.get('item_groesse',0.82))*gr)
+            add_item_3d(p, rarm['l'], float(f.get('item_groesse',0.82))*gr)
 
 # ---------------------------------------------------------------- Props
 def make_logo(pr):
@@ -618,8 +694,27 @@ SZENEN={
 }
 grund,himmel_u,himmel_o,sonne,sonnefarbe = SZENEN.get(SZENE, SZENEN['gras'])
 
-# Boden + Backdrop (nicht im Studio-/Transparent-Modus - da ist der Hintergrund dunkel/frei)
-if SZENE not in ('transparent','studio'):
+# BELIEBIGES HINTERGRUND-BILD (jede Minecraft-Szene: Biome/Nether/End/Trial-Chamber ...).
+# Grosse, selbstleuchtende Flaeche weit hinten, fuellt das 16:9-Bild; DoF macht sie weich.
+HB=_pfad(SPEC.get('hintergrund_bild')) if SPEC.get('hintergrund_bild') else None
+if HB and os.path.exists(HB):
+    img=bpy.data.images.load(HB)
+    bpy.ops.mesh.primitive_plane_add(size=1); bg=bpy.context.active_object
+    bg.rotation_euler=(math.radians(90),0,0)
+    bg.scale=(float(SPEC.get('hg_breite',380)),1,float(SPEC.get('hg_hoehe',214)))
+    bg.location=(0, float(SPEC.get('hg_abstand',150)), 55)
+    m=bpy.data.materials.new('hg'); m.use_nodes=True; nt=m.node_tree; nt.nodes.clear()
+    t=nt.nodes.new('ShaderNodeTexImage'); t.image=img; t.interpolation='Linear'
+    e=nt.nodes.new('ShaderNodeEmission'); e.inputs['Strength'].default_value=float(SPEC.get('hg_hell',1.0))
+    nt.links.new(t.outputs['Color'], e.inputs['Color'])
+    o=nt.nodes.new('ShaderNodeOutputMaterial'); nt.links.new(e.outputs['Emission'], o.inputs['Surface'])
+    bg.data.materials.append(m)
+    if SPEC.get('boden'):  # optionaler Boden fuer Standschatten
+        bpy.ops.mesh.primitive_plane_add(size=800, location=(0,0,0))
+        bpy.context.active_object.data.materials.append(farbmaterial(grund, rough=1.0))
+
+# Boden + Backdrop (nicht im Studio-/Transparent-Modus / nicht wenn Hintergrund-Bild da)
+elif SZENE not in ('transparent','studio'):
     bpy.ops.mesh.primitive_plane_add(size=800, location=(0,0,0))
     g=bpy.context.active_object; g.data.materials.append(farbmaterial(grund, rough=1.0))
     # Stehender Hintergrund mit senkrechtem Farbverlauf (Studio-Backdrop, gibt Tiefe)

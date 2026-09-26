@@ -3,7 +3,7 @@
   "beschreibung": "Angriff (Arm hoch)",
   "knochen": {
     "upper_arm.R": [
-      -150,
+      -165,
       0,
       0
     ],
@@ -13,12 +13,27 @@
       0
     ],
     "upper_leg.R": [
-      15,
+      18,
       0,
       0
     ],
     "upper_leg.L": [
       -15,
+      0,
+      0
+    ],
+    "lower_arm.R": [
+      -22,
+      0,
+      0
+    ],
+    "lower_arm.L": [
+      -30,
+      0,
+      0
+    ],
+    "spine": [
+      6,
       0,
       0
     ]

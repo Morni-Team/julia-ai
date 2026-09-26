@@ -3,9 +3,9 @@
   "beschreibung": "Hand zum Kinn, Kopf leicht geneigt",
   "knochen": {
     "upper_arm.R": [
-      -142,
+      -120,
       0,
-      22
+      16
     ],
     "upper_arm.L": [
       8,
@@ -19,6 +19,16 @@
     ],
     "upper_leg.L": [
       -2,
+      0,
+      0
+    ],
+    "lower_arm.R": [
+      -98,
+      0,
+      0
+    ],
+    "lower_arm.L": [
+      -10,
       0,
       0
     ],

@@ -3,13 +3,13 @@
   "beschreibung": "Laessig",
   "knochen": {
     "upper_arm.R": [
-      -18,
-      -30,
+      -16,
+      -24,
       0
     ],
     "upper_arm.L": [
-      -18,
-      30,
+      -16,
+      24,
       0
     ],
     "upper_leg.R": [
@@ -19,6 +19,16 @@
     ],
     "upper_leg.L": [
       -6,
+      0,
+      0
+    ],
+    "lower_arm.R": [
+      -38,
+      0,
+      0
+    ],
+    "lower_arm.L": [
+      -38,
       0,
       0
     ]

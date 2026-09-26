@@ -21,8 +21,17 @@
       -3,
       0,
       0
+    ],
+    "lower_arm.R": [
+      -9,
+      0,
+      0
+    ],
+    "lower_arm.L": [
+      -9,
+      0,
+      0
     ]
   },
-  "getestet": true,
-  "notizen": "Korrektur Philip 2026-09-26: Arm NICHT quer vor den Koerper drehen (sieht aus wie Wuergen). Zum Anlehnen die Figur per 'seitneigung' (negativ ~ -11) zum Schild kippen, Schulter beruehrt es; Arme locker."
+  "getestet": true
 }

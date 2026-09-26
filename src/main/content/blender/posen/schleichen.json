@@ -3,22 +3,42 @@
   "beschreibung": "Geduckt schleichen",
   "knochen": {
     "upper_arm.R": [
-      -14,
+      -16,
       0,
       0
     ],
     "upper_arm.L": [
-      14,
+      16,
       0,
       0
     ],
     "upper_leg.R": [
-      24,
+      36,
       0,
       0
     ],
     "upper_leg.L": [
-      24,
+      30,
+      0,
+      0
+    ],
+    "lower_arm.R": [
+      -22,
+      0,
+      0
+    ],
+    "lower_arm.L": [
+      -22,
+      0,
+      0
+    ],
+    "lower_leg.R": [
+      46,
+      0,
+      0
+    ],
+    "lower_leg.L": [
+      46,
       0,
       0
     ],
@@ -33,5 +53,10 @@
       0
     ]
   },
-  "getestet": true
+  "getestet": true,
+  "root_offset": [
+    0,
+    0,
+    -3
+  ]
 }

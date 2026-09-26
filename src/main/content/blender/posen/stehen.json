@@ -13,12 +13,32 @@
       0
     ],
     "upper_leg.R": [
-      0,
+      2,
       0,
       0
     ],
     "upper_leg.L": [
+      -2,
       0,
+      0
+    ],
+    "lower_arm.R": [
+      -9,
+      0,
+      0
+    ],
+    "lower_arm.L": [
+      -9,
+      0,
+      0
+    ],
+    "lower_leg.R": [
+      3,
+      0,
+      0
+    ],
+    "lower_leg.L": [
+      3,
       0,
       0
     ]

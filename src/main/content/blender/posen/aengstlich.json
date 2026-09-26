@@ -3,22 +3,42 @@
   "beschreibung": "Abwehrend, zurueckgelehnt",
   "knochen": {
     "upper_arm.R": [
-      -118,
+      -135,
       0,
-      10
+      8
     ],
     "upper_arm.L": [
-      -118,
+      -135,
       0,
-      -10
+      -8
     ],
     "upper_leg.R": [
-      -10,
+      -12,
       0,
       0
     ],
     "upper_leg.L": [
       16,
+      0,
+      0
+    ],
+    "lower_arm.R": [
+      -78,
+      0,
+      0
+    ],
+    "lower_arm.L": [
+      -78,
+      0,
+      0
+    ],
+    "lower_leg.R": [
+      22,
+      0,
+      0
+    ],
+    "lower_leg.L": [
+      10,
       0,
       0
     ],

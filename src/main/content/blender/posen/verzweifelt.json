@@ -3,14 +3,14 @@
   "beschreibung": "Hand am Kinn, andere am Arm, verzweifelt",
   "knochen": {
     "upper_arm.R": [
-      -142,
+      -135,
       0,
-      20
+      14
     ],
     "upper_arm.L": [
-      -72,
+      -135,
       0,
-      -38
+      -14
     ],
     "upper_leg.R": [
       4,
@@ -22,17 +22,26 @@
       0,
       0
     ],
+    "lower_arm.R": [
+      -88,
+      0,
+      0
+    ],
+    "lower_arm.L": [
+      -88,
+      0,
+      0
+    ],
     "spine": [
-      6,
+      10,
       0,
       0
     ],
     "head": [
-      10,
+      12,
       0,
       0
     ]
   },
-  "getestet": true,
-  "gesicht": "weinen"
+  "getestet": true
 }
