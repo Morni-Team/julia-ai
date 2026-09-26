@@ -16,6 +16,16 @@ steuert den PC und spielt Minecraft mit. Jede Aktion läuft durch die
 > `apps`-Werkzeug + VibeWorks-MCP-Login raus). Nicht wieder hinzufügen. Der generische
 > MCP-Server-Support und die Handy-Brücke (`appserver.js`) bleiben.
 
+> Hinweis (2026-09-26): Das **Content-Creation-Modul** (Content-Studio mit den Reitern
+> Schnitt, Planung, Thumbnails inkl. der 3D-Blender-Thumbnail-Pipeline) wurde auf
+> ausdrücklichen Wunsch **komplett entfernt** – gelöscht sind `src/main/content/` (samt
+> `blender/`), `src/renderer/content.js`/`content.css`, der „Content"-Tab + Section,
+> alle `content:*`-IPCs und Preload-Methoden, die `content`-Config und die
+> `test/content-*.test.js`. Nicht ohne neue Ansage wieder hinzufügen; ein eigenständiger
+> Neuanfang für das Thema ist separat geplant. (Übrig blieben bewusst die allgemeinen
+> Agent-Video-Werkzeuge `video_schneiden`/`videoschnitt` + `src/main/schnittprogramme.js`,
+> da sie nicht Teil des Content-Moduls sind.)
+
 ## Grundregeln beim Arbeiten
 
 - **„WAS IST WENN?"** – Immer den Fehlerfall zuerst denken. Kein Pfad darf zu einem

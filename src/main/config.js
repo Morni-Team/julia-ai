@@ -153,16 +153,6 @@ const STANDARD = {
     an: false, // Zugriff durch die Julia-Android-App im Heimnetz/VPN – standardmäßig aus
     port: 8770,
   },
-  content: {
-    // Content-Creation-Modul (eigenständiges Video-Erstellungs-Modul). Standard AUS,
-    // sauber gekapselt – ist es aus, wird der Menüpunkt ausgeblendet und nichts geladen.
-    aktiv: false,
-    modus: 'lokal', // 'lokal' (dieser PC) oder 'worker' (Laptop bedient Adobe, PC steuert)
-    tempo: 'normal', // Zuschauen-Modus: 'sofort' | 'normal' | 'zeitlupe'
-    bridge_port: 8771, // localhost-WebSocket, mit dem sich die Adobe-Plugins verbinden
-    worker_port: 8772, // LAN-Kanal Laptop<->PC (nur Heimnetz/VPN)
-    pfade: { premiere: '', aftereffects: '', photoshop: '', audition: '', media_encoder: '', whisper_modell: '', netzwerkfreigabe: '' },
-  },
   diagnose: {
     senden: false, // opt-in: bereinigte Diagnose-/Crash-Berichte an VibeWork melden dürfen (nie IP/Tokens)
   },
@@ -282,7 +272,6 @@ function pruefen(schluessel, wert) {
     case 'minecraft.sozial_verzoegern':
     case 'minecraft.chat_mitreden':
     case 'minecraft.chat_fortschritt':
-    case 'content.aktiv':
     case 'overlay.automatisch':
     case 'overlay.kompakt':
     case 'overlay.immer':
@@ -503,26 +492,6 @@ function pruefen(schluessel, wert) {
       return wert.map((p) => path.resolve(String(p)));
     case 'sandbox.ordner':
       return wert ? path.resolve(String(wert)) : '';
-    case 'content.modus':
-      if (!['lokal', 'worker'].includes(wert)) throw new Error("content.modus ist 'lokal' oder 'worker'.");
-      return wert;
-    case 'content.tempo':
-      if (!['sofort', 'normal', 'zeitlupe'].includes(wert)) throw new Error("content.tempo ist 'sofort', 'normal' oder 'zeitlupe'.");
-      return wert;
-    case 'content.bridge_port':
-    case 'content.worker_port':
-      return Math.round(zahl(wert, 1, 65535, 'Port'));
-    case 'content.pfade.premiere':
-    case 'content.pfade.aftereffects':
-    case 'content.pfade.photoshop':
-    case 'content.pfade.audition':
-    case 'content.pfade.media_encoder':
-    case 'content.pfade.whisper_modell':
-    case 'content.pfade.netzwerkfreigabe':
-      return wert ? String(wert).slice(0, 500) : '';
-    case 'content.pfade':
-      if (!istObjekt(wert)) throw new Error('content.pfade ist ein Objekt mit Programm-/Ordnerpfaden.');
-      return Object.fromEntries(Object.keys(STANDARD.content.pfade).map((k) => [k, wert[k] ? String(wert[k]).slice(0, 500) : '']));
     case 'modelle_ohne_bild':
       if (!Array.isArray(wert)) throw new Error('modelle_ohne_bild ist eine Liste von Modellnamen.');
       return [...new Set(wert.map((m) => String(m).trim()).filter(Boolean))];

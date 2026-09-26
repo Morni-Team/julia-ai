@@ -1,5 +1,8 @@
 # Changelog
 
+## 9.2.0 – 2026-09-26
+- Content-Studio (Schnitt, Planung, Thumbnails inkl. 3D-Blender) auf Wunsch komplett entfernt
+
 ## 9.1.1 – 2026-09-26
 - Repo-Check #44: harmlose Blender-Render-Befunde (try/except/pass, Deko-Zufall) sauber als nosec begruendet
 
