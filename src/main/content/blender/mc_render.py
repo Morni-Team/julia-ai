@@ -347,16 +347,23 @@ def add_face(head, expr, skin_path=None):
     pl.location=(0.0,-4.06,4.0)
     return pl
 
+def make_part2(name,w,d,h,ztop,uvb,uvo,loc,mat,inflate=0.35):
+    """Koerperteil MIT zweiter Ebene (Jacke/Aermel/Hose/Haare) - moderne 64x64-Skins.
+    Die Overlay-Box ist leicht aufgeblasen und haengt am Basis-Teil (folgt der Pose)."""
+    base=make_part(name,w,d,h,ztop,uvb,loc,mat)
+    ov=make_part(name+'_o', w+2*inflate, d+2*inflate, h+2*inflate, ztop+inflate, uvo, (0,0,0), mat)
+    ov.parent=base; ov.matrix_parent_inverse=Matrix.Identity(4); ov.location=(0,0,0)
+    return base
+
 def build_char(f):
     skin = _pfad(f.get('skin'))
     mat = hautmaterial(skin)
-    head=make_part('head',8,8,8,8,region(0,0,8,8,8),(0,0,24),mat)
-    hat =make_part('hat',9,9,9,9,region(32,0,8,8,8),(0,0,23.5),mat)
-    body=make_part('body',8,4,12,12,region(16,16,8,4,12),(0,0,12),mat)
-    rarm=make_part('rarm',4,4,12,0,region(40,16,4,4,12),(-6,0,24),mat)
-    larm=make_part('larm',4,4,12,0,region(32,48,4,4,12),(6,0,24),mat)
-    rleg=make_part('rleg',4,4,12,0,region(0,16,4,4,12),(-2,0,12),mat)
-    lleg=make_part('lleg',4,4,12,0,region(16,48,4,4,12),(2,0,12),mat)
+    head=make_part2('head',8,8,8,8,region(0,0,8,8,8),  region(32,0,8,8,8),  (0,0,24),mat,inflate=0.5)
+    body=make_part2('body',8,4,12,12,region(16,16,8,4,12),region(16,32,8,4,12),(0,0,12),mat)
+    rarm=make_part2('rarm',4,4,12,0,region(40,16,4,4,12),region(40,32,4,4,12),(-6,0,24),mat)
+    larm=make_part2('larm',4,4,12,0,region(32,48,4,4,12),region(48,48,4,4,12),(6,0,24),mat)
+    rleg=make_part2('rleg',4,4,12,0,region(0,16,4,4,12), region(0,32,4,4,12), (-2,0,12),mat)
+    lleg=make_part2('lleg',4,4,12,0,region(16,48,4,4,12),region(0,48,4,4,12), (2,0,12),mat)
     limbs={'rarm':rarm,'larm':larm,'rleg':rleg,'lleg':lleg}
     # Reihenfolge: JSON-Pose (Datei) -> Preset -> explizite Gelenkwinkel (volle Freiheit)
     posename=f.get('pose','bereit')
@@ -375,7 +382,7 @@ def build_char(f):
     for k,ob in limbs.items():
         ob.rotation_euler=_rad3(ang.get(k,0))
     if kopf_ang is not None:
-        head.rotation_euler=_rad3(kopf_ang); hat.rotation_euler=_rad3(kopf_ang)
+        head.rotation_euler=_rad3(kopf_ang)
     # Gesichtsausdruck NUR wenn ausdruecklich gewuenscht - Standard: echtes Skin-Gesicht
     # bleibt (Wunsch Philip: keine gezeichneten Grimassen). Emotion ueber Pose/Licht/Effekte.
     if SPEC.get('gesichter_zeichnen'):
@@ -383,7 +390,7 @@ def build_char(f):
         except Exception as e: print('WARN Gesicht:', e)
     # Wurzel: Position + Blickrichtung + optionale Ganzkoerper-Neigung
     root=bpy.data.objects.new('root',None); scn.collection.objects.link(root)
-    for ob in [head,hat,body,rarm,larm,rleg,lleg]:
+    for ob in [head,body,rarm,larm,rleg,lleg]:
         ob.parent=root; ob.matrix_parent_inverse=Matrix.Identity(4)
     pos=f.get('pos',[0,0]); drehung=f.get('drehung',0)
     neigung=f.get('neigung', pose_neigung if pose_neigung is not None else 0)
