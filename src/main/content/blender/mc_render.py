@@ -347,6 +347,45 @@ def add_face(head, expr, skin_path=None):
     pl.location=(0.0,-4.06,4.0)
     return pl
 
+# Subtile Emotions-Tints auf dem ECHTEN Gesicht (keine Grimasse): wuetend -> Augen
+# leicht geroetet, uebermuedet -> leichte Augenringe. Sehr dezent, low-alpha.
+def add_emotion(head, emotion, skin_path=None):
+    if not emotion: return None
+    e=str(emotion).lower()
+    if e in ('normal','keine','none'): return None
+    W=16; px=[0.0]*(W*W*4)  # transparent -> Original-Gesicht bleibt sichtbar
+    def tint(x0,y0,x1,y1,col,a):
+        for yy in range(max(0,y0),min(W,y1)):
+            for xx in range(max(0,x0),min(W,x1)):
+                i=((W-1-yy)*W+xx)*4
+                px[i]=col[0]; px[i+1]=col[1]; px[i+2]=col[2]; px[i+3]=max(px[i+3],a)
+    if e in ('wuetend','boese','angry','wut','sauer'):
+        tint(2,6,6,10,(0.80,0.08,0.05),0.44); tint(10,6,14,10,(0.80,0.08,0.05),0.44)   # gerötete Augen (satter, kein Blush)
+        tint(2,10,6,11,(0.70,0.12,0.08),0.12); tint(10,10,14,11,(0.70,0.12,0.08),0.12) # nur Hauch unter den Augen
+    elif e in ('muede','augenringe','tot','tired','uebermuedet','erschoepft'):
+        tint(2,9,6,12,(0.28,0.14,0.34),0.50); tint(10,9,14,12,(0.28,0.14,0.34),0.50)   # Augenringe
+    elif e in ('traurig','sad'):
+        tint(3,9,5,13,(0.28,0.5,0.92),0.34); tint(11,9,13,13,(0.28,0.5,0.92),0.34)     # feuchte Untertränen
+    elif e in ('krank','blass','uebel'):
+        tint(1,4,15,14,(0.45,0.72,0.45),0.16)                                          # blass-grünlich
+    else:
+        return None
+    img=bpy.data.images.new('emo',W,W,alpha=True); img.pixels=px
+    m=bpy.data.materials.new('emomat'); m.use_nodes=True; m.blend_method='BLEND'
+    nt=m.node_tree; nt.nodes.clear()
+    t=nt.nodes.new('ShaderNodeTexImage'); t.image=img; t.interpolation='Closest'
+    b=nt.nodes.new('ShaderNodeBsdfPrincipled'); b.inputs['Roughness'].default_value=0.85
+    o=nt.nodes.new('ShaderNodeOutputMaterial')
+    nt.links.new(t.outputs['Color'], b.inputs['Base Color'])
+    nt.links.new(t.outputs['Alpha'], b.inputs['Alpha'])
+    nt.links.new(b.outputs['BSDF'], o.inputs['Surface'])
+    bpy.ops.mesh.primitive_plane_add(size=8); pl=bpy.context.active_object
+    pl.rotation_euler=(math.radians(90),0,0)
+    pl.data.materials.append(m)
+    pl.parent=head; pl.matrix_parent_inverse=Matrix.Identity(4)
+    pl.location=(0.0,-4.12,4.0)
+    return pl
+
 def make_part2(name,w,d,h,ztop,uvb,uvo,loc,mat,inflate=0.35):
     """Koerperteil MIT zweiter Ebene (Jacke/Aermel/Hose/Haare) - moderne 64x64-Skins.
     Die Overlay-Box ist leicht aufgeblasen und haengt am Basis-Teil (folgt der Pose)."""
@@ -388,6 +427,12 @@ def build_char(f):
     if SPEC.get('gesichter_zeichnen'):
         try: add_face(head, f.get('gesicht', gesicht), skin)
         except Exception as e: print('WARN Gesicht:', e)
+    # Emotions-Tints standardmaessig AUS: aufgemalte rote Augen/Ringe passen bei der
+    # Skin-Aufloesung nicht (wirkt "wie ein Jahr geweint"). BastiGHG & z_olisw lassen
+    # das echte Gesicht neutral - Emotion kommt aus Pose/Szene/Licht. Nur bei Bedarf.
+    if SPEC.get('emotes_zeichnen'):
+        try: add_emotion(head, f.get('emotion'), skin)
+        except Exception as e: print('WARN Emotion:', e)
     # Wurzel: Position + Blickrichtung + optionale Ganzkoerper-Neigung
     root=bpy.data.objects.new('root',None); scn.collection.objects.link(root)
     for ob in [head,body,rarm,larm,rleg,lleg]:
